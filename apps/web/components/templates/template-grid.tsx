@@ -45,7 +45,7 @@ export function TemplateGrid() {
     <div className="flex flex-col flex-1">
       {/* Tab bar */}
       <div className="sticky top-[52px] z-10 bg-bg-base border-b border-border-default px-4">
-        <div className="flex gap-6 max-w-[960px] mx-auto">
+        <div className="page-content flex gap-6">
           {TABS.map((tab) => (
             <button
               key={tab.id}
@@ -70,8 +70,8 @@ export function TemplateGrid() {
       </div>
 
       {/* Template grid */}
-      <div className="flex-1 px-4 pt-4 pb-32">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-[960px] mx-auto">
+      <main className="page-content flex-1 flex flex-col pt-4 pb-32">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
           {filteredTemplates.map((template) => {
             const isSelected = selectedId === template.id
             return (
@@ -97,8 +97,8 @@ export function TemplateGrid() {
                 )}
 
                 {/* Bottom overlay with info */}
-                <div className="absolute bottom-0 left-0 right-0 h-2/5 bg-gradient-to-t from-black/55 to-transparent flex flex-col justify-end p-2.5">
-                  <span className="text-[11px] text-white/70 uppercase tracking-wide">
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent min-h-[72px] flex flex-col justify-end">
+                  <span className="text-[10px] text-white/70 uppercase tracking-wide leading-none mb-1">
                     {template.category}
                   </span>
                   <span className="text-[13px] text-white font-semibold leading-tight">
@@ -109,16 +109,16 @@ export function TemplateGrid() {
             )
           })}
         </div>
-      </div>
+      </main>
 
       {/* Sticky bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-[calc(16px+var(--safe-area-inset-bottom))] pt-3 bg-bg-base border-t border-border-default">
-        <div className="max-w-[960px] mx-auto">
+      <div className="sticky bottom-0 bg-bg-base border-t border-border-default py-3">
+        <div className="page-content">
           <button
             type="button"
             onClick={handleContinue}
             disabled={!selectedId}
-            className={`btn-primary w-full ${!selectedId ? 'opacity-50 pointer-events-none' : ''}`}
+            className="btn-primary"
           >
             Continue
           </button>
