@@ -11,9 +11,19 @@
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:all": "concurrently \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/api\"",
     "build": "npm run build --workspace=apps/web",
-    "lint": "npm run lint --workspace=apps/web"
+    "lint": "npm run lint --workspace=apps/web",
+    "lint:fix": "npm run lint:fix --workspace=apps/web"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "lucide-react": "^1.16.0",
+    "next-themes": "^0.4.6",
+    "react": "^19.0.0"
+  },
+  "overrides": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }
