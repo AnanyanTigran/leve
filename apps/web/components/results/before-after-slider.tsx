@@ -40,7 +40,7 @@ export function BeforeAfterSlider({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full aspect-square overflow-hidden rounded-md border border-border-default select-none ${className ?? ''}`}
+      className={`relative w-full aspect-square max-h-[420px] lg:max-h-[480px] overflow-hidden rounded-[12px] border border-border-default select-none cursor-col-resize ${className ?? ''}`}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -48,7 +48,7 @@ export function BeforeAfterSlider({
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
-      style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+      style={{ cursor: isDragging ? 'grabbing' : 'col-resize' }}
     >
       {/* Before layer */}
       <div className="absolute inset-0 bg-bg-elevated">
@@ -70,7 +70,7 @@ export function BeforeAfterSlider({
       {/* Divider line */}
       <div
         className="absolute top-0 bottom-0 w-[2px] bg-white z-10 pointer-events-none"
-        style={{ left: `${sliderPosition}%` }}
+        style={{ left: `${sliderPosition}%`, filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.3))' }}
       />
 
       {/* Drag handle */}

@@ -31,7 +31,7 @@ export function VariantGrid({ selectedId, onSelect, onRegenerate, className }: V
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 w-full">
         {VARIANTS.map((variant) => {
           const isSelected = selectedId === variant.id
           return (

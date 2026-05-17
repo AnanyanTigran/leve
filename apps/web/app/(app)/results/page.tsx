@@ -35,8 +35,8 @@ export default function ResultsPage() {
       />
 
       {/* Main scrollable content — padded to clear both fixed bars */}
-      <main className="flex-1 pb-[136px]">
-        <div className="max-w-[640px] mx-auto px-4 py-4 flex flex-col gap-4">
+      <main className="page-content flex-1 pb-36">
+        <div className="py-4 flex flex-col gap-4">
           <BeforeAfterSlider afterGradient={afterGradient} />
           <VariantGrid selectedId={selectedVariant} onSelect={setSelectedVariant} />
           <TextOverlaySection />
@@ -46,7 +46,7 @@ export default function ResultsPage() {
       {/* Paywall bar — fixed above BottomNav (h-16 = 64px) */}
       <div className="fixed bottom-16 left-0 right-0 z-30 bg-bg-base border-t border-border-default px-4 py-3">
         <div className="max-w-[640px] mx-auto flex items-center justify-between">
-          <span className="text-[12px] text-text-muted">2 free previews remaining</span>
+          <span className="text-[12px] text-text-muted font-ui">2 free previews remaining</span>
           <button onClick={() => setPaywallOpen(true)} className="btn-primary px-6">
             Unlock HD
           </button>
