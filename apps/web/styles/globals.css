@@ -88,13 +88,25 @@
 }
 
 @layer components {
-  /* Primary CTA — solid accent, white text, no border */
   .btn-primary {
-    @apply bg-accent text-white font-semibold rounded-md px-6 min-h-touch flex items-center justify-center transition-colors;
+    background-color: #D64C1A;
+    color: white;
+    font-weight: 600;
+    border-radius: 12px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 150ms ease;
   }
 
   .btn-primary:hover {
-    background-color: var(--accent-hover);
+    background-color: #E85A22;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    pointer-events: none;
   }
 
   /* Secondary CTA — no fill, border only */

@@ -146,7 +146,7 @@ export function UploadZone() {
               </>
             ) : (
               /* Centered default state content */
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6">
+              <div className="flex flex-col items-center justify-center h-full min-h-[320px] gap-3 text-center p-8">
                 <UploadCloud 
                   className={`w-12 h-12 transition-colors duration-150 ${
                     isDragging ? 'text-accent' : 'text-text-muted'

@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Zap, Package, CheckCircle } from 'lucide-react'
-import { AppHeader, ThemeToggle } from '@/components/shared/app-header'
+import { AppHeader } from '@/components/shared/app-header'
 import { IntentCard } from '@/components/landing/intent-card'
+import { ThemeToggle } from '../shared/theme-toggle'
 
 const INTENTS = [
   {

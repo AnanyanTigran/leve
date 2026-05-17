@@ -1,0 +1,92 @@
+'use client'
+
+import { useState, useRef, useCallback } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+
+interface BeforeAfterSliderProps {
+  afterGradient?: string
+  className?: string
+}
+
+export function BeforeAfterSlider({
+  afterGradient = 'linear-gradient(135deg, #fdf0eb, #f5d5c5)',
+  className,
+}: BeforeAfterSliderProps) {
+  const [sliderPosition, setSliderPosition] = useState(30)
+  const [isDragging, setIsDragging] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const updatePosition = useCallback((clientX: number) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const pct = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100))
+    setSliderPosition(pct)
+  }, [])
+
+  const onMouseDown = useCallback(() => setIsDragging(true), [])
+  const onMouseMove = useCallback(
+    (e: React.MouseEvent) => { if (isDragging) updatePosition(e.clientX) },
+    [isDragging, updatePosition]
+  )
+  const onMouseUp = useCallback(() => setIsDragging(false), [])
+  const onMouseLeave = useCallback(() => setIsDragging(false), [])
+  const onTouchStart = useCallback(() => setIsDragging(true), [])
+  const onTouchMove = useCallback(
+    (e: React.TouchEvent) => { if (isDragging) updatePosition(e.touches[0].clientX) },
+    [isDragging, updatePosition]
+  )
+  const onTouchEnd = useCallback(() => setIsDragging(false), [])
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative w-full aspect-square overflow-hidden rounded-md border border-border-default select-none ${className ?? ''}`}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseLeave}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+    >
+      {/* Before layer */}
+      <div className="absolute inset-0 bg-bg-elevated">
+        <span className="absolute top-3 left-3 text-[11px] text-text-secondary bg-white px-2 py-1 rounded-[6px] z-10 select-none">
+          Before
+        </span>
+      </div>
+
+      {/* After layer — clipped from the left to reveal the before side */}
+      <div
+        className="absolute inset-0"
+        style={{ background: afterGradient, clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+      >
+        <span className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none" style={{ background: '#D64C1A' }}>
+          After
+        </span>
+      </div>
+
+      {/* Divider line */}
+      <div
+        className="absolute top-0 bottom-0 w-[2px] bg-white z-10 pointer-events-none"
+        style={{ left: `${sliderPosition}%` }}
+      />
+
+      {/* Drag handle */}
+      <div
+        className="absolute z-20 w-12 h-12 rounded-full flex items-center justify-center gap-0.5 pointer-events-none"
+        style={{
+          left: `${sliderPosition}%`,
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: '#D64C1A',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        }}
+      >
+        <ChevronLeft className="w-3.5 h-3.5 text-white" />
+        <ChevronRight className="w-3.5 h-3.5 text-white" />
+      </div>
+    </div>
+  )
+}
