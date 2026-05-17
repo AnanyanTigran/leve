@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { LandingContent } from '@/components/landing/landing-content'
 
 export default function RootPage() {
-  redirect('/intent')
+  return <LandingContent />
 }
