@@ -10,11 +10,11 @@ export default function DownloadSuccessPage() {
 
   return (
     <div className="min-h-screen bg-bg-base">
-      <div className="max-w-[640px] mx-auto px-4 py-8">
+      <main className="page-funnel py-8">
         {/* Generated image placeholder */}
         <div
-          className="relative w-full aspect-[4/5] rounded-[16px] overflow-hidden border border-border-default"
-          style={{ background: 'linear-gradient(135deg, #fdf0eb, #f5d5c5)' }}
+          className="w-full rounded-[16px] overflow-hidden border border-border-default relative max-h-[50vh] lg:max-h-[480px]"
+          style={{ background: 'linear-gradient(135deg, #fdf0eb, #f5d5c5)', minHeight: '240px' }}
         >
           <span className="absolute top-3 right-3 bg-[#D64C1A] text-white text-[11px] font-semibold px-2 py-1 rounded-md">
             HD
@@ -22,11 +22,13 @@ export default function DownloadSuccessPage() {
         </div>
 
         <div className="mt-6">
-          <h1 className="text-[24px] font-display font-semibold text-text-primary">Your image is ready</h1>
+          <h1 className="text-[24px] font-display font-semibold text-text-primary">
+            Your image is ready
+          </h1>
           <p className="text-[14px] text-text-muted mt-1">Full resolution · No watermark</p>
         </div>
 
-        <button className="btn-primary w-full h-14 text-[16px] mt-6 gap-2">
+        <button className="btn-primary h-14 text-[16px] mt-6 gap-2">
           <Download className="w-[18px] h-[18px]" />
           Download HD image
         </button>
@@ -56,7 +58,7 @@ export default function DownloadSuccessPage() {
             />
           </div>
 
-          <button className="btn-secondary w-full mt-3">Send code</button>
+          <button className="btn-secondary mt-3">Send code</button>
           <p className="text-[11px] text-text-muted text-center mt-2">
             We&apos;ll never spam you · Only for session recovery
           </p>
@@ -71,7 +73,7 @@ export default function DownloadSuccessPage() {
         >
           Generate another →
         </button>
-      </div>
+      </main>
     </div>
   )
 }
