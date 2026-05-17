@@ -92,36 +92,34 @@ export function UploadZone() {
 
   return (
     <div className="flex flex-col flex-1">
-      {/* Content container with max-width */}
-      <div className="flex flex-col flex-1 max-w-[640px] mx-auto w-full px-4 lg:grid lg:grid-cols-2 lg:max-w-[960px] lg:gap-8 lg:py-8">
-        {/* Upload Zone */}
-        <div className="flex flex-col flex-1 pt-4 lg:pt-0">
+      <main className="page-funnel flex-1 flex flex-col py-4 gap-4">
+        {/* Desktop two-column wrapper */}
+        <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start flex-1 flex flex-col lg:flex-none">
+
+          {/* Upload zone */}
           <div
             onClick={() => !fileState && inputRef.current?.click()}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`
-              relative flex flex-col flex-1 min-h-[300px] lg:min-h-[400px] rounded-[14px] overflow-hidden
-              transition-all duration-150 ease-out
-              ${fileState 
-                ? 'border-0' 
-                : isDragging 
-                  ? 'border-[1.5px] border-solid border-accent bg-accent-subtle cursor-pointer' 
-                  : 'border-[1.5px] border-dashed border-border-default bg-bg-base cursor-pointer'
-              }
-            `}
+            className={[
+              'relative flex flex-col rounded-[14px] overflow-hidden transition-all duration-150 ease-out',
+              'flex-1 min-h-[300px] lg:min-h-[420px]',
+              fileState
+                ? 'border-0'
+                : isDragging
+                ? 'border-[1.5px] border-solid border-accent bg-accent-subtle cursor-pointer'
+                : 'border-[1.5px] border-dashed border-border-default bg-bg-base cursor-pointer',
+            ].join(' ')}
           >
             {fileState ? (
               <>
-                {/* Image preview */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={fileState.preview}
                   alt="Preview"
                   className="absolute inset-0 w-full h-full object-cover rounded-[14px]"
                 />
-                
-                {/* Remove button */}
                 <button
                   type="button"
                   onClick={(e) => {
@@ -133,8 +131,6 @@ export function UploadZone() {
                 >
                   <X className="w-5 h-5 text-white" />
                 </button>
-
-                {/* Bottom gradient overlay with file info */}
                 <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-3">
                   <span className="text-[13px] text-white font-medium truncate">
                     {fileState.file.name}
@@ -145,29 +141,24 @@ export function UploadZone() {
                 </div>
               </>
             ) : (
-              /* Centered default state content */
-              <div className="flex flex-col items-center justify-center h-full min-h-[320px] gap-3 text-center p-8">
-                <UploadCloud 
+              <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[420px] gap-3 text-center p-8">
+                <UploadCloud
                   className={`w-12 h-12 transition-colors duration-150 ${
                     isDragging ? 'text-accent' : 'text-text-muted'
-                  }`} 
+                  }`}
                 />
                 <div className="flex flex-col items-center">
-                  <span 
+                  <span
                     className={`text-[16px] font-semibold transition-colors duration-150 ${
                       isDragging ? 'text-accent' : 'text-text-primary'
                     }`}
                   >
                     Tap to choose a photo
                   </span>
-                  <span className="text-[14px] text-text-muted mt-1">
-                    or drag and drop
-                  </span>
+                  <span className="text-[14px] text-text-muted mt-1">or drag and drop</span>
                 </div>
                 <hr className="w-16 border-border-default my-2" />
-                <span className="text-[12px] text-text-muted">
-                  JPEG · PNG · WEBP · Max 20MB
-                </span>
+                <span className="text-[12px] text-text-muted">JPEG · PNG · WEBP · Max 20MB</span>
               </div>
             )}
 
@@ -180,55 +171,51 @@ export function UploadZone() {
             />
           </div>
 
-          {/* Validation error */}
-          {error && (
-            <div className="flex items-center gap-2 mt-3 px-1">
-              <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0" />
-              <span className="text-[13px] text-[#DC2626]">{error}</span>
+          {/* Desktop tips panel */}
+          <div className="hidden lg:flex lg:flex-col bg-bg-surface border border-border-default rounded-[12px] p-5 self-start lg:sticky lg:top-4">
+            <h3 className="text-[16px] font-semibold text-text-primary mb-5">For best results</h3>
+            <div className="flex flex-col gap-4">
+              {[
+                'Use natural or studio lighting',
+                'Keep the product centered',
+                'Avoid busy backgrounds',
+                'Minimum 800×800px resolution',
+              ].map((tip) => (
+                <div key={tip} className="flex items-start gap-3">
+                  <CheckCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                  <span className="text-[14px] text-text-secondary">{tip}</span>
+                </div>
+              ))}
             </div>
-          )}
-
-          {/* Trust badges */}
-          <div className="flex flex-col items-center mt-4 gap-1">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-text-muted" />
-              <span className="text-[12px] text-text-muted">No account needed</span>
-            </div>
-            <span className="text-[11px] text-text-muted">
-              Your photo is deleted after 48 hours
-            </span>
           </div>
         </div>
 
-        {/* Desktop tips panel */}
-        <div className="hidden lg:flex lg:flex-col bg-bg-surface border border-border-default rounded-md p-6 h-fit">
-          <h3 className="text-[16px] font-semibold text-text-primary mb-5">
-            For best results
-          </h3>
-          <div className="flex flex-col gap-4">
-            {[
-              'Use natural or studio lighting',
-              'Keep the product centered',
-              'Avoid busy backgrounds',
-              'Minimum 800×800px resolution',
-            ].map((tip) => (
-              <div key={tip} className="flex items-start gap-3">
-                <CheckCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                <span className="text-[14px] text-text-secondary">{tip}</span>
-              </div>
-            ))}
+        {/* Validation error */}
+        {error && (
+          <div className="flex items-center gap-2 px-1">
+            <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0" />
+            <span className="text-[13px] text-[#DC2626]">{error}</span>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Sticky bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-[calc(16px+var(--safe-area-inset-bottom))] pt-3 bg-bg-base">
-        <div className="max-w-[640px] mx-auto">
+        {/* Trust badges — centered on all sizes */}
+        <div className="flex flex-col items-center gap-1 py-2">
+          <p className="flex items-center gap-1.5 text-[12px] text-text-muted">
+            <ShieldCheck size={14} />
+            No account needed
+          </p>
+          <p className="text-[11px] text-text-muted">Your photo is deleted after 48 hours</p>
+        </div>
+      </main>
+
+      {/* Sticky bottom bar */}
+      <div className="sticky bottom-0 bg-bg-base border-t border-border-default py-3 safe-bottom">
+        <div className="page-funnel">
           <button
             type="button"
             onClick={handleContinue}
             disabled={!isValid}
-            className={`btn-primary w-full ${!isValid ? 'opacity-50 pointer-events-none' : ''}`}
+            className="btn-primary"
           >
             Continue
           </button>
