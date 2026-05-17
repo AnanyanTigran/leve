@@ -56,14 +56,9 @@ export function ProcessingScreen() {
         }
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8 max-w-[640px] mx-auto w-full">
-        {/* Photo preview with pulsing accent ring */}
-        <div className="relative">
-          <div className="absolute -inset-[3px] rounded-[19px]" style={{ opacity: 0.35 }}>
-            <div className="w-full h-full rounded-[19px] bg-[#D64C1A] animate-pulse" />
-          </div>
-          <div className="relative w-[240px] h-[240px] rounded-[16px] bg-bg-elevated overflow-hidden" />
-        </div>
+      <main className="page-funnel flex-1 flex flex-col items-center justify-center py-12 gap-8">
+        {/* Photo preview with pulsing glow */}
+        <div className="w-[240px] h-[240px] rounded-[16px] bg-bg-elevated overflow-hidden processing-glow" />
 
         {/* Phase text with fade transition */}
         <p
@@ -73,7 +68,7 @@ export function ProcessingScreen() {
           {PHASES[phaseIndex]}
         </p>
 
-        {/* Progress bar + time estimate */}
+        {/* Progress bar + time estimate — full width of page-funnel */}
         <div className="w-full flex flex-col gap-3">
           <div className="w-full h-[3px] rounded-[2px] bg-bg-elevated overflow-hidden">
             <div
@@ -88,7 +83,7 @@ export function ProcessingScreen() {
             This takes about 15–20 seconds
           </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
