@@ -33,19 +33,19 @@ const SHOWCASE_CARDS = [
     category: 'Jewelry',
     template: 'Jewelry Luxury',
     leftBg: '#E8E8E8',
-    rightBg: 'linear-gradient(135deg, #1a1a2e, #2d1b4e)',
+    rightBg: 'linear-gradient(135deg, #f0ebe4, #e2d5c8)',
   },
   {
     category: 'Beauty',
     template: 'Luxury Cosmetics',
     leftBg: '#E8E8E8',
-    rightBg: 'linear-gradient(135deg, #2d1b1b, #4e1b1b)',
+    rightBg: 'linear-gradient(135deg, #fef0eb, #fad5c4)',
   },
   {
     category: 'Marketplace',
     template: 'Wildberries Standard',
     leftBg: '#E8E8E8',
-    rightBg: 'linear-gradient(135deg, #f0f0f0, #e0e0e0)',
+    rightBg: '#FAFAFA',
   },
 ] as const
 
@@ -89,7 +89,7 @@ export function LandingContent() {
       <main className="flex-1">
         {/* SECTION 1 — Hero */}
         <section className="px-4 pt-12 pb-8 lg:pt-16">
-          <div className="w-full max-w-[560px] mx-auto">
+          <div className="mb-8 lg:mb-12 lg:text-center w-full max-w-[560px] mx-auto">
             <p className="text-xs font-ui font-medium text-accent uppercase tracking-[0.15em] mb-3">
               AI product photography
             </p>
@@ -98,7 +98,7 @@ export function LandingContent() {
               <br />
               Studio quality.
             </h1>
-            <p className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg">
+            <p className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg lg:mx-auto">
               Upload a photo. Choose a style. Done in 30 seconds.
             </p>
 
@@ -115,17 +115,11 @@ export function LandingContent() {
                 />
               ))}
             </div>
-          </div>
-        </section>
 
-        {/* SECTION 2 — Social proof strip */}
-        <section className="bg-bg-surface border-y border-border-default py-4">
-          <p className="text-center text-sm font-ui text-text-muted">
-            Used by sellers on{' '}
-            <span className="font-medium">Instagram</span> ·{' '}
-            <span className="font-medium">Wildberries</span> ·{' '}
-            <span className="font-medium">Ozon</span>
-          </p>
+            <p className="text-center text-[12px] text-text-muted mt-4 font-ui">
+              Trusted by sellers on Instagram · Wildberries · Ozon
+            </p>
+          </div>
         </section>
 
         {/* SECTION 3 — Before/After showcase */}
@@ -145,7 +139,7 @@ export function LandingContent() {
                   className="bg-bg-surface border border-border-default rounded-md overflow-hidden"
                 >
                   {/* Before/After split */}
-                  <div className="relative flex h-40">
+                  <div className="relative flex h-[180px]">
                     {/* Before side */}
                     <div
                       className="relative flex-1"
@@ -159,7 +153,7 @@ export function LandingContent() {
                     <div className="w-px bg-white" />
                     {/* After side */}
                     <div
-                      className="relative flex-1"
+                      className={`relative flex-1${card.category === 'Marketplace' ? ' border border-border-default' : ''}`}
                       style={{ background: card.rightBg }}
                     >
                       <span className="absolute top-2 right-2 bg-accent text-white text-[11px] font-ui px-2 py-1 rounded-[10px]">
