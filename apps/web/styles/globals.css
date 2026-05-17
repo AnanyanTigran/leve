@@ -43,6 +43,26 @@
   --accent-border: #5A2010;
 }
 
+@keyframes scale-in {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(214, 76, 26, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(214, 76, 26, 0.15);
+  }
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -90,28 +110,88 @@
 @layer components {
   .btn-primary {
     background-color: #D64C1A;
-    color: white;
+    color: #FFFFFF;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
+    font-size: 16px;
     border-radius: 12px;
     min-height: 48px;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 150ms ease;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 150ms ease, transform 100ms ease;
   }
 
   .btn-primary:hover {
     background-color: #E85A22;
   }
 
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+
   .btn-primary:disabled {
     opacity: 0.4;
     pointer-events: none;
+    cursor: not-allowed;
   }
 
-  /* Secondary CTA — no fill, border only */
   .btn-secondary {
-    @apply border border-border-default text-text-primary font-semibold rounded-md px-6 min-h-touch flex items-center justify-center transition-colors bg-transparent;
+    background-color: transparent;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    border-radius: 12px;
+    min-height: 48px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1.5px solid var(--border-default);
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--border-strong);
+    background-color: var(--bg-surface);
+  }
+
+  .btn-secondary:active {
+    transform: scale(0.97);
+  }
+
+  /* Standard page layout wrappers */
+  .page-funnel {
+    /* For single-task screens: upload, processing, download */
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .page-content {
+    /* For content/grid screens: templates, results, history */
+    max-width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Processing screen glow */
+  .processing-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+    border: 2px solid rgba(214, 76, 26, 0.3);
   }
 
   /* Skeleton shimmer for loading states */
