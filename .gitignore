@@ -34,3 +34,7 @@ prisma/migrations/
 
 # Turbo
 .turbo/
+
+# TypeScript build cache
+*.tsbuildinfo
+tsconfig.tsbuildinfo

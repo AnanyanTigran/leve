@@ -32,8 +32,9 @@ export function BeforeAfterSlider({
   const onMouseLeave = useCallback(() => setIsDragging(false), [])
   const onTouchStart = useCallback(() => setIsDragging(true), [])
   const onTouchMove = useCallback(
-    (e: React.TouchEvent) => { if (isDragging) updatePosition(e.touches[0].clientX) },
-    [isDragging, updatePosition]
+    (e: React.TouchEvent) => {
+      if (isDragging && e.touches[0]) updatePosition(e.touches[0].clientX)
+    },    [isDragging, updatePosition]
   )
   const onTouchEnd = useCallback(() => setIsDragging(false), [])
 
