@@ -1,12 +1,18 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Phone, ImageIcon } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { BottomNav } from '@/components/shared/bottom-nav'
+import { isVerified } from '@/lib/session'
 
 export default function HistoryPage() {
   const router = useRouter()
+
+  useEffect(() => {
+    if (!isVerified()) router.replace('/register')
+  }, [router])
 
   return (
     <div className="flex flex-col min-h-screen bg-bg-base">
