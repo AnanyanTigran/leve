@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { AppHeader } from '@/components/shared/app-header'
 import { isVerified } from '@/lib/session'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -19,12 +20,18 @@ const VARIANT_GRADIENTS: Record<number, string> = {
 
 export default function ResultsPage() {
   const router = useRouter()
+  const t = useTranslations('results')
+  const tPaywall = useTranslations('paywall')
   const [selectedVariant, setSelectedVariant] = useState(1)
   const [paywallOpen, setPaywallOpen] = useState(false)
 
   useEffect(() => {
     if (!isVerified()) router.replace('/')
   }, [router])
+
+  const freeCredits = typeof window !== 'undefined'
+    ? Number(sessionStorage.getItem('leve_free_credits') ?? 2)
+    : 2
 
   const afterGradient = VARIANT_GRADIENTS[selectedVariant] ?? VARIANT_GRADIENTS[1]
 
@@ -33,15 +40,14 @@ export default function ResultsPage() {
       <AppHeader
         variant="app"
         showBack={false}
-        title="Your results"
+        title={t('title')}
         rightSlot={
           <button className="text-[13px] text-accent font-ui font-semibold">
-            Share
+            {t('share')}
           </button>
         }
       />
 
-      {/* Main scrollable content — padded to clear both fixed bars */}
       <main className="page-content flex-1 pb-36">
         <div className="py-4 flex flex-col gap-4">
           <BeforeAfterSlider afterGradient={afterGradient} />
@@ -50,12 +56,14 @@ export default function ResultsPage() {
         </div>
       </main>
 
-      {/* Paywall bar — fixed above BottomNav (h-16 = 64px) */}
+      {/* Paywall bar — fixed above BottomNav */}
       <div className="fixed bottom-16 left-0 right-0 z-30 bg-bg-base border-t border-border-default px-4 py-3">
         <div className="max-w-[640px] mx-auto flex items-center justify-between">
-          <span className="text-[12px] text-text-muted font-ui">2 free previews remaining</span>
+          <span className="text-[12px] text-text-muted font-ui">
+            {t('free_bar', { count: freeCredits })}
+          </span>
           <button onClick={() => setPaywallOpen(true)} className="btn-primary px-6">
-            Unlock HD
+            {tPaywall('title')}
           </button>
         </div>
       </div>

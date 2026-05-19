@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { CheckCircle } from 'lucide-react'
 import { RefinementPanel } from './refinement-panel'
 import { isVerified } from '@/lib/session'
@@ -29,30 +30,22 @@ const CATEGORY_TO_TAB: Record<string, string> = {
   custom: 'all',
 }
 
-function buildTabs(selectedCategory: ProductCategory | null) {
-  const all = [
-    { id: 'all', label: 'All' },
-    { id: 'beauty', label: 'Beauty' },
-    { id: 'retail', label: 'Retail' },
-    { id: 'marketplace', label: 'Marketplace' },
-  ]
+const TAB_IDS = ['all', 'beauty', 'retail', 'marketplace'] as const
+type TabId = typeof TAB_IDS[number]
 
-  if (!selectedCategory) return all
-
-  const preferredTab = CATEGORY_TO_TAB[selectedCategory] ?? 'all'
-  if (preferredTab === 'all') return all
-
-  // Move the preferred tab first
-  return [
-    all.find((t) => t.id === preferredTab)!,
-    ...all.filter((t) => t.id !== preferredTab),
-  ]
+function buildTabOrder(selectedCategory: ProductCategory | null): TabId[] {
+  if (!selectedCategory) return [...TAB_IDS]
+  const preferred = (CATEGORY_TO_TAB[selectedCategory] ?? 'all') as TabId
+  if (preferred === 'all') return [...TAB_IDS]
+  return [preferred, ...TAB_IDS.filter((t) => t !== preferred)]
 }
 
 export function TemplateGrid() {
   const router = useRouter()
+  const t = useTranslations('templates')
+  const tCommon = useTranslations('common')
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(null)
-  const [activeTab, setActiveTab] = useState('all')
+  const [activeTab, setActiveTab] = useState<TabId>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedChips, setSelectedChips] = useState<string[]>([])
   const [customText, setCustomText] = useState('')
@@ -62,16 +55,23 @@ export function TemplateGrid() {
     const cat = sessionStorage.getItem('leve_category') as ProductCategory | null
     if (cat) {
       setSelectedCategory(cat)
-      const tab = CATEGORY_TO_TAB[cat] ?? 'all'
+      const tab = (CATEGORY_TO_TAB[cat] ?? 'all') as TabId
       setActiveTab(tab)
     }
   }, [router])
 
-  const tabs = useMemo(() => buildTabs(selectedCategory), [selectedCategory])
+  const tabOrder = useMemo(() => buildTabOrder(selectedCategory), [selectedCategory])
+
+  const TAB_LABELS: Record<TabId, string> = {
+    all: t('tab_all'),
+    beauty: t('tab_beauty'),
+    retail: t('tab_retail'),
+    marketplace: t('tab_marketplace'),
+  }
 
   const filteredTemplates = useMemo(() => {
     if (activeTab === 'all') return TEMPLATES
-    return TEMPLATES.filter((t) => t.category === activeTab)
+    return TEMPLATES.filter((tmpl) => tmpl.category === activeTab)
   }, [activeTab])
 
   const handleContinue = useCallback(() => {
@@ -87,22 +87,22 @@ export function TemplateGrid() {
       {/* Tab bar */}
       <div className="sticky top-[52px] z-10 bg-bg-base border-b border-border-default px-4">
         <div className="page-content flex gap-6">
-          {tabs.map((tab) => (
+          {tabOrder.map((tabId) => (
             <button
-              key={tab.id}
+              key={tabId}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setActiveTab(tabId)}
               className={`
                 relative pb-3 pt-2 text-[14px] font-medium transition-colors
-                ${activeTab === tab.id ? 'text-text-primary' : 'text-text-muted hover:text-text-secondary'}
+                ${activeTab === tabId ? 'text-text-primary' : 'text-text-muted hover:text-text-secondary'}
               `}
             >
-              {tab.label}
+              {TAB_LABELS[tabId]}
               <span
                 className={`
                   absolute bottom-0 left-0 right-0 h-0.5 bg-accent rounded-full
                   transition-transform duration-150 origin-bottom
-                  ${activeTab === tab.id ? 'scale-y-100' : 'scale-y-0'}
+                  ${activeTab === tabId ? 'scale-y-100' : 'scale-y-0'}
                 `}
               />
             </button>
@@ -148,7 +148,6 @@ export function TemplateGrid() {
           })}
         </div>
 
-        {/* Refinement panel — slides in when template selected */}
         {selectedId && selectedCategory && (
           <RefinementPanel
             category={selectedCategory}
@@ -174,7 +173,7 @@ export function TemplateGrid() {
             disabled={!selectedId}
             className="btn-primary btn-full"
           >
-            Continue
+            {tCommon('continue')}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CREDIT_PACKAGES } from '@/lib/constants'
@@ -16,6 +17,7 @@ interface PaywallSheetProps {
 
 export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
   const router = useRouter()
+  const t = useTranslations('paywall')
   const [paywallState, setPaywallState] = useState<PaywallState>('pricing')
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('creator')
   const [isDesktop, setIsDesktop] = useState(false)
@@ -29,15 +31,15 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
 
   useEffect(() => {
     if (!isOpen) {
-      const t = setTimeout(() => setPaywallState('pricing'), 350)
-      return () => clearTimeout(t)
+      const timer = setTimeout(() => setPaywallState('pricing'), 350)
+      return () => clearTimeout(timer)
     }
   }, [isOpen])
 
   useEffect(() => {
     if (paywallState !== 'processing') return
-    const t = setTimeout(() => setPaywallState('success'), 2500)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setPaywallState('success'), 2500)
+    return () => clearTimeout(timer)
   }, [paywallState])
 
   function handlePayment() {
@@ -48,8 +50,8 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
     <>
       {paywallState === 'pricing' && (
         <div className="px-4 pb-8 lg:px-6 lg:pb-6">
-          <h2 className="text-[20px] font-semibold text-text-primary">Unlock HD Download</h2>
-          <p className="text-[13px] text-text-muted mt-1">Watermark-free · Full resolution</p>
+          <h2 className="text-[20px] font-semibold text-text-primary">{t('title')}</h2>
+          <p className="text-[13px] text-text-muted mt-1">{t('subtitle')}</p>
 
           <div className="mt-6 flex flex-col gap-3">
             {CREDIT_PACKAGES.map((pkg) => {
@@ -68,17 +70,19 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
                   )}
                 >
                   <p className="text-[16px] font-semibold text-text-primary">
-                    {pkg.images} images{pkg.isMonthly ? ' / month' : ''}
+                    {pkg.isMonthly
+                      ? t('images_month', { count: pkg.images })
+                      : t('images', { count: pkg.images })}
                   </p>
                   <p className="text-[26px] font-display font-semibold text-accent mt-1">
                     {pkg.priceAMD.toLocaleString()} ֏
                   </p>
-                  <p className="text-[12px] text-text-muted">{pkg.perImageAMD} ֏ per image</p>
+                  <p className="text-[12px] text-text-muted">{pkg.perImageAMD} {t('per_image')}</p>
                   {isCheapest && (
-                    <p className="text-[11px] text-accent mt-0.5">Lowest cost per image</p>
+                    <p className="text-[11px] text-accent mt-0.5">{t('lowest_cost')}</p>
                   )}
                   {pkg.isMonthly && (
-                    <p className="text-[11px] text-text-muted mt-0.5">Resets monthly</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">{t('resets_monthly')}</p>
                   )}
                 </button>
               )
@@ -86,24 +90,19 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
           </div>
 
           <div className="mt-6 flex flex-col gap-2">
-            <button
-              onClick={handlePayment}
-              className="btn-primary btn-full"
-            >
-              Pay with Idram
+            <button onClick={handlePayment} className="btn-primary btn-full">
+              {t('pay_idram')}
             </button>
             <button
               onClick={handlePayment}
               className="w-full border border-border-default rounded-[12px] h-12 flex items-center justify-between px-4 hover:border-border-strong hover:bg-bg-surface transition-colors"
             >
-              <span className="text-[15px] font-semibold text-text-primary">Pay with Telcell</span>
+              <span className="text-[15px] font-semibold text-text-primary">{t('pay_telcell')}</span>
               <span className="text-[11px] text-text-muted">Wallet</span>
             </button>
           </div>
 
-          <p className="mt-4 text-center text-[11px] text-text-muted">
-            Secure payment · AMD only
-          </p>
+          <p className="mt-4 text-center text-[11px] text-text-muted">{t('secure')}</p>
         </div>
       )}
 
@@ -111,9 +110,9 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
         <div className="flex flex-col items-center justify-center py-12 gap-5 px-4 pb-8">
           <div className="w-16 h-16 rounded-full border-4 border-bg-elevated border-t-accent animate-spin" />
           <div className="text-center">
-            <p className="text-[16px] font-semibold text-text-primary">Processing payment...</p>
-            <p className="text-[13px] text-text-muted mt-1">Complete in the Idram app</p>
-            <p className="text-[12px] text-text-muted mt-1">Don&apos;t close this screen</p>
+            <p className="text-[16px] font-semibold text-text-primary">{t('processing_title')}</p>
+            <p className="text-[13px] text-text-muted mt-1">{t('processing_idram')}</p>
+            <p className="text-[12px] text-text-muted mt-1">{t('processing_warning')}</p>
           </div>
         </div>
       )}
@@ -127,14 +126,14 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
             <CheckCircle size={32} className="text-[#16A34A]" />
           </div>
           <div className="text-center">
-            <p className="text-[18px] font-semibold text-text-primary">Payment confirmed!</p>
-            <p className="text-[14px] text-text-secondary mt-1">Your HD image is ready</p>
+            <p className="text-[18px] font-semibold text-text-primary">{t('success_title')}</p>
+            <p className="text-[14px] text-text-secondary mt-1">{t('success_subtitle')}</p>
           </div>
           <button
             className="btn-primary btn-full mt-2"
             onClick={() => { onClose(); router.push('/download/success') }}
           >
-            Download HD image
+            {t('download_hd')}
           </button>
         </div>
       )}
@@ -145,14 +144,16 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
             <XCircle size={32} className="text-[#DC2626]" />
           </div>
           <div className="text-center">
-            <p className="text-[18px] font-semibold text-text-primary">Payment not completed</p>
-            <p className="text-[14px] text-text-secondary mt-1">
-              Your designs are saved for 24 hours
-            </p>
+            <p className="text-[18px] font-semibold text-text-primary">{t('failed_title')}</p>
+            <p className="text-[14px] text-text-secondary mt-1">{t('failed_subtitle')}</p>
           </div>
           <div className="flex flex-col gap-2 w-full mt-2">
-            <button className="btn-primary btn-full" onClick={() => setPaywallState('pricing')}>Try again</button>
-            <button className="btn-secondary" onClick={() => setPaywallState('pricing')}>Choose different method</button>
+            <button className="btn-primary btn-full" onClick={() => setPaywallState('pricing')}>
+              {t('retry')}
+            </button>
+            <button className="btn-secondary" onClick={() => setPaywallState('pricing')}>
+              {t('choose_method')}
+            </button>
           </div>
         </div>
       )}
@@ -188,7 +189,6 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
           onClick={paywallState === 'pricing' ? onClose : undefined}
         />
       )}
-
       <div
         className="fixed bottom-0 left-0 right-0 z-50 bg-bg-base rounded-t-[20px] max-w-[640px] mx-auto"
         style={{

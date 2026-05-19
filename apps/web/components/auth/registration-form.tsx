@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
-
-type AuthMethod = 'phone' | 'email'
+import type { AuthMethod } from '@leve/types'
 
 interface RegistrationFormProps {
   onContinue: (contact: string, method: AuthMethod) => void
@@ -18,6 +18,7 @@ function isValidEmail(value: string): boolean {
 }
 
 export function RegistrationForm({ onContinue }: RegistrationFormProps) {
+  const t = useTranslations('register')
   const [method, setMethod] = useState<AuthMethod>('phone')
   const [value, setValue] = useState('')
 
@@ -42,7 +43,7 @@ export function RegistrationForm({ onContinue }: RegistrationFormProps) {
               : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
           )}
         >
-          📱 Phone number
+          📱 {t('phone_method')}
         </button>
         <button
           type="button"
@@ -54,14 +55,14 @@ export function RegistrationForm({ onContinue }: RegistrationFormProps) {
               : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
           )}
         >
-          ✉️ Email
+          ✉️ {t('email_method')}
         </button>
       </div>
 
       {method === 'phone' ? (
         <div>
           <label className="block text-[13px] font-semibold text-text-primary mb-2">
-            Phone number
+            {t('phone_label')}
           </label>
           <div className="flex items-center h-12 bg-bg-elevated border border-border-default rounded-[10px] overflow-hidden focus-within:border-accent transition-colors">
             <span className="px-3 text-[14px] text-text-muted border-r border-border-default h-full flex items-center shrink-0 select-none">
@@ -71,7 +72,7 @@ export function RegistrationForm({ onContinue }: RegistrationFormProps) {
               type="tel"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="77 123 456"
+              placeholder={t('phone_placeholder')}
               maxLength={10}
               className="flex-1 px-3 text-[14px] text-text-primary bg-transparent outline-none placeholder:text-text-muted"
             />
@@ -80,13 +81,13 @@ export function RegistrationForm({ onContinue }: RegistrationFormProps) {
       ) : (
         <div>
           <label className="block text-[13px] font-semibold text-text-primary mb-2">
-            Email address
+            {t('email_label')}
           </label>
           <input
             type="email"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="your@email.com"
+            placeholder={t('email_placeholder')}
             className="w-full h-12 bg-bg-elevated border border-border-default rounded-[10px] px-4 text-[14px] text-text-primary outline-none placeholder:text-text-muted focus:border-accent transition-colors"
           />
         </div>
@@ -98,7 +99,7 @@ export function RegistrationForm({ onContinue }: RegistrationFormProps) {
         disabled={!isValid}
         className="btn-primary btn-full mt-6"
       >
-        Continue
+        {t('continue')}
       </button>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { ChevronDown, ChevronUp, Globe2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CATEGORY_CONFIG } from '@/lib/constants'
@@ -18,11 +19,8 @@ interface RefinementPanelProps {
   onCustomTextChange: (text: string) => void
 }
 
-export function RefinementPanel({
-  category,
-  onChipsChange,
-  onCustomTextChange,
-}: RefinementPanelProps) {
+export function RefinementPanel({ category, onChipsChange, onCustomTextChange }: RefinementPanelProps) {
+  const t = useTranslations('templates')
   const [selectedChips, setSelectedChips] = useState<string[]>([])
   const [customExpanded, setCustomExpanded] = useState(false)
   const [customText, setCustomText] = useState('')
@@ -45,9 +43,8 @@ export function RefinementPanel({
 
   return (
     <div className="mt-4 flex flex-col gap-4">
-      {/* Style chips */}
       <div>
-        <p className="text-[14px] font-semibold text-text-primary mb-3">Customize style</p>
+        <p className="text-[14px] font-semibold text-text-primary mb-3">{t('customize')}</p>
         <div className="flex flex-wrap gap-2">
           {chips.map((chip) => {
             const isSelected = selectedChips.includes(chip.id)
@@ -70,16 +67,15 @@ export function RefinementPanel({
         </div>
       </div>
 
-      {/* Custom details collapsible */}
       <div className="border border-border-default rounded-[10px] overflow-hidden">
         <button
           type="button"
           onClick={() => setCustomExpanded((v) => !v)}
           className="w-full flex items-center px-4 py-3 bg-bg-surface hover:bg-bg-elevated transition-colors"
         >
-          <span className="text-[14px] font-semibold text-text-primary">Add custom details</span>
+          <span className="text-[14px] font-semibold text-text-primary">{t('custom_details')}</span>
           <span className="ml-2 bg-bg-elevated text-text-muted text-[11px] px-2 py-0.5 rounded-full">
-            Optional
+            {t('optional')}
           </span>
           <span className="ml-auto text-text-muted">
             {customExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -92,13 +88,13 @@ export function RefinementPanel({
               value={customText}
               onChange={(e) => handleCustomText(e.target.value)}
               maxLength={200}
-              placeholder="Describe what you want... (Any language — we'll handle the translation)"
+              placeholder={t('custom_placeholder')}
               className="w-full bg-bg-elevated border border-border-default rounded-[10px] p-3 text-[13px] text-text-primary placeholder:text-text-muted resize-none h-20 outline-none focus:border-accent transition-colors"
             />
             <div className="flex items-center justify-between mt-1">
               <span className="flex items-center gap-1 text-[11px] text-text-muted">
                 <Globe2 className="w-3 h-3" />
-                We translate your text automatically
+                {t('translate_note')}
               </span>
               <span className="text-[11px] text-text-muted">{customText.length}/200</span>
             </div>

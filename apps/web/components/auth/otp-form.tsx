@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface OtpFormProps {
@@ -13,6 +14,7 @@ const OTP_LENGTH = 6
 const RESEND_SECONDS = 45
 
 export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
+  const t = useTranslations('register')
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [error, setError] = useState(false)
   const [countdown, setCountdown] = useState(RESEND_SECONDS)
@@ -29,7 +31,6 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
   }, [countdown])
 
   const handleChange = useCallback((index: number, raw: string) => {
-    // Handle paste of 6 digits
     if (raw.length === OTP_LENGTH && /^\d+$/.test(raw)) {
       const next = raw.split('')
       setDigits(next)
@@ -57,7 +58,6 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
   function handleVerify() {
     const code = digits.join('')
     if (code.length < OTP_LENGTH) return
-    // V1: simulate success
     onVerify()
   }
 
@@ -73,19 +73,11 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
   const isFilled = digits.every((d) => d !== '')
 
   return (
-    <div
-      className="overflow-hidden"
-      style={{
-        maxHeight: '400px',
-        transition: 'max-height 300ms ease',
-      }}
-    >
+    <div className="overflow-hidden" style={{ maxHeight: '400px', transition: 'max-height 300ms ease' }}>
       <p className="text-[14px] text-text-secondary text-center mb-4">
-        Enter the code we sent to{' '}
-        <span className="text-text-primary font-semibold">{contact}</span>
+        {t('otp_sent_to', { contact })}
       </p>
 
-      {/* OTP boxes */}
       <div className="flex justify-center gap-2">
         {digits.map((digit, i) => (
           <input
@@ -99,8 +91,7 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
             onKeyDown={(e) => handleKeyDown(i, e)}
             className={cn(
               'w-12 h-[52px] text-center text-[24px] font-semibold text-text-primary',
-              'bg-bg-elevated border rounded-[8px] outline-none',
-              'transition-colors',
+              'bg-bg-elevated border rounded-[8px] outline-none transition-colors',
               error
                 ? 'border-[#DC2626]'
                 : digit
@@ -111,25 +102,20 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
         ))}
       </div>
 
-      {/* Resend */}
       <p className="text-center mt-4">
         {countdown > 0 ? (
-          <span className="text-[13px] text-text-muted">Resend in {countdown}s</span>
+          <span className="text-[13px] text-text-muted">
+            {t('otp_resend_countdown', { seconds: countdown })}
+          </span>
         ) : (
-          <button
-            type="button"
-            onClick={handleResend}
-            className="text-[13px] text-accent font-medium"
-          >
-            Resend code
+          <button type="button" onClick={handleResend} className="text-[13px] text-accent font-medium">
+            {t('resend')}
           </button>
         )}
       </p>
 
       {error && (
-        <p className="text-[13px] text-[#DC2626] text-center mt-2">
-          Invalid code. Please try again.
-        </p>
+        <p className="text-[13px] text-[#DC2626] text-center mt-2">{t('otp_invalid')}</p>
       )}
 
       <button
@@ -138,7 +124,7 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
         disabled={!isFilled}
         className="btn-primary btn-full mt-4"
       >
-        Verify
+        {t('verify')}
       </button>
     </div>
   )

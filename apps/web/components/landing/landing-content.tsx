@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Gem, Shirt, Coffee, Package, Wand2, ChevronRight, CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
@@ -8,20 +9,13 @@ import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
 
-interface CategoryCard {
-  id: ProductCategory
-  icon: LucideIcon
-  label: string
-  sublabel: string
-}
-
-const CATEGORIES: CategoryCard[] = [
-  { id: 'beauty_cosmetics', icon: Sparkles, label: 'Beauty & Cosmetics', sublabel: 'Skincare, makeup, perfume' },
-  { id: 'jewelry_accessories', icon: Gem, label: 'Jewelry & Accessories', sublabel: 'Rings, necklaces, watches' },
-  { id: 'fashion_clothing', icon: Shirt, label: 'Fashion & Clothing', sublabel: 'Apparel, bags, shoes' },
-  { id: 'food_cafe', icon: Coffee, label: 'Food & Cafe', sublabel: 'Restaurant, cafe, food products' },
-  { id: 'marketplace_export', icon: Package, label: 'Marketplace & Export', sublabel: 'Wildberries, Ozon, list.am' },
-  { id: 'custom', icon: Wand2, label: 'Custom / Other', sublabel: 'Any other product type' },
+const CATEGORY_ITEMS: { id: ProductCategory; icon: LucideIcon; tKey: string }[] = [
+  { id: 'beauty_cosmetics', icon: Sparkles, tKey: 'category_beauty' },
+  { id: 'jewelry_accessories', icon: Gem, tKey: 'category_jewelry' },
+  { id: 'fashion_clothing', icon: Shirt, tKey: 'category_fashion' },
+  { id: 'food_cafe', icon: Coffee, tKey: 'category_food' },
+  { id: 'marketplace_export', icon: Package, tKey: 'category_marketplace' },
+  { id: 'custom', icon: Wand2, tKey: 'category_custom' },
 ]
 
 const SHOWCASE_CARDS = [
@@ -30,14 +24,11 @@ const SHOWCASE_CARDS = [
   { category: 'Marketplace', template: 'Wildberries Standard', leftBg: '#E8E8E8', rightBg: '#FAFAFA' },
 ] as const
 
-const STEPS = [
-  { number: 1, title: 'Upload your photo', description: 'Any product, any background, taken on your phone' },
-  { number: 2, title: 'Choose a style', description: '10 professional templates built for Armenian market aesthetics' },
-  { number: 3, title: 'Download and post', description: 'HD image ready for Instagram, Wildberries, or Ozon in seconds' },
-] as const
+const STEPS = [1, 2, 3] as const
 
 export function LandingContent() {
   const router = useRouter()
+  const t = useTranslations('landing')
 
   function handleCategorySelect(categoryId: ProductCategory) {
     sessionStorage.setItem('leve_category', categoryId)
@@ -67,20 +58,20 @@ export function LandingContent() {
         <section className="px-4 pt-12 pb-8 lg:pt-16">
           <div className="mb-8 lg:mb-12 lg:text-center w-full max-w-[560px] mx-auto">
             <p className="text-xs font-ui font-medium text-accent uppercase tracking-[0.15em] mb-3">
-              AI product photography
+              {t('eyebrow')}
             </p>
             <h1 className="font-display font-semibold text-[40px] leading-[1.05] text-text-primary lg:text-[56px] text-balance">
-              Your product.
+              {t('headline_1')}
               <br />
-              Studio quality.
+              {t('headline_2')}
             </h1>
             <p className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg lg:mx-auto">
-              Choose your product category, upload a photo, and get 4 studio-quality images in 30 seconds.
+              {t('subtext')}
             </p>
 
             {/* Category cards — 1 col mobile, 2 col desktop */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-8">
-              {CATEGORIES.map((cat) => {
+              {CATEGORY_ITEMS.map((cat) => {
                 const Icon = cat.icon
                 return (
                   <button
@@ -99,10 +90,10 @@ export function LandingContent() {
                     </div>
                     <div className="flex flex-col items-start ml-3 min-w-0">
                       <span className="font-ui font-semibold text-base text-text-primary leading-tight">
-                        {cat.label}
+                        {t(cat.tKey)}
                       </span>
                       <span className="font-ui text-[13px] text-text-muted leading-tight mt-0.5">
-                        {cat.sublabel}
+                        {t(`${cat.tKey}_sub`)}
                       </span>
                     </div>
                     <ChevronRight className="w-5 h-5 text-text-muted ml-auto shrink-0" />
@@ -112,7 +103,7 @@ export function LandingContent() {
             </div>
 
             <p className="text-center text-[12px] text-text-muted mt-4 font-ui">
-              Trusted by sellers on Instagram · Wildberries · Ozon
+              {t('trusted_by')}
             </p>
           </div>
         </section>
@@ -121,10 +112,10 @@ export function LandingContent() {
         <section className="px-4 py-16">
           <div className="max-w-[960px] mx-auto">
             <h2 className="font-display font-semibold text-[28px] text-text-primary text-center mb-3">
-              See what LEVE does
+              {t('showcase_title')}
             </h2>
             <p className="font-ui text-base text-text-secondary text-center mb-8">
-              Real product photos. Transformed in seconds.
+              {t('showcase_subtitle')}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -136,7 +127,7 @@ export function LandingContent() {
                   <div className="relative flex h-[180px]">
                     <div className="relative flex-1" style={{ backgroundColor: card.leftBg }}>
                       <span className="absolute top-2 left-2 bg-white text-text-muted text-[11px] font-ui px-2 py-1 rounded-[10px]">
-                        Before
+                        {t('before')}
                       </span>
                     </div>
                     <div className="w-px bg-white" />
@@ -145,7 +136,7 @@ export function LandingContent() {
                       style={{ background: card.rightBg }}
                     >
                       <span className="absolute top-2 right-2 bg-accent text-white text-[11px] font-ui px-2 py-1 rounded-[10px]">
-                        After
+                        {t('after')}
                       </span>
                     </div>
                   </div>
@@ -163,18 +154,22 @@ export function LandingContent() {
         <section className="bg-bg-base px-4 py-16">
           <div className="max-w-[720px] mx-auto">
             <h2 className="font-display font-semibold text-[28px] text-text-primary text-center mb-12">
-              Three steps. Thirty seconds.
+              {t('steps_title')}
             </h2>
 
             <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4">
               <div className="hidden md:block absolute top-4 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-px bg-border-default" />
-              {STEPS.map((step) => (
-                <div key={step.number} className="flex flex-col items-center text-center">
+              {STEPS.map((num) => (
+                <div key={num} className="flex flex-col items-center text-center">
                   <div className="flex items-center justify-center w-8 h-8 rounded-full border border-border-strong bg-bg-base mb-4 relative z-10">
-                    <span className="font-ui font-semibold text-[16px] text-text-primary">{step.number}</span>
+                    <span className="font-ui font-semibold text-[16px] text-text-primary">{num}</span>
                   </div>
-                  <h3 className="font-ui font-semibold text-[16px] text-text-primary mb-2">{step.title}</h3>
-                  <p className="font-ui text-sm text-text-secondary leading-relaxed">{step.description}</p>
+                  <h3 className="font-ui font-semibold text-[16px] text-text-primary mb-2">
+                    {t(`step${num}_title`)}
+                  </h3>
+                  <p className="font-ui text-sm text-text-secondary leading-relaxed">
+                    {t(`step${num}_desc`)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -185,23 +180,23 @@ export function LandingContent() {
         <section className="bg-bg-surface border-y border-border-default py-12 px-4">
           <div className="max-w-[640px] mx-auto text-center md:text-left">
             <p className="text-xs font-ui font-medium text-accent uppercase tracking-[0.15em]">
-              For marketplace sellers
+              {t('marketplace_eyebrow')}
             </p>
             <h2 className="font-display font-semibold text-[24px] text-text-primary mt-2 mb-3 text-balance">
-              Pass Wildberries and Ozon image requirements automatically
+              {t('marketplace_title')}
             </h2>
             <p className="font-ui text-base text-text-secondary leading-relaxed mb-6">
-              Correct dimensions, white background, proper padding — generated in one click. No more rejected listings.
+              {t('marketplace_desc')}
             </p>
 
             <div className="flex flex-wrap justify-center md:justify-start gap-3">
               <span className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default rounded-full px-4 py-2 text-[13px] font-ui font-medium text-text-primary">
                 <CheckCircle className="w-4 h-4 text-accent" />
-                Wildberries compliant
+                {t('marketplace_wb')}
               </span>
               <span className="inline-flex items-center gap-2 bg-bg-elevated border border-border-default rounded-full px-4 py-2 text-[13px] font-ui font-medium text-text-primary">
                 <CheckCircle className="w-4 h-4 text-accent" />
-                Ozon compliant
+                {t('marketplace_ozon')}
               </span>
             </div>
           </div>
@@ -210,10 +205,10 @@ export function LandingContent() {
         {/* SECTION 6 — Final CTA */}
         <section className="py-16 px-4 text-center">
           <h2 className="font-display font-semibold text-[28px] text-text-primary mb-3">
-            Ready to try it?
+            {t('cta_title')}
           </h2>
           <p className="font-ui text-base text-text-secondary mb-8">
-            Get 3 free HD images after quick verification.
+            {t('cta_subtitle')}
           </p>
           <button
             type="button"
@@ -221,7 +216,7 @@ export function LandingContent() {
             className="btn-primary inline-flex px-12 text-base mx-auto"
             style={{ width: 'auto', minWidth: '220px' }}
           >
-            Get started free →
+            {t('cta_button')}
           </button>
         </section>
       </main>
@@ -229,11 +224,11 @@ export function LandingContent() {
       {/* MINIMAL FOOTER */}
       <footer className="bg-bg-surface border-t border-border-default py-5 px-4">
         <div className="max-w-[960px] mx-auto flex flex-col items-center gap-4 md:flex-row md:justify-between">
-          <span className="text-xs font-ui text-text-muted">© 2025 LEVE</span>
+          <span className="text-xs font-ui text-text-muted">{t('footer_copyright')}</span>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">Terms</a>
-            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">Privacy</a>
-            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">Contact</a>
+            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_terms')}</a>
+            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_privacy')}</a>
+            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_contact')}</a>
           </div>
         </div>
       </footer>

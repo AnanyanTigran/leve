@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-// Cookie-based locale: no URL routing, so we just pass through.
-// This middleware exists to satisfy next-intl's runtime expectations
-// and to provide a matcher that excludes static assets from processing.
-export function middleware(_request: NextRequest) {
+// Cookie-based locale: no URL routing, passthrough only.
+// Provides a matcher that excludes static assets from processing.
+export function middleware() {
   return NextResponse.next()
 }
 
