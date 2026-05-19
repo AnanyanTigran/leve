@@ -52,6 +52,15 @@ export default function DownloadSuccessPage() {
   const spec = PLATFORM_SPECS[selectedPlatform]
   const downloadLabel = `${t('download_btn').replace('HD image', spec.label)}`
 
+  const handleDownload = () => {
+    const preview = sessionStorage.getItem('leve_upload_preview')
+    if (!preview) return
+    const a = document.createElement('a')
+    a.href = preview
+    a.download = `leve-${selectedPlatform}.jpg`
+    a.click()
+  }
+
   return (
     <div className="min-h-screen bg-bg-base">
       <main className="page-funnel py-8">
@@ -71,7 +80,7 @@ export default function DownloadSuccessPage() {
         </div>
 
         {/* Primary download button */}
-        <button className="btn-primary btn-full h-14 text-[16px] mt-6 gap-2">
+        <button onClick={handleDownload} className="btn-primary btn-full h-14 text-[16px] mt-6 gap-2">
           <Download className="w-[18px] h-[18px]" />
           {t('download_btn')}
         </button>
@@ -115,7 +124,7 @@ export default function DownloadSuccessPage() {
             })}
           </div>
 
-          <button className="btn-primary btn-full mt-4 gap-2">
+          <button onClick={handleDownload} className="btn-primary btn-full mt-4 gap-2">
             <Download className="w-[18px] h-[18px]" />
             {downloadLabel}
           </button>
