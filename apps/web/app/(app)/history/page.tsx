@@ -35,7 +35,7 @@ export default function HistoryPage() {
           </p>
           <button
             onClick={() => router.push('/')}
-            className="btn-primary px-8 mt-4 w-auto min-w-[200px]"
+            className="btn-primary btn-full mt-4"
           >
             Generate your first image
           </button>

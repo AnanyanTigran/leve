@@ -215,7 +215,7 @@ export function UploadZone() {
             type="button"
             onClick={handleContinue}
             disabled={!isValid}
-            className="btn-primary"
+            className="btn-primary btn-full"
           >
             Continue
           </button>
