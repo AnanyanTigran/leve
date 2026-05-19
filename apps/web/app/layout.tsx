@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
+import { getMessages, getLocale } from 'next-intl/server'
 import '@/styles/globals.css'
 
 const inter = Inter({
@@ -49,11 +49,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const messages = await getMessages()
+  const [messages, locale] = await Promise.all([getMessages(), getLocale()])
 
   return (
     <html
-      lang="hy"
+      lang={locale}
       suppressHydrationWarning
       className={`${inter.variable} ${plusJakartaSans.variable}`}
     >
