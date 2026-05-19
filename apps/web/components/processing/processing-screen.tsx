@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppHeader } from '@/components/shared/app-header'
 import { ROUTES } from '@/lib/constants'
+import { isVerified } from '@/lib/session'
 
 const PHASES = [
   'Setting up the studio...',
@@ -17,6 +18,12 @@ export function ProcessingScreen() {
   const [phaseIndex, setPhaseIndex] = useState(0)
   const [phaseVisible, setPhaseVisible] = useState(true)
   const [progressWidth, setProgressWidth] = useState(0)
+
+  useEffect(() => {
+    if (!isVerified()) { router.replace('/register'); return }
+    const templateId = sessionStorage.getItem('leve_template_id')
+    if (!templateId) { router.replace('/templates'); return }
+  }, [router])
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setProgressWidth(85))

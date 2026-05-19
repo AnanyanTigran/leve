@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { AppHeader } from '@/components/shared/app-header'
+import { isVerified } from '@/lib/session'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { BeforeAfterSlider } from '@/components/results/before-after-slider'
 import { VariantGrid } from '@/components/results/variant-grid'
@@ -16,8 +18,13 @@ const VARIANT_GRADIENTS: Record<number, string> = {
 }
 
 export default function ResultsPage() {
+  const router = useRouter()
   const [selectedVariant, setSelectedVariant] = useState(1)
   const [paywallOpen, setPaywallOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isVerified()) router.replace('/')
+  }, [router])
 
   const afterGradient = VARIANT_GRADIENTS[selectedVariant] ?? VARIANT_GRADIENTS[1]
 

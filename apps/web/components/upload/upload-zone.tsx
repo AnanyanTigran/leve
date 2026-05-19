@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle } from 'lucide-react'
+import { isVerified } from '@/lib/session'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -21,6 +22,10 @@ function formatFileSize(bytes: number): string {
 export function UploadZone() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!isVerified()) router.replace('/register')
+  }, [router])
   const [fileState, setFileState] = useState<FileState | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)

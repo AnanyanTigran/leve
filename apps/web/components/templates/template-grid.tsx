@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle } from 'lucide-react'
 import { RefinementPanel } from './refinement-panel'
+import { isVerified } from '@/lib/session'
 import type { ProductCategory } from '@leve/types'
 
 const TEMPLATES = [
@@ -57,6 +58,7 @@ export function TemplateGrid() {
   const [customText, setCustomText] = useState('')
 
   useEffect(() => {
+    if (!isVerified()) { router.replace('/register'); return }
     const cat = sessionStorage.getItem('leve_category') as ProductCategory | null
     if (cat) {
       setSelectedCategory(cat)
