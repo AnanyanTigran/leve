@@ -5,6 +5,20 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getLocale } from 'next-intl/server'
 import '@/styles/globals.css'
 
+// next-themes hasn't updated its types for React 19's removed implicit children prop
+function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem={false}
+      disableTransitionOnChange
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {...({ children } as any)}
+    />
+  )
+}
+
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-inter',
@@ -64,14 +78,7 @@ export default async function RootLayout({
       </head>
       <body className="bg-bg-base text-text-primary font-ui antialiased">
         <NextIntlClientProvider messages={messages}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
+          <Providers>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>
