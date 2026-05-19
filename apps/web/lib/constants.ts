@@ -12,8 +12,6 @@ export const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 export const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-export const FREE_PREVIEW_COUNT = 2
-
 export const FREE_CREDITS_AFTER_VERIFICATION = 3
 
 export const DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate'
