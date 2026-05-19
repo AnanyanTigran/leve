@@ -14,7 +14,7 @@ You are a senior frontend engineer specializing in minimalist, mobile-first Reac
 
 Refer to the design tokens in CLAUDE.md. Key rules:
 - Background: #0A0A0A (base), #141414 (surface), #1E1E1E (elevated)
-- Accent: #D4A853 (gold — use sparingly, only for CTAs and highlights)
+- Accent: #D64C1A (Armenian apricot-vermillion — primary CTAs, highlights, selected states)
 - Text: #FFFFFF (primary), #A0A0A0 (secondary)
 - No gradients on buttons. Solid fills only.
 - Minimum touch target: 48x48px (Armenian users are mobile-only)
@@ -34,7 +34,7 @@ Refer to the design tokens in CLAUDE.md. Key rules:
 ```tsx
 // 2x2 grid on mobile, 4 columns on tablet+
 // Each variant: rounded-xl, overflow-hidden, aspect-square
-// Selected state: gold ring (ring-2 ring-[#D4A853])
+// Selected state: accent ring (ring-2 ring-accent)
 // Hover: scale(1.02) transform, 150ms ease
 // Loading skeleton: animated shimmer using CSS animation
 ```
@@ -44,15 +44,15 @@ Refer to the design tokens in CLAUDE.md. Key rules:
 // This is the WOW moment — it must be buttery smooth
 // Use react-compare-image or build custom with pointer events
 // Handle touch events explicitly (not just mouse)
-// Slider handle: 48px circle, gold color, with arrow icons
+// Slider handle: 48px circle, accent color #D64C1A, with arrow icons
 ```
 
 ### Paywall Modal
 ```tsx
-// Bottom sheet on mobile (not center modal)
+// Bottom sheet on mobile, centered card modal on desktop (≥1024px)
 // Show the downloaded image blurred behind as psychological anchor
 // Price should be prominent: large font, not hidden
-// Primary CTA: full-width, gold background, "Unlock HD" in Armenian + Russian
+// Primary CTA: full-width, accent (#D64C1A) background, "Unlock HD"
 // Never use the word "Subscribe" in V1 — use "Unlock" or "Get"
 ```
 

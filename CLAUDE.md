@@ -13,7 +13,7 @@ LEVE is a verticalized AI creative engine for Armenian SMEs. It transforms mobil
 ## Architecture Overview
 
 ```
-Frontend (Next.js 14 App Router)
+Frontend (Next.js 15 App Router)
   └── /app — pages and layouts
   └── /components — shared UI components
   └── /lib — client utilities, API wrappers, i18n
@@ -56,7 +56,7 @@ Both fail → error + retry offer + NO credit deduction
 
 | Layer | Technology | Notes |
 |-------|-----------|-------|
-| Frontend | Next.js 14 (App Router) | Edge delivery, RSC, mobile-first |
+| Frontend | Next.js 15 (App Router) | Edge delivery, RSC, mobile-first |
 | Styling | Tailwind CSS v3 | Design token system below |
 | Backend | Node.js + Fastify + TypeScript | Lightweight for V1; NestJS in V2 |
 | Queue | BullMQ + Redis | Async AI jobs, priority queues |
@@ -65,7 +65,7 @@ Both fail → error + retry offer + NO credit deduction
 | AI Primary | fal.ai (FLUX.1) | Pay-per-call, no GPU infra |
 | AI Fallback | Replicate (IP-Adapter) | Product preservation pipeline |
 | Moderation | AWS Rekognition | NSFW filter before any AI call |
-| Auth | Phone OTP (post-first-gen) | No forced signup in V1 |
+| Auth | Phone OR Email OTP | Required before first generation; /register page |
 | Payments | Idram (primary) → Telcell → ArCa | Armenian providers, webhook-based |
 
 ---
@@ -151,10 +151,11 @@ Ask: "Build a React component for [screen name] using this design system: bg #0A
 1. **Session Identity:** Capture phone number after first successful generation (never before). Store sessionId in httpOnly cookie + Redis. Never destroy a session that has generated images within 48h.
 
 2. **Credit Logic:**
-   - Free: 2 watermarked low-res previews (always, no credit needed)
-   - Trial: 1,000 AMD → 5 HD downloads
-   - Volume: 3,500 AMD → 15 HD downloads
-   - Pro: 10,000 AMD/month → unlimited (shown ONLY after 3+ purchases)
+   - Free: 3 HD images given after verification (leve_free_credits in sessionStorage)
+   - Starter: 1,500 AMD → 5 HD downloads
+   - Creator: 4,000 AMD → 20 HD downloads (default selected, lowest per-image cost)
+   - Monthly: 12,000 AMD/month → 50 HD downloads (resets monthly)
+   - Pro subscription: show price only, billing is V2 (shown ONLY after 3+ purchases)
 
 3. **Credit safety:** Check credits BEFORE dispatching job. Deduct ONLY on successful generation. Refund automatically on generation failure. Use atomic Redis MULTI/EXEC for all credit operations.
 
@@ -195,8 +196,13 @@ Ask: "Build a React component for [screen name] using this design system: bg #0A
 
 **IN SCOPE:**
 - Upload + validation pipeline
-- 3 entry intents: Sell Product / Story Sale / Marketplace Upload
+- 6 product category cards (Beauty, Jewelry, Fashion, Food, Marketplace, Custom)
+- Phone OR email OTP registration (/register page, required before first generation)
 - 10 hero templates (beauty ×3, retail ×3, marketplace ×4)
+- Category pre-filter on template tabs + RefinementPanel (style chips + custom text)
+- Platform export picker (8 formats: Original HD, Instagram feed/story, Facebook, WB, Ozon, Telegram, list.am)
+- CATEGORY_CONFIG with per-category prompt config + refinement chips (in lib/constants.ts)
+- next-intl localisation (cookie-based, hy/ru/en, LanguageSwitcher in header)
 - AI preview generation (4 variants, fal.ai FLUX-schnell)
 - AI HD generation (fal.ai FLUX-dev + Replicate IP-Adapter)
 - Armenian/Russian/English text overlays (price, sale, new collection)
@@ -212,7 +218,7 @@ Ask: "Build a React component for [screen name] using this design system: bg #0A
 - Mobile-first responsive (390px primary)
 
 **OUT OF SCOPE (V2 only — do not implement):**
-- User accounts / email auth / password reset
+- Persistent user accounts / password reset (session-only in V1)
 - Brand kit / saved brand styles
 - Caption / copywriting generator
 - Multi-platform export (story sizing, Telegram format)
