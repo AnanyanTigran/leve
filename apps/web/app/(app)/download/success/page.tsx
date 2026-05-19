@@ -2,11 +2,47 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download } from 'lucide-react'
+import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { PLATFORM_SPECS } from '@leve/types'
+import type { ExportPlatform } from '@leve/types'
+import type { LucideIcon } from 'lucide-react'
+
+const PLATFORM_ICONS: Record<ExportPlatform, LucideIcon> = {
+  instagram_feed: Square,
+  instagram_story: Smartphone,
+  facebook_post: Monitor,
+  wildberries: ShoppingBag,
+  ozon: Package,
+  telegram: Send,
+  list_am: Globe,
+  original_hd: Download,
+}
+
+const PLATFORM_SHORT_LABEL: Partial<Record<ExportPlatform, string>> = {
+  wildberries: 'WB',
+  ozon: 'Ozon',
+  list_am: 'list.am',
+}
+
+const PLATFORM_ORDER: ExportPlatform[] = [
+  'original_hd',
+  'instagram_feed',
+  'instagram_story',
+  'wildberries',
+  'ozon',
+  'facebook_post',
+  'telegram',
+  'list_am',
+]
 
 export default function DownloadSuccessPage() {
   const router = useRouter()
   const [phone, setPhone] = useState('')
+  const [selectedPlatform, setSelectedPlatform] = useState<ExportPlatform>('original_hd')
+
+  const spec = PLATFORM_SPECS[selectedPlatform]
+  const downloadLabel = `Download ${spec.label}`
 
   return (
     <div className="min-h-screen bg-bg-base">
@@ -28,10 +64,56 @@ export default function DownloadSuccessPage() {
           <p className="text-[14px] text-text-muted mt-1">Full resolution · No watermark</p>
         </div>
 
-        <button className="btn-primary h-14 text-[16px] mt-6 gap-2">
+        {/* Primary download button */}
+        <button className="btn-primary btn-full h-14 text-[16px] mt-6 gap-2">
           <Download className="w-[18px] h-[18px]" />
           Download HD image
         </button>
+
+        {/* Platform picker */}
+        <div className="mt-8">
+          <p className="text-[16px] font-semibold text-text-primary mb-4">Download for platform</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {PLATFORM_ORDER.map((platformId) => {
+              const platformSpec = PLATFORM_SPECS[platformId]
+              const Icon = PLATFORM_ICONS[platformId]
+              const isSelected = selectedPlatform === platformId
+              const shortLabel = PLATFORM_SHORT_LABEL[platformId]
+              const sizeLabel = platformSpec.width > 0
+                ? `${platformSpec.width}×${platformSpec.height}`
+                : 'Full res'
+
+              return (
+                <button
+                  key={platformId}
+                  type="button"
+                  onClick={() => setSelectedPlatform(platformId)}
+                  className={cn(
+                    'bg-bg-surface border rounded-[10px] p-3 cursor-pointer',
+                    'flex flex-col items-center text-center gap-1 transition-all',
+                    isSelected
+                      ? 'border-accent bg-accent-subtle'
+                      : 'border-border-default hover:border-border-strong'
+                  )}
+                >
+                  <Icon
+                    className={cn('w-6 h-6', isSelected ? 'text-accent' : 'text-text-secondary')}
+                    strokeWidth={1.5}
+                  />
+                  <span className="text-[12px] font-semibold text-text-primary leading-tight">
+                    {shortLabel ?? platformSpec.label}
+                  </span>
+                  <span className="text-[10px] text-text-muted leading-tight">{sizeLabel}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <button className="btn-primary btn-full mt-4 gap-2">
+            <Download className="w-[18px] h-[18px]" />
+            {downloadLabel}
+          </button>
+        </div>
 
         {/* Optional divider */}
         <div className="flex items-center gap-3 mt-8 mb-6">
@@ -41,7 +123,7 @@ export default function DownloadSuccessPage() {
         </div>
 
         {/* Phone capture card */}
-        <div className="bg-bg-surface border border-border-default rounded-md p-5">
+        <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
           <p className="text-[16px] font-semibold text-text-primary">Save your work</p>
           <p className="text-[14px] text-text-secondary mt-1">Access your images from any device</p>
 
