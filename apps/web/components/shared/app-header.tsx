@@ -2,6 +2,7 @@
 
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { LanguageSwitcher } from './language-switcher'
 
 interface AppHeaderProps {
   variant: 'landing' | 'app'
@@ -9,6 +10,7 @@ interface AppHeaderProps {
   showBack?: boolean
   backHref?: string
   rightSlot?: React.ReactNode
+  showLangSwitcher?: boolean
 }
 
 export function AppHeader({
@@ -17,6 +19,7 @@ export function AppHeader({
   showBack = false,
   backHref = '/',
   rightSlot,
+  showLangSwitcher = false,
 }: AppHeaderProps) {
   return (
     <header className="flex items-center justify-between h-[52px] px-4 bg-bg-base border-b border-border-default">
@@ -47,7 +50,8 @@ export function AppHeader({
       )}
 
       {/* Right side */}
-      <div className="flex items-center min-w-[44px] justify-end">
+      <div className="flex items-center gap-2 justify-end">
+        {showLangSwitcher && <LanguageSwitcher />}
         {rightSlot}
       </div>
     </header>

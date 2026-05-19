@@ -60,7 +60,7 @@ export function LandingContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-bg-base">
-      <AppHeader variant="landing" rightSlot={<ThemeToggle />} />
+      <AppHeader variant="landing" showLangSwitcher rightSlot={<ThemeToggle />} />
 
       <main className="flex-1">
         {/* SECTION 1 — Hero */}

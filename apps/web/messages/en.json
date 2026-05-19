@@ -1,0 +1,79 @@
+{
+  "common": {
+    "app_name": "LEVE",
+    "continue": "Continue",
+    "back": "Back",
+    "skip": "Skip for now",
+    "cancel": "Cancel",
+    "done": "Done",
+    "loading": "Loading..."
+  },
+  "landing": {
+    "eyebrow": "AI product photography",
+    "headline_1": "Your product.",
+    "headline_2": "Studio quality.",
+    "subtext": "Choose your category, upload a photo, and get 4 studio-quality images in 30 seconds.",
+    "category_beauty": "Beauty & Cosmetics",
+    "category_jewelry": "Jewelry & Accessories",
+    "category_fashion": "Fashion & Clothing",
+    "category_food": "Food & Cafe",
+    "category_marketplace": "Marketplace & Export",
+    "category_custom": "Custom / Other"
+  },
+  "register": {
+    "title": "Create your free account",
+    "subtitle": "Get 3 free HD images after verification",
+    "phone_label": "Phone number",
+    "email_label": "Email address",
+    "phone_placeholder": "77 123 456",
+    "email_placeholder": "your@email.com",
+    "continue": "Continue",
+    "otp_sent": "Enter the code we sent you",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "terms": "By continuing, you agree to our Terms"
+  },
+  "upload": {
+    "title": "Upload photo",
+    "step": "1 of 3",
+    "tap_to_upload": "Tap to choose a photo",
+    "drag_drop": "or drag and drop",
+    "file_types": "JPEG · PNG · WEBP · Max 20MB",
+    "no_account": "Your photo is deleted after 48 hours"
+  },
+  "templates": {
+    "title": "Choose template",
+    "step": "2 of 3",
+    "customize": "Customize style",
+    "custom_details": "Add custom details",
+    "custom_placeholder": "Describe what you want... (Any language)",
+    "translate_note": "We automatically translate your text"
+  },
+  "results": {
+    "title": "Your results",
+    "all_variations": "All variations",
+    "regenerate": "Regenerate",
+    "add_overlay": "Add text overlay",
+    "free_remaining": "{count} free remaining",
+    "unlock_hd": "Unlock HD"
+  },
+  "paywall": {
+    "title": "Unlock HD Download",
+    "subtitle": "Watermark-free · Full resolution",
+    "per_image": "֏ per image",
+    "lowest_cost": "Lowest cost per image",
+    "resets_monthly": "Resets monthly",
+    "pay_idram": "Pay with Idram",
+    "pay_telcell": "Pay with Telcell",
+    "secure": "Secure payment · AMD only"
+  },
+  "download": {
+    "ready": "Your image is ready",
+    "subtitle": "Full resolution · No watermark",
+    "download_btn": "Download HD image",
+    "choose_platform": "Download for platform",
+    "save_work": "Save your work",
+    "save_subtitle": "Access your images from any device",
+    "generate_another": "Generate another →"
+  }
+}
