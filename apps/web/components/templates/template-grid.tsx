@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle } from 'lucide-react'
+import { RefinementPanel } from './refinement-panel'
+import type { ProductCategory } from '@leve/types'
 
 const TEMPLATES = [
   { id: 'luxury-cosmetics', name: 'Luxury Cosmetics', category: 'beauty', gradient: 'linear-gradient(135deg, #fdf0eb, #f0d4c4)' },
@@ -17,17 +19,53 @@ const TEMPLATES = [
   { id: 'sale-promo', name: 'Sale / Promo', category: 'marketplace', gradient: 'linear-gradient(135deg, #fff0f0, #ffd6d6)' },
 ]
 
-const TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'beauty', label: 'Beauty' },
-  { id: 'retail', label: 'Retail' },
-  { id: 'marketplace', label: 'Marketplace' },
-]
+const CATEGORY_TO_TAB: Record<string, string> = {
+  beauty_cosmetics: 'beauty',
+  jewelry_accessories: 'retail',
+  fashion_clothing: 'retail',
+  food_cafe: 'beauty',
+  marketplace_export: 'marketplace',
+  custom: 'all',
+}
+
+function buildTabs(selectedCategory: ProductCategory | null) {
+  const all = [
+    { id: 'all', label: 'All' },
+    { id: 'beauty', label: 'Beauty' },
+    { id: 'retail', label: 'Retail' },
+    { id: 'marketplace', label: 'Marketplace' },
+  ]
+
+  if (!selectedCategory) return all
+
+  const preferredTab = CATEGORY_TO_TAB[selectedCategory] ?? 'all'
+  if (preferredTab === 'all') return all
+
+  // Move the preferred tab first
+  return [
+    all.find((t) => t.id === preferredTab)!,
+    ...all.filter((t) => t.id !== preferredTab),
+  ]
+}
 
 export function TemplateGrid() {
   const router = useRouter()
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(null)
   const [activeTab, setActiveTab] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedChips, setSelectedChips] = useState<string[]>([])
+  const [customText, setCustomText] = useState('')
+
+  useEffect(() => {
+    const cat = sessionStorage.getItem('leve_category') as ProductCategory | null
+    if (cat) {
+      setSelectedCategory(cat)
+      const tab = CATEGORY_TO_TAB[cat] ?? 'all'
+      setActiveTab(tab)
+    }
+  }, [])
+
+  const tabs = useMemo(() => buildTabs(selectedCategory), [selectedCategory])
 
   const filteredTemplates = useMemo(() => {
     if (activeTab === 'all') return TEMPLATES
@@ -35,18 +73,19 @@ export function TemplateGrid() {
   }, [activeTab])
 
   const handleContinue = useCallback(() => {
-    if (selectedId) {
-      sessionStorage.setItem('leve_template_id', selectedId)
-      router.push('/processing')
-    }
-  }, [selectedId, router])
+    if (!selectedId) return
+    sessionStorage.setItem('leve_template_id', selectedId)
+    sessionStorage.setItem('leve_chips', JSON.stringify(selectedChips))
+    if (customText) sessionStorage.setItem('leve_custom_text', customText)
+    router.push('/processing')
+  }, [selectedId, selectedChips, customText, router])
 
   return (
     <div className="flex flex-col flex-1">
       {/* Tab bar */}
       <div className="sticky top-[52px] z-10 bg-bg-base border-b border-border-default px-4">
         <div className="page-content flex gap-6">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
@@ -82,21 +121,18 @@ export function TemplateGrid() {
                 className={`
                   relative aspect-square rounded-[10px] overflow-hidden border cursor-pointer
                   transition-all duration-150 ease-out
-                  ${isSelected 
-                    ? 'ring-2 ring-accent ring-inset border-transparent' 
+                  ${isSelected
+                    ? 'ring-2 ring-accent ring-inset border-transparent'
                     : 'border-border-default hover:scale-[1.02] hover:shadow-sm'
                   }
                 `}
                 style={{ background: template.gradient }}
               >
-                {/* Selected checkmark */}
                 {isSelected && (
                   <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-accent flex items-center justify-center">
                     <CheckCircle className="w-4 h-4 text-white" />
                   </div>
                 )}
-
-                {/* Bottom overlay with info */}
                 <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent min-h-[72px] flex flex-col justify-end">
                   <span className="text-[10px] text-white/70 uppercase tracking-wide leading-none mb-1">
                     {template.category}
@@ -109,6 +145,22 @@ export function TemplateGrid() {
             )
           })}
         </div>
+
+        {/* Refinement panel — slides in when template selected */}
+        {selectedId && selectedCategory && (
+          <RefinementPanel
+            category={selectedCategory}
+            onChipsChange={setSelectedChips}
+            onCustomTextChange={setCustomText}
+          />
+        )}
+        {selectedId && !selectedCategory && (
+          <RefinementPanel
+            category="custom"
+            onChipsChange={setSelectedChips}
+            onCustomTextChange={setCustomText}
+          />
+        )}
       </main>
 
       {/* Sticky bottom CTA */}
@@ -118,7 +170,7 @@ export function TemplateGrid() {
             type="button"
             onClick={handleContinue}
             disabled={!selectedId}
-            className="btn-primary"
+            className="btn-primary btn-full"
           >
             Continue
           </button>
