@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { Sparkles, Gem, Shirt, Coffee, Package, Wand2, ChevronRight, CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
-import { ThemeToggle } from '../shared/theme-toggle'
+import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'

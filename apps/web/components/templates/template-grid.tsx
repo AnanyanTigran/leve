@@ -65,7 +65,7 @@ export function TemplateGrid() {
       const tab = CATEGORY_TO_TAB[cat] ?? 'all'
       setActiveTab(tab)
     }
-  }, [])
+  }, [router])
 
   const tabs = useMemo(() => buildTabs(selectedCategory), [selectedCategory])
 
