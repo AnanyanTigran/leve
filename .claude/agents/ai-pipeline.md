@@ -89,6 +89,54 @@ const output = await replicate.run(
 )
 ```
 
+## Prompt Compilation from CATEGORY_CONFIG
+
+The frontend collects the user's category, selected refinement chips, and optional
+custom text. The backend compiles these into the final prompt using `CATEGORY_CONFIG`
+(defined in `apps/web/lib/constants.ts` — the backend should mirror this or import
+from `@leve/types`).
+
+```typescript
+// Input from sessionStorage (passed to API on job dispatch)
+interface GenerationInput {
+  category: ProductCategory          // e.g. 'beauty_cosmetics'
+  templateId: string                 // e.g. 'luxury-cosmetics'
+  chips: string[]                   // e.g. ['bg_marble', 'mood_luxury']
+  customText?: string               // user's free-text (any language)
+}
+
+// Prompt compilation logic
+function buildGenerationPrompt(input: GenerationInput): GenerationPrompt {
+  const categoryConfig = CATEGORY_CONFIG[input.category] ?? CATEGORY_CONFIG.custom
+  const selectedChips = categoryConfig.refinementChips
+    .filter(chip => input.chips.includes(chip.id))
+    .map(chip => chip.prompt)
+
+  // Custom text: translate via DeepL to English first, then append
+  const customFragment = input.customText
+    ? await translateToEnglish(input.customText)   // DeepL or similar
+    : null
+
+  const fullPrompt = [
+    GLOBAL_POSITIVE_BASE,
+    categoryConfig.basePrompt,
+    ...selectedChips,
+    customFragment,
+  ].filter(Boolean).join(', ')
+
+  const negativePrompt = [
+    GLOBAL_NEGATIVE_PROMPT,
+    categoryConfig.negativeAddition,
+  ].join(', ')
+
+  return { prompt: fullPrompt, negativePrompt }
+}
+```
+
+**Key rule:** custom text is always translated to English before injection into the
+prompt, because FLUX and Replicate perform better with English prompts. Use DeepL Free
+API (endpoint in `DEEPL_API_URL` constant) with auto-detect source language.
+
 ## Prompt Building
 
 ```typescript
