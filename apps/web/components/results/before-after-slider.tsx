@@ -4,11 +4,13 @@ import { useState, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface BeforeAfterSliderProps {
+  beforeSrc?: string | null
   afterGradient?: string
   className?: string
 }
 
 export function BeforeAfterSlider({
+  beforeSrc,
   afterGradient = 'linear-gradient(135deg, #fdf0eb, #f5d5c5)',
   className,
 }: BeforeAfterSliderProps) {
@@ -53,6 +55,10 @@ export function BeforeAfterSlider({
     >
       {/* Before layer */}
       <div className="absolute inset-0 bg-bg-elevated">
+        {beforeSrc && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={beforeSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        )}
         <span className="absolute top-3 left-3 text-[11px] text-text-secondary bg-white px-2 py-1 rounded-[6px] z-10 select-none">
           Before
         </span>

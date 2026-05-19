@@ -8,6 +8,24 @@ import { isVerified } from '@/lib/session'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const PREVIEW_MAX_PX = 600
+
+function compressToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const blobUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      const scale = Math.min(PREVIEW_MAX_PX / img.width, PREVIEW_MAX_PX / img.height, 1)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(blobUrl)
+      resolve(canvas.toDataURL('image/jpeg', 0.82))
+    }
+    img.src = blobUrl
+  })
+}
 
 interface FileState {
   file: File
@@ -81,9 +99,11 @@ export function UploadZone() {
     if (inputRef.current) inputRef.current.value = ''
   }, [fileState])
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = useCallback(async () => {
     if (fileState) {
       sessionStorage.setItem('leve_upload_name', fileState.file.name)
+      const dataUrl = await compressToDataUrl(fileState.file)
+      sessionStorage.setItem('leve_upload_preview', dataUrl)
       router.push('/templates')
     }
   }, [fileState, router])

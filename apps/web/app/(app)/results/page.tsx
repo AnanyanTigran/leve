@@ -33,6 +33,10 @@ export default function ResultsPage() {
     ? Number(sessionStorage.getItem('leve_free_credits') ?? 2)
     : 2
 
+  const uploadPreview = typeof window !== 'undefined'
+    ? sessionStorage.getItem('leve_upload_preview')
+    : null
+
   const afterGradient = VARIANT_GRADIENTS[selectedVariant] ?? VARIANT_GRADIENTS[1]
 
   return (
@@ -50,7 +54,7 @@ export default function ResultsPage() {
 
       <main className="page-content flex-1 pb-36">
         <div className="py-4 flex flex-col gap-4">
-          <BeforeAfterSlider afterGradient={afterGradient} />
+          <BeforeAfterSlider beforeSrc={uploadPreview} afterGradient={afterGradient} />
           <VariantGrid selectedId={selectedVariant} onSelect={setSelectedVariant} />
           <TextOverlaySection />
         </div>

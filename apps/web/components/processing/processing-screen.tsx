@@ -18,11 +18,13 @@ export function ProcessingScreen() {
   const [phaseIndex, setPhaseIndex] = useState(0)
   const [phaseVisible, setPhaseVisible] = useState(true)
   const [progressWidth, setProgressWidth] = useState(0)
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isVerified()) { router.replace('/register'); return }
     const templateId = sessionStorage.getItem('leve_template_id')
     if (!templateId) { router.replace('/templates'); return }
+    setUploadPreview(sessionStorage.getItem('leve_upload_preview'))
   }, [router])
 
   useEffect(() => {
@@ -65,7 +67,12 @@ export function ProcessingScreen() {
 
       <main className="page-funnel flex-1 flex flex-col items-center justify-center py-12 gap-8">
         {/* Photo preview with pulsing glow */}
-        <div className="w-[240px] h-[240px] rounded-[16px] bg-bg-elevated overflow-hidden processing-glow" />
+        <div className="w-[240px] h-[240px] rounded-[16px] bg-bg-elevated overflow-hidden processing-glow relative">
+          {uploadPreview && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={uploadPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          )}
+        </div>
 
         {/* Phase text with fade transition */}
         <p
