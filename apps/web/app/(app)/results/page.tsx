@@ -55,7 +55,11 @@ export default function ResultsPage() {
       <main className="page-content flex-1 pb-36">
         <div className="py-4 flex flex-col gap-4">
           <BeforeAfterSlider beforeSrc={uploadPreview} afterGradient={afterGradient} />
-          <VariantGrid selectedId={selectedVariant} onSelect={setSelectedVariant} />
+          <VariantGrid
+            selectedId={selectedVariant}
+            onSelect={setSelectedVariant}
+            onRegenerate={() => router.push('/processing')}
+          />
           <TextOverlaySection />
         </div>
       </main>
