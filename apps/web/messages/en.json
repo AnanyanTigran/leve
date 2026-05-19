@@ -44,7 +44,7 @@
     "marketplace_ozon": "Ozon compliant",
     "cta_title": "Ready to try it?",
     "cta_subtitle": "Get 3 free HD images after quick verification.",
-    "cta_button": "Get started free →",
+    "cta_button": "Get started free",
     "footer_terms": "Terms",
     "footer_privacy": "Privacy",
     "footer_contact": "Contact",
@@ -67,7 +67,7 @@
     "otp_resend_countdown": "Resend in {seconds}s",
     "otp_invalid": "Invalid code. Please try again.",
     "signin_hint": "Already have an account?",
-    "signin_link": "Sign in →",
+    "signin_link": "Sign in",
     "terms": "By continuing, you agree to our Terms",
     "terms_full": "By continuing, you agree to our Terms and Privacy Policy"
   },
@@ -142,6 +142,6 @@
     "send_code": "Send code",
     "phone_disclaimer": "We'll never spam you · Only for session recovery",
     "skip": "Skip for now",
-    "generate_another": "Generate another →"
+    "generate_another": "Generate another"
   }
 }
