@@ -130,7 +130,13 @@
     "unlock_to_download": "Register free for 3 HD images, or buy a pack",
     "save_designs": "Save your designs",
     "save_designs_sub": "Designs expire in 48h without an account",
-    "add_phone": "Add phone →"
+    "add_phone": "Add phone",
+    "before": "Before",
+    "after": "After",
+    "overlay_price": "Price",
+    "overlay_sale": "Sale",
+    "overlay_new": "New in",
+    "overlay_custom": "Custom"
   },
   "paywall": {
     "title": "Unlock HD Download",
@@ -155,7 +161,8 @@
     "download_hd": "Download HD image"
   },
   "processing": {
-    "dont_close": "Please keep this page open while your image is being generated."
+    "dont_close": "Please keep this page open while your image is being generated.",
+    "time_estimate": "This takes about 15–20 seconds"
   },
   "download": {
     "ready": "Your image is ready",
@@ -174,6 +181,11 @@
     "generate_first": "Generate your first image",
     "active_session": "You have a generation in progress",
     "active_session_sub": "Continue where you left off",
-    "active_session_btn": "Continue →"
+    "active_session_btn": "Continue",
+    "title": "Your designs",
+    "phone_banner": "Add your phone number to access designs from any device",
+    "add_phone": "Add phone number",
+    "empty_title": "No designs yet",
+    "empty_subtitle": "Your generated designs will appear here"
   }
 }
