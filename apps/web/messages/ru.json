@@ -121,6 +121,7 @@
   "results": {
     "title": "Ваши результаты",
     "share": "Поделиться",
+    "share_copied": "Скопировано!",
     "all_variations": "Все варианты",
     "regenerate": "Создать заново",
     "add_overlay": "Добавить текст",

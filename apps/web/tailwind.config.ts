@@ -43,7 +43,11 @@ const config: Config = {
         lg: '20px',
         full: '9999px',
       },
+      height: {
+        screen: '100dvh',
+      },
       minHeight: {
+        screen: '100dvh',
         touch: '48px',
       },
       minWidth: {

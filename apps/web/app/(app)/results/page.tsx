@@ -25,6 +25,7 @@ export default function ResultsPage() {
   const tPaywall = useTranslations('paywall')
   const [selectedVariant, setSelectedVariant] = useState(1)
   const [paywallOpen, setPaywallOpen] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   useEffect(() => {
     const hasUpload = sessionStorage.getItem('leve_upload_preview')
@@ -42,6 +43,28 @@ export default function ResultsPage() {
 
   const afterGradient = VARIANT_GRADIENTS[selectedVariant] ?? VARIANT_GRADIENTS[1]
 
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'LEVE — AI Product Photography',
+          text: 'Transform your product photos into studio-quality visuals in seconds.',
+          url: window.location.origin,
+        })
+      } catch {
+        // user cancelled, silent fail
+      }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(window.location.origin)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2000)
+    } catch {
+      // silent fail
+    }
+  }
+
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <AppHeader
@@ -49,13 +72,29 @@ export default function ResultsPage() {
         showBack={false}
         title={t('title')}
         rightSlot={
-          <button className="text-[13px] text-accent font-ui font-semibold">
-            {t('share')}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleShare}
+              className="text-[13px] text-accent font-ui font-semibold"
+            >
+              {shareCopied ? t('share_copied') : t('share')}
+            </button>
+            <button
+              onClick={() => setPaywallOpen(true)}
+              className="flex items-center gap-1.5 bg-accent text-white text-[12px] font-semibold px-3 h-8 rounded-[8px] whitespace-nowrap"
+            >
+              {verified && freeCredits > 0 && (
+                <span className="bg-white/25 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                  {freeCredits}
+                </span>
+              )}
+              {tPaywall('title')}
+            </button>
+          </div>
         }
       />
 
-      <main className="page-content flex-1 overflow-y-auto pb-36">
+      <main className="page-content flex-1 overflow-y-auto pb-24">
         <div className="py-4 flex flex-col gap-4">
           <BeforeAfterSlider beforeSrc={uploadPreview} afterGradient={afterGradient} />
           <VariantGrid
@@ -81,20 +120,21 @@ export default function ResultsPage() {
             </div>
           )}
           <TextOverlaySection />
+          <div className="mt-4 mb-2">
+            <button
+              onClick={() => setPaywallOpen(true)}
+              className="btn-primary btn-full"
+            >
+              {tPaywall('title')}
+            </button>
+            {verified && freeCredits > 0 && (
+              <p className="text-center text-[12px] text-text-muted mt-2">
+                {t('free_bar', { count: freeCredits })}
+              </p>
+            )}
+          </div>
         </div>
       </main>
-
-      {/* Paywall bar — fixed above BottomNav */}
-      <div className="fixed bottom-16 left-0 right-0 z-30 bg-bg-base border-t border-border-default px-4 py-3">
-        <div className="max-w-[640px] mx-auto flex items-center justify-between">
-          <span className="text-[12px] text-text-muted font-ui">
-            {verified ? t('free_bar', { count: freeCredits }) : t('unlock_to_download')}
-          </span>
-          <button onClick={() => setPaywallOpen(true)} className="btn-primary px-6">
-            {tPaywall('title')}
-          </button>
-        </div>
-      </div>
 
       {!paywallOpen && <BottomNav />}
       <PaywallSheet isOpen={paywallOpen} onClose={() => setPaywallOpen(false)} />

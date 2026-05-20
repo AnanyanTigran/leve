@@ -121,6 +121,7 @@
   "results": {
     "title": "Your results",
     "share": "Share",
+    "share_copied": "Copied!",
     "all_variations": "All variations",
     "regenerate": "Regenerate",
     "add_overlay": "Add text overlay",
