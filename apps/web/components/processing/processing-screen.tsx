@@ -55,14 +55,6 @@ export function ProcessingScreen() {
         variant="app"
         showBack={false}
         title=""
-        rightSlot={
-          <button
-            onClick={() => router.push('/')}
-            className="text-[13px] text-text-muted font-ui"
-          >
-            Cancel
-          </button>
-        }
       />
 
       <main className="page-funnel flex-1 overflow-y-auto flex flex-col items-center justify-center py-12 gap-8">
