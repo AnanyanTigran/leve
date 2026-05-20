@@ -75,7 +75,9 @@
     "optional_if_phone": "ոչ պարտադիր, եթե հեռախոսն ավելացված է",
     "or": "կամ",
     "phone_invalid": "Մուտքագրե՛ք վավեր հեռախոսահամար",
-    "email_invalid": "Մուտքագրե՛ք վավեր email"
+    "email_invalid": "Մուտքագրե՛ք վավեր email",
+    "use_email_instead": "Օգտագործել էլ. հասցե",
+    "use_phone_instead": "Օգտագործել հեռախոսահամար"
   },
   "upload": {
     "title": "Վերբեռնել լուսանկար",

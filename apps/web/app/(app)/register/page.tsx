@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { AppHeader } from '@/components/shared/app-header'
+import { ChevronLeft } from 'lucide-react'
 import { RegistrationForm } from '@/components/auth/registration-form'
 import { OtpForm } from '@/components/auth/otp-form'
 import { setVerified } from '@/lib/session'
@@ -25,58 +25,92 @@ export default function RegisterPage() {
 
   function handleVerify() {
     setVerified(contact, method)
-    router.push('/upload')
-  }
-
-  function handleResend() {
-    // V1: no-op, would trigger resend API call
+    const returnTo = typeof window !== 'undefined'
+      ? sessionStorage.getItem('leve_return_to') || '/upload'
+      : '/upload'
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('leve_return_to')
+    }
+    router.push(returnTo)
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
-      <AppHeader variant="app" showBack backHref="/" title="" />
+    <div className="flex flex-col h-[100dvh] bg-bg-base">
+      {step === 'otp' && (
+        <button
+          onClick={() => setStep('contact')}
+          className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-[10px] hover:bg-bg-surface transition-colors"
+          aria-label="Back"
+        >
+          <ChevronLeft className="w-5 h-5 text-text-secondary" />
+        </button>
+      )}
+      {step === 'contact' && (
+        <button
+          onClick={() => router.back()}
+          className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-[10px] hover:bg-bg-surface transition-colors"
+          aria-label="Back"
+        >
+          <ChevronLeft className="w-5 h-5 text-text-secondary" />
+        </button>
+      )}
 
-      <main className="flex-1 overflow-y-auto flex flex-col justify-center px-4 py-8">
-        <div className="w-full max-w-[480px] mx-auto">
-          <div className="text-center mb-8">
-            <span className="font-display font-semibold text-[32px] text-accent select-none">LEVE</span>
-            <h1 className="text-[22px] font-semibold text-text-primary mt-4">
-              {t('title')}
-            </h1>
-            <p className="text-[14px] text-text-secondary mt-2">
-              {t('subtitle')}
-            </p>
-          </div>
+      <main className="flex-1 flex flex-col justify-center px-6 py-12 max-w-[400px] mx-auto w-full">
+        <div className="text-center mb-10">
+          <span className="font-display font-semibold text-[36px] text-accent tracking-tight select-none">
+            LEVE
+          </span>
+        </div>
 
-          {step === 'contact' && (
+        {step === 'contact' && (
+          <>
+            <div className="mb-8">
+              <h1 className="text-[28px] font-display font-semibold text-text-primary leading-tight">
+                {t('title')}
+              </h1>
+              <p className="text-[15px] text-text-secondary mt-2 leading-relaxed">
+                {t('subtitle')}
+              </p>
+            </div>
+
             <RegistrationForm onContinue={handleContinue} />
-          )}
 
-          {step === 'otp' && (
-            <div className="bg-bg-surface border border-border-default rounded-[12px] p-6 lg:p-8">
+            <p className="text-[13px] text-text-muted text-center mt-8">
+              {t('signin_hint')}{' '}
+              <button
+                type="button"
+                onClick={() => router.push('/register')}
+                className="text-accent font-semibold"
+              >
+                {t('signin_link')}
+              </button>
+            </p>
+
+            <p className="text-[11px] text-text-muted text-center mt-5 leading-relaxed px-4">
+              {t('terms_full')}
+            </p>
+          </>
+        )}
+
+        {step === 'otp' && (
+          <>
+            <div className="mb-8">
+              <h1 className="text-[28px] font-display font-semibold text-text-primary leading-tight">
+                {t('otp_sent')}
+              </h1>
+              <p className="text-[15px] text-text-secondary mt-2 leading-relaxed">
+                {t('otp_sent_to', { contact })}
+              </p>
+            </div>
+            <div className="bg-bg-surface border border-border-default rounded-[16px] p-6">
               <OtpForm
-                contact={method === 'phone' ? `+374 ${contact}` : contact}
+                contact={contact}
                 onVerify={handleVerify}
-                onResend={handleResend}
+                onResend={() => {}}
               />
             </div>
-          )}
-
-          <p className="text-[13px] text-text-muted text-center mt-4">
-            {t('signin_hint')}{' '}
-            <button
-              type="button"
-              onClick={() => setStep('contact')}
-              className="text-accent font-medium"
-            >
-              {t('signin_link')}
-            </button>
-          </p>
-
-          <p className="text-[11px] text-text-muted text-center mt-4">
-            {t('terms_full')}
-          </p>
-        </div>
+          </>
+        )}
       </main>
     </div>
   )

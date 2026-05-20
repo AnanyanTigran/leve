@@ -75,7 +75,9 @@
     "optional_if_phone": "необязательно при наличии телефона",
     "or": "или",
     "phone_invalid": "Введите корректный номер",
-    "email_invalid": "Введите корректный email"
+    "email_invalid": "Введите корректный email",
+    "use_email_instead": "Использовать email",
+    "use_phone_instead": "Использовать телефон"
   },
   "upload": {
     "title": "Загрузить фото",

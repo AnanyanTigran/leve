@@ -75,7 +75,9 @@
     "optional_if_phone": "optional if phone provided",
     "or": "or",
     "phone_invalid": "Please enter a valid phone number",
-    "email_invalid": "Please enter a valid email"
+    "email_invalid": "Please enter a valid email",
+    "use_email_instead": "Use email instead",
+    "use_phone_instead": "Use phone instead"
   },
   "upload": {
     "title": "Upload photo",
