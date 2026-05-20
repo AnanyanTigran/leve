@@ -186,6 +186,9 @@
     "phone_banner": "Add your phone number to access designs from any device",
     "add_phone": "Add phone number",
     "empty_title": "No designs yet",
-    "empty_subtitle": "Your generated designs will appear here"
+    "empty_subtitle": "Your generated designs will appear here",
+    "phone_banner_title": "Access your designs anywhere",
+    "phone_banner_sub": "Add your phone number to sync designs across devices",
+    "phone_banner_btn": "Add phone number"
   }
 }
