@@ -32,7 +32,7 @@ const CATEGORY_TO_TAB: Record<string, string> = {
 const TAB_IDS = ['all', 'beauty', 'retail', 'marketplace'] as const
 type TabId = typeof TAB_IDS[number]
 
-function buildTabOrder(_selectedCategory: ProductCategory | null): TabId[] {
+function buildTabOrder(): TabId[] {
   return [...TAB_IDS] // always keep original order: all, beauty, retail, marketplace
 }
 
@@ -55,7 +55,7 @@ export function TemplateGrid() {
     }
   }, [router])
 
-  const tabOrder = useMemo(() => buildTabOrder(selectedCategory), [selectedCategory])
+  const tabOrder = useMemo(() => buildTabOrder(), [])
 
   const TAB_LABELS: Record<TabId, string> = {
     all: t('tab_all'),
