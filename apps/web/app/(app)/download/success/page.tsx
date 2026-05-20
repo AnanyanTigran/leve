@@ -41,16 +41,15 @@ const PLATFORM_ORDER: ExportPlatform[] = [
 export default function DownloadSuccessPage() {
   const router = useRouter()
   const t = useTranslations('download')
-  const tCommon = useTranslations('common')
-  const [phone, setPhone] = useState('')
   const [selectedPlatform, setSelectedPlatform] = useState<ExportPlatform>('original_hd')
 
   useEffect(() => {
     if (!isVerified()) router.replace('/register')
   }, [router])
 
-  const spec = PLATFORM_SPECS[selectedPlatform]
-  const downloadLabel = `${t('download_btn').replace('HD image', spec.label)}`
+  const primaryButtonLabel = selectedPlatform === 'original_hd'
+    ? t('download_btn')
+    : `${t('download_for')} ${PLATFORM_SPECS[selectedPlatform].label}`
 
   const handleDownload = () => {
     const preview = sessionStorage.getItem('leve_upload_preview')
@@ -82,7 +81,7 @@ export default function DownloadSuccessPage() {
         {/* Primary download button */}
         <button onClick={handleDownload} className="btn-primary btn-full h-14 text-[16px] mt-6 gap-2">
           <Download className="w-[18px] h-[18px]" />
-          {t('download_btn')}
+          {primaryButtonLabel}
         </button>
 
         {/* Platform picker */}
@@ -124,46 +123,11 @@ export default function DownloadSuccessPage() {
             })}
           </div>
 
-          <button onClick={handleDownload} className="btn-primary btn-full mt-4 gap-2">
-            <Download className="w-[18px] h-[18px]" />
-            {downloadLabel}
-          </button>
         </div>
 
-        <div className="flex items-center gap-3 mt-8 mb-6">
-          <hr className="flex-1 border-border-default" />
-          <span className="text-[12px] text-text-muted">Optional</span>
-          <hr className="flex-1 border-border-default" />
-        </div>
-
-        {/* Phone capture card */}
-        <div className="bg-bg-surface border border-border-default rounded-[12px] p-5">
-          <p className="text-[16px] font-semibold text-text-primary">{t('save_work')}</p>
-          <p className="text-[14px] text-text-secondary mt-1">{t('save_subtitle')}</p>
-
-          <div className="mt-4 flex items-center h-12 bg-bg-elevated border border-border-default rounded-[10px] overflow-hidden">
-            <span className="px-3 text-[14px] text-text-muted border-r border-border-default h-full flex items-center shrink-0">
-              +374
-            </span>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="77 123 456"
-              className="flex-1 px-3 text-[14px] text-text-primary bg-transparent outline-none placeholder:text-text-muted"
-            />
-          </div>
-
-          <button className="btn-secondary mt-3">{t('send_code')}</button>
-          <p className="text-[11px] text-text-muted text-center mt-2">{t('phone_disclaimer')}</p>
-        </div>
-
-        <button className="block w-full text-center text-[14px] text-text-muted hover:text-text-secondary mt-4 cursor-pointer transition-colors">
-          {tCommon('skip')}
-        </button>
         <button
           onClick={() => router.push('/')}
-          className="block w-full text-center text-[14px] text-accent font-semibold mt-3 cursor-pointer"
+          className="btn-secondary btn-full mt-6"
         >
           {t('generate_another')}
         </button>
