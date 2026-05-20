@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle } from 'lucide-react'
-import { isVerified } from '@/lib/session'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -43,10 +42,6 @@ export function UploadZone() {
   const t = useTranslations('upload')
   const tCommon = useTranslations('common')
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (!isVerified()) router.replace('/register')
-  }, [router])
 
   const [fileState, setFileState] = useState<FileState | null>(null)
   const [isDragging, setIsDragging] = useState(false)

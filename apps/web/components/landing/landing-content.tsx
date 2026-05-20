@@ -32,21 +32,11 @@ export function LandingContent() {
 
   function handleCategorySelect(categoryId: ProductCategory) {
     sessionStorage.setItem('leve_category', categoryId)
-    const isVerified = sessionStorage.getItem('leve_verified') === 'true'
-    if (isVerified) {
-      router.push('/upload')
-    } else {
-      router.push('/register')
-    }
+    router.push('/upload')
   }
 
   function handleCTAClick() {
-    const isVerified = sessionStorage.getItem('leve_verified') === 'true'
-    if (isVerified) {
-      router.push('/upload')
-    } else {
-      router.push('/register')
-    }
+    router.push('/upload')
   }
 
   return (

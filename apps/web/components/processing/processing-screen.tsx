@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { AppHeader } from '@/components/shared/app-header'
 import { ROUTES } from '@/lib/constants'
-import { isVerified } from '@/lib/session'
 
 const PHASES = [
   'Setting up the studio...',
@@ -23,7 +22,6 @@ export function ProcessingScreen() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isVerified()) { router.replace('/register'); return }
     const templateId = sessionStorage.getItem('leve_template_id')
     if (!templateId) { router.replace('/templates'); return }
     setUploadPreview(sessionStorage.getItem('leve_upload_preview'))

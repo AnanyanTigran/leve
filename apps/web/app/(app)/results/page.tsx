@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { Phone } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { isVerified } from '@/lib/session'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -26,12 +27,14 @@ export default function ResultsPage() {
   const [paywallOpen, setPaywallOpen] = useState(false)
 
   useEffect(() => {
-    if (!isVerified()) router.replace('/')
+    const hasUpload = sessionStorage.getItem('leve_upload_preview')
+    if (!hasUpload) router.replace('/')
   }, [router])
 
-  const freeCredits = typeof window !== 'undefined'
-    ? Number(sessionStorage.getItem('leve_free_credits') ?? 2)
-    : 2
+  const verified = typeof window !== 'undefined' ? isVerified() : false
+  const freeCredits = verified
+    ? Number(sessionStorage.getItem('leve_free_credits') ?? 0)
+    : 0
 
   const uploadPreview = typeof window !== 'undefined'
     ? sessionStorage.getItem('leve_upload_preview')
@@ -60,6 +63,23 @@ export default function ResultsPage() {
             onSelect={setSelectedVariant}
             onRegenerate={() => router.push('/processing')}
           />
+          {!verified && (
+            <div className="bg-bg-surface border border-border-default rounded-[12px] p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-accent-subtle flex items-center justify-center shrink-0">
+                <Phone className="w-4 h-4 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-text-primary">{t('save_designs')}</p>
+                <p className="text-[12px] text-text-muted">{t('save_designs_sub')}</p>
+              </div>
+              <button
+                onClick={() => router.push('/register')}
+                className="text-[12px] text-accent font-semibold shrink-0"
+              >
+                {t('add_phone')}
+              </button>
+            </div>
+          )}
           <TextOverlaySection />
         </div>
       </main>
@@ -68,7 +88,7 @@ export default function ResultsPage() {
       <div className="fixed bottom-16 left-0 right-0 z-30 bg-bg-base border-t border-border-default px-4 py-3">
         <div className="max-w-[640px] mx-auto flex items-center justify-between">
           <span className="text-[12px] text-text-muted font-ui">
-            {t('free_bar', { count: freeCredits })}
+            {verified ? t('free_bar', { count: freeCredits }) : t('unlock_to_download')}
           </span>
           <button onClick={() => setPaywallOpen(true)} className="btn-primary px-6">
             {tPaywall('title')}

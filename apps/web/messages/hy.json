@@ -109,7 +109,11 @@
     "add_overlay": "Ավելացնել տեքստ",
     "free_remaining": "Մնացել է {count} անվճար փորձ",
     "free_bar": "{count} անվճար նախադիտում",
-    "unlock_hd": "Բացել HD ներբեռնումը"
+    "unlock_hd": "Բացել HD ներբեռնումը",
+    "unlock_to_download": "Գրանցվե՛ք անվճար կամ գնե՛ք փաթեթ",
+    "save_designs": "Պահե՛ք ձեր դիզայնները",
+    "save_designs_sub": "Դիզայնները ջնջվում են 48ժ հետո",
+    "add_phone": "Ավելացնել →"
   },
   "paywall": {
     "title": "Ակտիվացնել HD ներբեռնումը",

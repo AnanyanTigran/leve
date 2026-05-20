@@ -109,7 +109,11 @@
     "add_overlay": "Add text overlay",
     "free_remaining": "{count} free remaining",
     "free_bar": "{count} free previews remaining",
-    "unlock_hd": "Unlock HD"
+    "unlock_hd": "Unlock HD",
+    "unlock_to_download": "Register free for 3 HD images, or buy a pack",
+    "save_designs": "Save your designs",
+    "save_designs_sub": "Designs expire in 48h without an account",
+    "add_phone": "Add phone →"
   },
   "paywall": {
     "title": "Unlock HD Download",

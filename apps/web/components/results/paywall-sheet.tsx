@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CREDIT_PACKAGES } from '@/lib/constants'
+import { isVerified } from '@/lib/session'
 
 type PaywallState = 'pricing' | 'processing' | 'success' | 'failed'
 type PlanId = 'starter' | 'creator' | 'monthly'
@@ -52,6 +53,24 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
         <div className="px-4 pb-8 lg:px-6 lg:pb-6">
           <h2 className="text-[20px] font-semibold text-text-primary">{t('title')}</h2>
           <p className="text-[13px] text-text-muted mt-1">{t('subtitle')}</p>
+
+          {!isVerified() && (
+            <div className="mb-5 mt-5 p-4 bg-accent-subtle border border-accent-border rounded-[12px]">
+              <p className="text-[14px] font-semibold text-text-primary">Get 3 free HD images</p>
+              <p className="text-[12px] text-text-muted mt-1">Quick verification — no password needed</p>
+              <button
+                onClick={() => { onClose(); router.push('/register') }}
+                className="btn-primary btn-full mt-3 h-11 text-[14px]"
+              >
+                Register free
+              </button>
+              <div className="flex items-center gap-3 mt-4 mb-1">
+                <hr className="flex-1 border-border-default" />
+                <span className="text-[11px] text-text-muted">or buy without registering</span>
+                <hr className="flex-1 border-border-default" />
+              </div>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-col gap-3">
             {CREDIT_PACKAGES.map((pkg) => {
