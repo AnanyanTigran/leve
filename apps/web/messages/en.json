@@ -169,5 +169,11 @@
     "phone_disclaimer": "We'll never spam you · Only for session recovery",
     "skip": "Skip for now",
     "generate_another": "Generate another"
+  },
+  "history": {
+    "generate_first": "Generate your first image",
+    "active_session": "You have a generation in progress",
+    "active_session_sub": "Continue where you left off",
+    "active_session_btn": "Continue →"
   }
 }

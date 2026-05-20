@@ -169,5 +169,11 @@
     "phone_disclaimer": "Առանց սպամի · Միայն մուտքը վերականգնելու համար",
     "skip": "Առայժմ բաց թողնել",
     "generate_another": "Գեներացնել նորը"
+  },
+  "history": {
+    "generate_first": "Ստեղծե՛ք ձեր առաջին նկարը",
+    "active_session": "Ձեր ստեղծումը դեռ ընթանում է",
+    "active_session_sub": "Շարունակե՛ք կես ճամփից",
+    "active_session_btn": "Շարունակել →"
   }
 }

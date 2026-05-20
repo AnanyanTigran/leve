@@ -31,6 +31,17 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
   }, [])
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  useEffect(() => {
     if (!isOpen) {
       const timer = setTimeout(() => setPaywallState('pricing'), 350)
       return () => clearTimeout(timer)
@@ -191,7 +202,7 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
               className="bg-bg-base rounded-[20px] w-full max-w-[480px] shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-8 h-1 bg-border-strong rounded-full mx-auto mt-5 mb-2" />
+              {paywallState !== 'processing' && <div className="w-8 h-1 bg-border-strong rounded-full mx-auto mt-5 mb-2" />}
               {content}
             </div>
           </div>
@@ -215,7 +226,7 @@ export function PaywallSheet({ isOpen, onClose }: PaywallSheetProps) {
           transition: 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)',
         }}
       >
-        <div className="w-8 h-1 bg-border-strong rounded-full mx-auto mt-3 mb-4" />
+        {paywallState !== 'processing' && <div className="w-8 h-1 bg-border-strong rounded-full mx-auto mt-3 mb-4" />}
         {content}
       </div>
     </>

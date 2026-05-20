@@ -96,7 +96,7 @@ export default function ResultsPage() {
         </div>
       </div>
 
-      <BottomNav />
+      {!paywallOpen && <BottomNav />}
       <PaywallSheet isOpen={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </div>
   )
