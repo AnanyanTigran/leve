@@ -2,102 +2,90 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
 import { cn } from '@/lib/utils'
-import type { AuthMethod } from '@leve/types'
 
 interface RegistrationFormProps {
-  onContinue: (contact: string, method: AuthMethod) => void
+  onContinue: (contact: string, method: 'phone' | 'email') => void
 }
 
-function isValidPhone(value: string): boolean {
-  return /^\d{8}$/.test(value.replace(/\s/g, ''))
-}
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+function isValidEmail(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 }
 
 export function RegistrationForm({ onContinue }: RegistrationFormProps) {
   const t = useTranslations('register')
-  const [method, setMethod] = useState<AuthMethod>('phone')
-  const [value, setValue] = useState('')
+  const [phone, setPhone] = useState<string>('')
+  const [email, setEmail] = useState('')
 
-  const isValid = method === 'phone' ? isValidPhone(value) : isValidEmail(value)
+  const phoneValid = phone ? isValidPhoneNumber(phone) : false
+  const emailValid = email ? isValidEmail(email) : false
+  const canContinue = phoneValid || emailValid
 
   function handleSubmit() {
-    if (!isValid) return
-    onContinue(value, method)
+    if (!canContinue) return
+    // Prefer phone if both provided
+    if (phoneValid) onContinue(phone, 'phone')
+    else onContinue(email, 'email')
   }
 
   return (
-    <div className="bg-bg-surface border border-border-default rounded-[12px] p-6 lg:p-8">
-      {/* Auth method toggle */}
-      <div className="flex gap-2 mb-6">
-        <button
-          type="button"
-          onClick={() => { setMethod('phone'); setValue('') }}
-          className={cn(
-            'flex-1 h-10 rounded-[10px] text-[14px] font-semibold transition-colors',
-            method === 'phone'
-              ? 'bg-accent text-white'
-              : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
-          )}
-        >
-          📱 {t('phone_method')}
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMethod('email'); setValue('') }}
-          className={cn(
-            'flex-1 h-10 rounded-[10px] text-[14px] font-semibold transition-colors',
-            method === 'email'
-              ? 'bg-accent text-white'
-              : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
-          )}
-        >
-          ✉️ {t('email_method')}
-        </button>
-      </div>
-
-      {method === 'phone' ? (
-        <div>
-          <label className="block text-[13px] font-semibold text-text-primary mb-2">
-            {t('phone_label')}
-          </label>
-          <div className="flex items-center h-12 bg-bg-elevated border border-border-default rounded-[10px] overflow-hidden focus-within:border-accent transition-colors">
-            <span className="px-3 text-[14px] text-text-muted border-r border-border-default h-full flex items-center shrink-0 select-none">
-              +374
-            </span>
-            <input
-              type="tel"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={t('phone_placeholder')}
-              maxLength={10}
-              className="flex-1 px-3 text-[14px] text-text-primary bg-transparent outline-none placeholder:text-text-muted"
-            />
-          </div>
-        </div>
-      ) : (
-        <div>
-          <label className="block text-[13px] font-semibold text-text-primary mb-2">
-            {t('email_label')}
-          </label>
-          <input
-            type="email"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder={t('email_placeholder')}
-            className="w-full h-12 bg-bg-elevated border border-border-default rounded-[10px] px-4 text-[14px] text-text-primary outline-none placeholder:text-text-muted focus:border-accent transition-colors"
+    <div className="bg-bg-surface border border-border-default rounded-[12px] p-6 lg:p-8 flex flex-col gap-5">
+      {/* Phone field */}
+      <div>
+        <label className="block text-[13px] font-semibold text-text-primary mb-2">
+          {t('phone_label')} <span className="text-text-muted font-normal">{t('optional_if_email')}</span>
+        </label>
+        <div className={cn(
+          'flex items-center h-12 bg-bg-elevated border rounded-[10px] overflow-hidden transition-colors px-3',
+          phoneValid ? 'border-accent' : 'border-border-default focus-within:border-accent'
+        )}>
+          <PhoneInput
+            international
+            defaultCountry="AM"
+            value={phone}
+            onChange={(val) => setPhone(val ?? '')}
+            className="flex-1 text-[14px] text-text-primary bg-transparent outline-none phone-input-dark"
           />
         </div>
-      )}
+        {phone && !phoneValid && (
+          <p className="text-[12px] text-red-400 mt-1">{t('phone_invalid')}</p>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <hr className="flex-1 border-border-default" />
+        <span className="text-[12px] text-text-muted">{t('or')}</span>
+        <hr className="flex-1 border-border-default" />
+      </div>
+
+      {/* Email field */}
+      <div>
+        <label className="block text-[13px] font-semibold text-text-primary mb-2">
+          {t('email_label')} <span className="text-text-muted font-normal">{t('optional_if_phone')}</span>
+        </label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder={t('email_placeholder')}
+          className={cn(
+            'w-full h-12 bg-bg-elevated border rounded-[10px] px-4 text-[14px] text-text-primary outline-none placeholder:text-text-muted transition-colors',
+            emailValid ? 'border-accent' : 'border-border-default focus:border-accent'
+          )}
+        />
+        {email && !emailValid && (
+          <p className="text-[12px] text-red-400 mt-1">{t('email_invalid')}</p>
+        )}
+      </div>
 
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!isValid}
-        className="btn-primary btn-full mt-6"
+        disabled={!canContinue}
+        className="btn-primary btn-full"
       >
         {t('continue')}
       </button>

@@ -70,7 +70,12 @@
     "signin_hint": "Already have an account?",
     "signin_link": "Sign in",
     "terms": "By continuing, you agree to our Terms",
-    "terms_full": "By continuing, you agree to our Terms and Privacy Policy"
+    "terms_full": "By continuing, you agree to our Terms and Privacy Policy",
+    "optional_if_email": "optional if email provided",
+    "optional_if_phone": "optional if phone provided",
+    "or": "or",
+    "phone_invalid": "Please enter a valid phone number",
+    "email_invalid": "Please enter a valid email"
   },
   "upload": {
     "title": "Upload photo",

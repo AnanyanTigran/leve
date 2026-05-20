@@ -220,3 +220,23 @@
     @apply bg-bg-elevated animate-pulse rounded-md;
   }
 }
+
+/* react-phone-number-input dark theme overrides */
+.phone-input-dark .PhoneInputInput {
+  background: transparent;
+  color: var(--text-primary);
+  border: none;
+  outline: none;
+  font-size: 14px;
+  width: 100%;
+}
+.phone-input-dark .PhoneInputCountrySelect {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: none;
+  outline: none;
+  margin-right: 8px;
+}
+.phone-input-dark .PhoneInputCountryIcon {
+  margin-right: 4px;
+}
