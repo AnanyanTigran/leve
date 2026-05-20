@@ -104,7 +104,19 @@
     "custom_details": "Ավելացնել մանրամասներ",
     "optional": "Ոչ պարտադիր",
     "custom_placeholder": "Նկարագրե՛ք, թե ինչ եք ցանկանում... (Ցանկացած լեզվով)",
-    "translate_note": "Ձեր տեքստը թարգմանվում է ավտոմատ"
+    "translate_note": "Ձեր տեքստը թարգմանվում է ավտոմատ",
+    "names": {
+      "luxury_cosmetics": "Պրեմիում կոսմետիկա",
+      "beauty_clinic": "Գեղեցկության կլինիկա",
+      "lifestyle_glow": "Ապրելակերպ",
+      "fashion_story": "Նորաձևություն",
+      "jewelry_luxury": "Պրեմիում զարդեր",
+      "perfume_studio": "Օծանելիքի ստուդիա",
+      "wildberries_standard": "Wildberries ստանդարտ",
+      "ozon_clean": "Մաքուր Ozon",
+      "marketplace_hero": "Մարքեթփլեյս հիթ",
+      "sale_promo": "Զեղչ / Акция"
+    }
   },
   "results": {
     "title": "Ձեր արդյունքները",

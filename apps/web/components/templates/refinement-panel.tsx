@@ -11,6 +11,7 @@ interface RefinementChip {
   id: string
   label: string
   prompt: string
+  group?: string
 }
 
 interface RefinementPanelProps {
@@ -29,9 +30,21 @@ export function RefinementPanel({ category, onChipsChange, onCustomTextChange }:
   const chips: RefinementChip[] = [...config.refinementChips]
 
   function toggleChip(id: string) {
+    const chip = chips.find(c => c.id === id)
+    if (!chip) return
+
+    const group = chip.group
+
     const next = selectedChips.includes(id)
-      ? selectedChips.filter((c) => c !== id)
-      : [...selectedChips, id]
+      ? selectedChips.filter(c => c !== id)
+      : [
+          ...selectedChips.filter(c => {
+            const existingChip = chips.find(ch => ch.id === c)
+            return existingChip?.group !== group
+          }),
+          id,
+        ]
+
     setSelectedChips(next)
     onChipsChange(next)
   }
@@ -83,7 +96,7 @@ export function RefinementPanel({ category, onChipsChange, onCustomTextChange }:
         </button>
 
         {customExpanded && (
-          <div className="px-4 pb-4 pt-3 bg-bg-surface">
+          <div className="px-4 pb-4 pt-3 bg-bg-surface max-w-[520px]">
             <textarea
               value={customText}
               onChange={(e) => handleCustomText(e.target.value)}

@@ -104,7 +104,19 @@
     "custom_details": "Добавить детали",
     "optional": "Необязательно",
     "custom_placeholder": "Опишите что хотите... (На любом языке)",
-    "translate_note": "Мы автоматически переводим ваш текст"
+    "translate_note": "Мы автоматически переводим ваш текст",
+    "names": {
+      "luxury_cosmetics": "Люкс косметика",
+      "beauty_clinic": "Бьюти клиника",
+      "lifestyle_glow": "Лайфстайл свечение",
+      "fashion_story": "Модная история",
+      "jewelry_luxury": "Люкс украшения",
+      "perfume_studio": "Студия парфюмерии",
+      "wildberries_standard": "Стандарт Wildberries",
+      "ozon_clean": "Чистый Ozon",
+      "marketplace_hero": "Маркетплейс хит",
+      "sale_promo": "Акция / Скидка"
+    }
   },
   "results": {
     "title": "Ваши результаты",

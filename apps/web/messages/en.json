@@ -104,7 +104,19 @@
     "custom_details": "Add custom details",
     "optional": "Optional",
     "custom_placeholder": "Describe what you want... (Any language)",
-    "translate_note": "We automatically translate your text"
+    "translate_note": "We automatically translate your text",
+    "names": {
+      "luxury_cosmetics": "Luxury Cosmetics",
+      "beauty_clinic": "Beauty Clinic",
+      "lifestyle_glow": "Lifestyle Glow",
+      "fashion_story": "Fashion Story",
+      "jewelry_luxury": "Jewelry Luxury",
+      "perfume_studio": "Perfume Studio",
+      "wildberries_standard": "Wildberries Standard",
+      "ozon_clean": "Ozon Clean",
+      "marketplace_hero": "Marketplace Hero",
+      "sale_promo": "Sale / Promo"
+    }
   },
   "results": {
     "title": "Your results",

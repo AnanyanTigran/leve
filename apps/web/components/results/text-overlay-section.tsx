@@ -12,18 +12,9 @@ const OVERLAY_OPTIONS = [
 
 type OverlayId = typeof OVERLAY_OPTIONS[number]['id']
 
-const LANGUAGES = [
-  { id: 'hy', label: 'ՀԱՅ' },
-  { id: 'ru', label: 'РУС' },
-  { id: 'en', label: 'ENG' },
-] as const
-
-type LangId = typeof LANGUAGES[number]['id']
-
 export function TextOverlaySection({ className }: { className?: string }) {
   const [selectedOverlay, setSelectedOverlay] = useState<OverlayId | null>(null)
   const [overlayText, setOverlayText] = useState('')
-  const [language, setLanguage] = useState<LangId>('hy')
 
   const currentPlaceholder = OVERLAY_OPTIONS.find((o) => o.id === selectedOverlay)?.placeholder ?? ''
 
@@ -62,25 +53,6 @@ export function TextOverlaySection({ className }: { className?: string }) {
           />
         )}
 
-        <div className="flex items-center gap-3">
-          <span className="text-[12px] text-text-muted">Language:</span>
-          <div className="flex gap-2">
-            {LANGUAGES.map(({ id, label }) => (
-              <button
-                key={id}
-                onClick={() => setLanguage(id)}
-                className={cn(
-                  'px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors',
-                  language === id
-                    ? 'bg-[#D64C1A] text-white'
-                    : 'bg-bg-elevated border border-border-default text-text-primary'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   )

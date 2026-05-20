@@ -8,16 +8,16 @@ import { RefinementPanel } from './refinement-panel'
 import type { ProductCategory } from '@leve/types'
 
 const TEMPLATES = [
-  { id: 'luxury-cosmetics', name: 'Luxury Cosmetics', category: 'beauty', gradient: 'linear-gradient(135deg, #fdf0eb, #f0d4c4)' },
-  { id: 'beauty-clinic', name: 'Beauty Clinic', category: 'beauty', gradient: 'linear-gradient(135deg, #f0f7ff, #dbeafe)' },
-  { id: 'lifestyle-glow', name: 'Lifestyle Glow', category: 'beauty', gradient: 'linear-gradient(135deg, #fef9c3, #fde68a)' },
-  { id: 'fashion-story', name: 'Fashion Story', category: 'retail', gradient: 'linear-gradient(135deg, #f1f0ef, #dddad6)' },
-  { id: 'jewelry-luxury', name: 'Jewelry Luxury', category: 'retail', gradient: 'linear-gradient(135deg, #1c1c1e, #2d2d30)' },
-  { id: 'perfume-studio', name: 'Perfume Studio', category: 'retail', gradient: 'linear-gradient(135deg, #e8e4f0, #d4cce8)' },
-  { id: 'wildberries-standard', name: 'Wildberries Standard', category: 'marketplace', gradient: 'linear-gradient(135deg, #ffffff, #f5f5f5)' },
-  { id: 'ozon-clean', name: 'Ozon Clean', category: 'marketplace', gradient: 'linear-gradient(135deg, #f0f4ff, #e0e8ff)' },
-  { id: 'marketplace-hero', name: 'Marketplace Hero', category: 'marketplace', gradient: 'linear-gradient(135deg, #f8f8f8, #eeeeee)' },
-  { id: 'sale-promo', name: 'Sale / Promo', category: 'marketplace', gradient: 'linear-gradient(135deg, #fff0f0, #ffd6d6)' },
+  { id: 'luxury-cosmetics', nameKey: 'luxury_cosmetics', category: 'beauty', gradient: 'linear-gradient(135deg, #fdf0eb, #f0d4c4)' },
+  { id: 'beauty-clinic', nameKey: 'beauty_clinic', category: 'beauty', gradient: 'linear-gradient(135deg, #f0f7ff, #dbeafe)' },
+  { id: 'lifestyle-glow', nameKey: 'lifestyle_glow', category: 'beauty', gradient: 'linear-gradient(135deg, #fef9c3, #fde68a)' },
+  { id: 'fashion-story', nameKey: 'fashion_story', category: 'retail', gradient: 'linear-gradient(135deg, #f1f0ef, #dddad6)' },
+  { id: 'jewelry-luxury', nameKey: 'jewelry_luxury', category: 'retail', gradient: 'linear-gradient(135deg, #1c1c1e, #2d2d30)' },
+  { id: 'perfume-studio', nameKey: 'perfume_studio', category: 'retail', gradient: 'linear-gradient(135deg, #e8e4f0, #d4cce8)' },
+  { id: 'wildberries-standard', nameKey: 'wildberries_standard', category: 'marketplace', gradient: 'linear-gradient(135deg, #ffffff, #f5f5f5)' },
+  { id: 'ozon-clean', nameKey: 'ozon_clean', category: 'marketplace', gradient: 'linear-gradient(135deg, #f0f4ff, #e0e8ff)' },
+  { id: 'marketplace-hero', nameKey: 'marketplace_hero', category: 'marketplace', gradient: 'linear-gradient(135deg, #f8f8f8, #eeeeee)' },
+  { id: 'sale-promo', nameKey: 'sale_promo', category: 'marketplace', gradient: 'linear-gradient(135deg, #fff0f0, #ffd6d6)' },
 ]
 
 const CATEGORY_TO_TAB: Record<string, string> = {
@@ -32,11 +32,8 @@ const CATEGORY_TO_TAB: Record<string, string> = {
 const TAB_IDS = ['all', 'beauty', 'retail', 'marketplace'] as const
 type TabId = typeof TAB_IDS[number]
 
-function buildTabOrder(selectedCategory: ProductCategory | null): TabId[] {
-  if (!selectedCategory) return [...TAB_IDS]
-  const preferred = (CATEGORY_TO_TAB[selectedCategory] ?? 'all') as TabId
-  if (preferred === 'all') return [...TAB_IDS]
-  return [preferred, ...TAB_IDS.filter((t) => t !== preferred)]
+function buildTabOrder(_selectedCategory: ProductCategory | null): TabId[] {
+  return [...TAB_IDS] // always keep original order: all, beauty, retail, marketplace
 }
 
 export function TemplateGrid() {
@@ -138,7 +135,7 @@ export function TemplateGrid() {
                     {template.category}
                   </span>
                   <span className="text-[13px] text-white font-semibold leading-tight">
-                    {template.name}
+                    {t(`names.${template.nameKey}`)}
                   </span>
                 </div>
               </button>
