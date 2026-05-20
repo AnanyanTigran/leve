@@ -1,6 +1,7 @@
 'use client'
 
 import { RefreshCw } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 const VARIANTS = [
@@ -18,16 +19,17 @@ interface VariantGridProps {
 }
 
 export function VariantGrid({ selectedId, onSelect, onRegenerate, className }: VariantGridProps) {
+  const t = useTranslations('results')
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[14px] font-semibold text-text-primary">All variations</span>
+        <span className="text-[14px] font-semibold text-text-primary">{t('all_variations')}</span>
         <button
           onClick={onRegenerate}
           className="flex items-center gap-1.5 text-text-muted hover:text-text-primary transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          <span className="text-[13px]">Regenerate</span>
+          <span className="text-[13px]">{t('regenerate')}</span>
         </button>
       </div>
 

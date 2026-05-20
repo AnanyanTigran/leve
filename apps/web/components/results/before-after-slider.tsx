@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface BeforeAfterSliderProps {
   beforeSrc?: string | null
@@ -14,6 +15,7 @@ export function BeforeAfterSlider({
   afterGradient = 'linear-gradient(135deg, #fdf0eb, #f5d5c5)',
   className,
 }: BeforeAfterSliderProps) {
+  const t = useTranslations('results')
   const [sliderPosition, setSliderPosition] = useState(30)
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -60,7 +62,7 @@ export function BeforeAfterSlider({
           <img src={beforeSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
         )}
         <span className="absolute top-3 left-3 text-[11px] text-text-secondary bg-white px-2 py-1 rounded-[6px] z-10 select-none">
-          Before
+          {t('before')}
         </span>
       </div>
 
@@ -70,7 +72,7 @@ export function BeforeAfterSlider({
         style={{ background: afterGradient, clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
       >
         <span className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none" style={{ background: '#D64C1A' }}>
-          After
+          {t('after')}
         </span>
       </div>
 

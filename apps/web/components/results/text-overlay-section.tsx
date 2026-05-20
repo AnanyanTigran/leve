@@ -1,26 +1,35 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
-const OVERLAY_OPTIONS = [
-  { id: 'price', label: 'Price', placeholder: '15,000 ֏' },
-  { id: 'sale', label: 'Sale', placeholder: 'SALE 30%' },
-  { id: 'new-in', label: 'New in', placeholder: 'NEW ARRIVAL' },
-  { id: 'custom', label: 'Custom', placeholder: 'Enter text...' },
-] as const
+type OverlayId = 'price' | 'sale' | 'new-in' | 'custom'
 
-type OverlayId = typeof OVERLAY_OPTIONS[number]['id']
+const OVERLAY_PLACEHOLDERS: Record<OverlayId, string> = {
+  'price': '15,000 ֏',
+  'sale': 'SALE 30%',
+  'new-in': 'NEW ARRIVAL',
+  'custom': '...',
+}
 
 export function TextOverlaySection({ className }: { className?: string }) {
+  const t = useTranslations('results')
   const [selectedOverlay, setSelectedOverlay] = useState<OverlayId | null>(null)
   const [overlayText, setOverlayText] = useState('')
 
-  const currentPlaceholder = OVERLAY_OPTIONS.find((o) => o.id === selectedOverlay)?.placeholder ?? ''
+  const OVERLAY_OPTIONS: { id: OverlayId; label: string }[] = [
+    { id: 'price', label: t('overlay_price') },
+    { id: 'sale', label: t('overlay_sale') },
+    { id: 'new-in', label: t('overlay_new') },
+    { id: 'custom', label: t('overlay_custom') },
+  ]
+
+  const currentPlaceholder = selectedOverlay ? OVERLAY_PLACEHOLDERS[selectedOverlay] : ''
 
   return (
     <div className={className}>
-      <span className="text-[14px] font-semibold text-text-primary">Add text overlay</span>
+      <span className="text-[14px] font-semibold text-text-primary">{t('add_overlay')}</span>
 
       <div className="mt-2 flex flex-col gap-3">
         <div className="flex flex-wrap gap-2">
@@ -52,7 +61,6 @@ export function TextOverlaySection({ className }: { className?: string }) {
             className="w-full h-11 px-3 bg-bg-elevated border border-border-default rounded-md text-[14px] text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"
           />
         )}
-
       </div>
     </div>
   )

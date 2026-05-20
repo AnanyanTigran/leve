@@ -94,7 +94,7 @@ export function ProcessingScreen() {
             />
           </div>
           <p className="text-[13px] text-text-muted text-center">
-            This takes about 15–20 seconds
+            {t('time_estimate')}
           </p>
           <p className="text-[12px] text-text-muted text-center mt-1">
             {t('dont_close')}

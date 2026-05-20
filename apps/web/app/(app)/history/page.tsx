@@ -22,7 +22,7 @@ export default function HistoryPage() {
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
-      <AppHeader variant="app" showBack={false} title="Your designs" rightSlot={null} />
+      <AppHeader variant="app" showBack={false} title={t('title')} rightSlot={null} />
 
       <main className="page-content flex-1 overflow-y-auto pb-24">
         {/* Active session banner */}
@@ -48,24 +48,24 @@ export default function HistoryPage() {
               <Phone className="w-4 h-4 text-accent" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-semibold text-text-primary">Access your designs anywhere</p>
-              <p className="text-[12px] text-text-secondary mt-0.5">Add your phone number to sync designs across devices</p>
+              <p className="text-[14px] font-semibold text-text-primary">{t('phone_banner_title')}</p>
+              <p className="text-[12px] text-text-secondary mt-0.5">{t('phone_banner_sub')}</p>
             </div>
           </div>
           <button
             onClick={() => router.push('/register')}
             className="mt-3 w-full h-10 rounded-[8px] border border-accent text-accent text-[13px] font-semibold hover:bg-accent hover:text-white transition-colors"
           >
-            Add phone number
+            {t('phone_banner_btn')}
           </button>
         </div>
 
         {/* Empty state */}
         <div className="flex flex-col items-center justify-center min-h-[400px] pb-20 gap-4">
           <ImageIcon className="w-12 h-12 text-border-strong" />
-          <p className="text-[16px] font-semibold text-text-primary">No designs yet</p>
+          <p className="text-[16px] font-semibold text-text-primary">{t('empty_title')}</p>
           <p className="text-[14px] text-text-muted text-center">
-            Your generated designs will appear here
+            {t('empty_subtitle')}
           </p>
         </div>
       </main>
