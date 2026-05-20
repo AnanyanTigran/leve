@@ -48,7 +48,8 @@
     "footer_terms": "Terms",
     "footer_privacy": "Privacy",
     "footer_contact": "Contact",
-    "footer_copyright": "© 2025 LEVE"
+    "footer_copyright": "© 2025 LEVE",
+    "signin": "Sign in"
   },
   "register": {
     "title": "Create your free account",

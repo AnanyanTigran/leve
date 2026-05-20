@@ -51,21 +51,36 @@ export function LandingContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-bg-base">
-      <AppHeader variant="landing" showLangSwitcher rightSlot={<ThemeToggle />} />
+      <AppHeader
+        variant="landing"
+        showLangSwitcher
+        rightSlot={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => router.push('/register')}
+              className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors hidden sm:block"
+            >
+              {t('signin')}
+            </button>
+            <ThemeToggle />
+          </div>
+        }
+      />
 
       <main className="flex-1">
         {/* SECTION 1 — Hero */}
         <section className="px-4 pt-12 pb-8 lg:pt-16">
-          <div className="mb-8 lg:mb-12 lg:text-center w-full max-w-[560px] mx-auto">
-            <p className="text-xs font-ui font-medium text-accent uppercase tracking-[0.15em] mb-3">
+          <div className="mb-8 lg:mb-12 lg:text-center w-full max-w-[560px] lg:max-w-[680px] mx-auto">
+            <p className="text-sm font-ui font-medium text-accent uppercase tracking-[0.15em] mb-3 text-center lg:text-center">
               {t('eyebrow')}
             </p>
-            <h1 className="font-display font-semibold text-[40px] leading-[1.05] text-text-primary lg:text-[56px] text-balance">
+            <h1 className="font-display font-semibold text-[40px] leading-[1.05] text-text-primary lg:text-[48px] text-balance text-center lg:text-center">
               {t('headline_1')}
               <br />
               {t('headline_2')}
             </h1>
-            <p className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg lg:mx-auto">
+            <p className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg lg:mx-auto text-center lg:text-center">
               {t('subtext')}
             </p>
 
@@ -79,7 +94,7 @@ export function LandingContent() {
                     type="button"
                     onClick={() => handleCategorySelect(cat.id)}
                     className={cn(
-                      'flex items-center w-full h-[72px] px-4 rounded-[12px] border transition-all duration-100',
+                      'flex items-center w-full min-h-[72px] py-4 px-4 rounded-[12px] border transition-all duration-100',
                       'bg-bg-surface border-border-default',
                       'active:scale-[0.98]',
                       'hover:border-accent hover:bg-accent-subtle'
@@ -118,11 +133,11 @@ export function LandingContent() {
               {t('showcase_subtitle')}
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth gap-4 pb-2 no-scrollbar md:grid md:grid-cols-3 md:overflow-x-visible md:pb-0">
               {SHOWCASE_CARDS.map((card) => (
                 <div
                   key={card.template}
-                  className="bg-bg-surface border border-border-default rounded-md overflow-hidden"
+                  className="snap-start shrink-0 w-[85vw] md:w-auto bg-bg-surface border border-border-default rounded-md overflow-hidden"
                 >
                   <div className="relative flex h-[180px]">
                     <div className="relative flex-1" style={{ backgroundColor: card.leftBg }}>

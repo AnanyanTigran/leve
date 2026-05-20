@@ -48,7 +48,8 @@
     "footer_terms": "Условия",
     "footer_privacy": "Конфиденциальность",
     "footer_contact": "Контакт",
-    "footer_copyright": "© 2025 LEVE"
+    "footer_copyright": "© 2025 LEVE",
+    "signin": "Войти"
   },
   "register": {
     "title": "Создайте бесплатный аккаунт",
