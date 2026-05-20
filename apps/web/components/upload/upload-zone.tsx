@@ -107,8 +107,8 @@ export function UploadZone() {
 
   return (
     <div className="flex flex-col flex-1">
-      <main className="page-funnel flex-1 overflow-y-auto flex flex-col py-4 gap-4">
-        <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start flex-1 flex flex-col lg:flex-none">
+      <main className="page-funnel lg:page-content flex-1 overflow-y-auto flex flex-col py-4 gap-4">
+        <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8 lg:items-start flex-1 flex flex-col lg:flex-none">
 
           {/* Upload zone */}
           <div
@@ -118,7 +118,7 @@ export function UploadZone() {
             onDragLeave={handleDragLeave}
             className={[
               'relative flex flex-col rounded-[14px] overflow-hidden transition-all duration-150 ease-out',
-              'flex-1 min-h-[300px] lg:min-h-[420px]',
+              'flex-1 min-h-[300px] lg:min-h-[520px]',
               fileState
                 ? 'border-0'
                 : isDragging
@@ -142,13 +142,22 @@ export function UploadZone() {
                 >
                   <X className="w-5 h-5 text-white" />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-3">
-                  <span className="text-[13px] text-white font-medium truncate">{fileState.file.name}</span>
-                  <span className="text-[11px] text-white/70">{formatFileSize(fileState.file.size)}</span>
+                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/80 to-transparent flex items-end p-3 gap-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] text-white font-medium truncate block">{fileState.file.name}</span>
+                    <span className="text-[11px] text-white/60">{formatFileSize(fileState.file.size)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); inputRef.current?.click() }}
+                    className="shrink-0 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-[12px] text-white font-medium transition-colors"
+                  >
+                    Change
+                  </button>
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[420px] gap-3 text-center p-8">
+              <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[520px] gap-3 text-center p-8">
                 <UploadCloud
                   className={`w-12 h-12 transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-muted'}`}
                 />
@@ -173,17 +182,30 @@ export function UploadZone() {
           </div>
 
           {/* Desktop tips panel */}
-          <div className="hidden lg:flex lg:flex-col bg-bg-surface border border-border-default rounded-[12px] p-5 self-start lg:sticky lg:top-4">
-            <h3 className="text-[16px] font-semibold text-text-primary mb-5">{t('tips_title')}</h3>
-            <div className="flex flex-col gap-4">
+          <div className="hidden lg:flex lg:flex-col bg-bg-surface border border-border-default rounded-[12px] p-6 self-start lg:sticky lg:top-4">
+            <h3 className="text-[18px] font-semibold text-text-primary mb-5">{t('tips_title')}</h3>
+            <div className="flex flex-col gap-5">
               {(['tip1', 'tip2', 'tip3', 'tip4'] as const).map((key) => (
                 <div key={key} className="flex items-start gap-3">
                   <CheckCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                  <span className="text-[14px] text-text-secondary">{t(key)}</span>
+                  <span className="text-[15px] text-text-secondary">{t(key)}</span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Mobile tips — horizontal scroll */}
+        <div className="flex lg:hidden gap-2 overflow-x-auto no-scrollbar pb-1">
+          {(['tip1', 'tip2', 'tip3', 'tip4'] as const).map((key) => (
+            <span
+              key={key}
+              className="shrink-0 flex items-center gap-1.5 bg-bg-surface border border-border-default rounded-full px-3 py-1.5 text-[12px] text-text-secondary"
+            >
+              <CheckCircle className="w-3 h-3 text-accent shrink-0" />
+              {t(key)}
+            </span>
+          ))}
         </div>
 
         {error && (
