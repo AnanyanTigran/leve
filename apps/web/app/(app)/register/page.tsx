@@ -33,10 +33,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg-base">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <AppHeader variant="app" showBack backHref="/" title="" />
 
-      <main className="flex-1 flex flex-col justify-center px-4 py-8">
+      <main className="flex-1 overflow-y-auto flex flex-col justify-center px-4 py-8">
         <div className="w-full max-w-[480px] mx-auto">
           <div className="text-center mb-8">
             <span className="font-display font-semibold text-[32px] text-accent select-none">LEVE</span>

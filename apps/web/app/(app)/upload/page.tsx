@@ -6,7 +6,7 @@ export default async function UploadPage() {
   const t = await getTranslations('upload')
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-base">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <AppHeader
         variant="app"
         showBack

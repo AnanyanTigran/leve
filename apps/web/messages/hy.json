@@ -43,7 +43,7 @@
     "marketplace_wb": "Wildberries-ի չափանիշներին համապատասխան",
     "marketplace_ozon": "Ozon-ի չափանիշներին համապատասխան",
     "cta_title": "Պատրա՞ստ եք փորձել:",
-    "cta_subtitle": "Ստացեք 3 անվճար HD նկար՝ արագ հաստատումից հետո:",
+    "cta_subtitle": "Ստացեք 3 անվճար HD նկար՝ արագ վերիֆիկաիաի հետո:",
     "cta_button": "Սկսե՛ք անվճար",
     "footer_terms": "Պայմաններ",
     "footer_privacy": "Գաղտնիություն",
@@ -92,7 +92,7 @@
     "step": "2 / 3",
     "tab_all": "Բոլորը",
     "tab_beauty": "Գեղեցկություն",
-    "tab_retail": "Մանրածախ",
+    "tab_retail": "Ռիթեյլ",
     "tab_marketplace": "Մարքեթփլեյս",
     "customize": "Հարմարեցնել ոճը",
     "custom_details": "Ավելացնել մանրամասներ",
@@ -130,12 +130,15 @@
     "failed_subtitle": "Ձեր դիզայնները պահպանված են 24 ժամ",
     "retry": "Կրկնել",
     "choose_method": "Ընտրել այլ եղանակ",
-    "download_hd": "Նерբեռնել HD"
+    "download_hd": "Ներբեռնել HD"
+  },
+  "processing": {
+    "dont_close": "Մի փակեք էջը — ձեր նկարը ստեղծվում է:"
   },
   "download": {
     "ready": "Ձեր նկարը պատրաստ է",
     "subtitle": "Լրիվ չափս · Առանց ջրանիշի",
-    "download_btn": "Նерբեռնել HD",
+    "download_btn": "Ներբեռնել HD",
     "choose_platform": "Ներբեռնել հարթակի համար",
     "save_work": "Պահպանել փոփոխությունները",
     "save_subtitle": "Հասանելիություն ցանկացած սարքից",

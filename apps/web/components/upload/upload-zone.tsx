@@ -112,7 +112,7 @@ export function UploadZone() {
 
   return (
     <div className="flex flex-col flex-1">
-      <main className="page-funnel flex-1 flex flex-col py-4 gap-4">
+      <main className="page-funnel flex-1 overflow-y-auto flex flex-col py-4 gap-4">
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start flex-1 flex flex-col lg:flex-none">
 
           {/* Upload zone */}

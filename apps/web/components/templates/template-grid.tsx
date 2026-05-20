@@ -111,7 +111,7 @@ export function TemplateGrid() {
       </div>
 
       {/* Template grid */}
-      <main className="page-content flex-1 flex flex-col pt-4 pb-32">
+      <main className="page-content flex-1 overflow-y-auto flex flex-col pt-4 pb-32">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full">
           {filteredTemplates.map((template) => {
             const isSelected = selectedId === template.id

@@ -177,7 +177,7 @@ export function LandingContent() {
         </section>
 
         {/* SECTION 5 — Marketplace callout */}
-        <section className="bg-bg-surface border-y border-border-default py-12 px-4">
+        <section className="bg-bg-base py-12 px-4">
           <div className="max-w-[640px] mx-auto text-center md:text-left">
             <p className="text-xs font-ui font-medium text-accent uppercase tracking-[0.15em]">
               {t('marketplace_eyebrow')}

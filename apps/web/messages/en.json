@@ -132,6 +132,9 @@
     "choose_method": "Choose different method",
     "download_hd": "Download HD image"
   },
+  "processing": {
+    "dont_close": "Please keep this page open while your image is being generated."
+  },
   "download": {
     "ready": "Your image is ready",
     "subtitle": "Full resolution · No watermark",

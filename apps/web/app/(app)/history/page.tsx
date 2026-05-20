@@ -15,11 +15,11 @@ export default function HistoryPage() {
   }, [router])
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-base">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <AppHeader variant="app" showBack={false} title="Your designs" rightSlot={null} />
 
-      {/* Phone capture banner */}
-      <div className="page-content">
+      <main className="page-content flex-1 overflow-y-auto pb-24">
+        {/* Phone capture banner */}
         <div className="mt-4 bg-accent-subtle border border-accent-border rounded-[10px] p-4 flex items-start gap-3">
           <Phone className="w-5 h-5 text-accent shrink-0 mt-0.5" />
           <div>
@@ -29,10 +29,8 @@ export default function HistoryPage() {
             <button className="text-[12px] text-accent font-semibold mt-1">Add phone →</button>
           </div>
         </div>
-      </div>
 
-      {/* Empty state */}
-      <main className="page-content flex-1 pb-24">
+        {/* Empty state */}
         <div className="flex flex-col items-center justify-center min-h-[400px] pb-20 gap-4">
           <ImageIcon className="w-12 h-12 text-border-strong" />
           <p className="text-[16px] font-semibold text-text-primary">No designs yet</p>

@@ -40,7 +40,7 @@ export default function ResultsPage() {
   const afterGradient = VARIANT_GRADIENTS[selectedVariant] ?? VARIANT_GRADIENTS[1]
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-base">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <AppHeader
         variant="app"
         showBack={false}
@@ -52,7 +52,7 @@ export default function ResultsPage() {
         }
       />
 
-      <main className="page-content flex-1 pb-36">
+      <main className="page-content flex-1 overflow-y-auto pb-36">
         <div className="py-4 flex flex-col gap-4">
           <BeforeAfterSlider beforeSrc={uploadPreview} afterGradient={afterGradient} />
           <VariantGrid

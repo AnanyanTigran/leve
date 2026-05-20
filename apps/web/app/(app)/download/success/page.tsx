@@ -62,8 +62,8 @@ export default function DownloadSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base">
-      <main className="page-funnel py-8">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
+      <main className="page-funnel flex-1 overflow-y-auto py-8">
         {/* Generated image placeholder */}
         <div
           className="w-full rounded-[16px] overflow-hidden border border-border-default relative max-h-[50vh] lg:max-h-[480px]"

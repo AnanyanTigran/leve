@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { AppHeader } from '@/components/shared/app-header'
 import { ROUTES } from '@/lib/constants'
 import { isVerified } from '@/lib/session'
@@ -15,6 +16,7 @@ const PHASES = [
 
 export function ProcessingScreen() {
   const router = useRouter()
+  const t = useTranslations('processing')
   const [phaseIndex, setPhaseIndex] = useState(0)
   const [phaseVisible, setPhaseVisible] = useState(true)
   const [progressWidth, setProgressWidth] = useState(0)
@@ -50,7 +52,7 @@ export function ProcessingScreen() {
   }, [router])
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-base">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <AppHeader
         variant="app"
         showBack={false}
@@ -65,7 +67,7 @@ export function ProcessingScreen() {
         }
       />
 
-      <main className="page-funnel flex-1 flex flex-col items-center justify-center py-12 gap-8">
+      <main className="page-funnel flex-1 overflow-y-auto flex flex-col items-center justify-center py-12 gap-8">
         {/* Photo preview with pulsing glow */}
         <div className="w-[240px] h-[240px] rounded-[16px] bg-bg-elevated overflow-hidden processing-glow relative">
           {uploadPreview && (
@@ -95,6 +97,9 @@ export function ProcessingScreen() {
           </div>
           <p className="text-[13px] text-text-muted text-center">
             This takes about 15–20 seconds
+          </p>
+          <p className="text-[12px] text-text-muted text-center mt-1">
+            {t('dont_close')}
           </p>
         </div>
       </main>

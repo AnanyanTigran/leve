@@ -26,7 +26,7 @@ export function AppHeader({
       {/* Left side */}
       <div className="flex items-center min-w-[44px]">
         {variant === 'landing' ? (
-          <span className="font-display font-semibold text-2xl tracking-tight text-text-primary select-none">
+          <span className="font-display font-semibold text-2xl tracking-tight text-accent select-none">
             LEVE
           </span>
         ) : showBack ? (
