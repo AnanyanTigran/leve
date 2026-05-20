@@ -75,41 +75,18 @@ export default function RegisterPage() {
 
             <RegistrationForm onContinue={handleContinue} />
 
-            <p className="text-[13px] text-text-muted text-center mt-8">
-              {t('signin_hint')}{' '}
-              <button
-                type="button"
-                onClick={() => router.push('/register')}
-                className="text-accent font-semibold"
-              >
-                {t('signin_link')}
-              </button>
-            </p>
-
-            <p className="text-[11px] text-text-muted text-center mt-5 leading-relaxed px-4">
+            <p className="text-[11px] text-text-muted text-center mt-6 leading-relaxed px-4">
               {t('terms_full')}
             </p>
           </>
         )}
 
         {step === 'otp' && (
-          <>
-            <div className="mb-8">
-              <h1 className="text-[28px] font-display font-semibold text-text-primary leading-tight">
-                {t('otp_sent')}
-              </h1>
-              <p className="text-[15px] text-text-secondary mt-2 leading-relaxed">
-                {t('otp_sent_to', { contact })}
-              </p>
-            </div>
-            <div className="bg-bg-surface border border-border-default rounded-[16px] p-6">
-              <OtpForm
-                contact={contact}
-                onVerify={handleVerify}
-                onResend={() => {}}
-              />
-            </div>
-          </>
+          <OtpForm
+            contact={contact}
+            onVerify={handleVerify}
+            onResend={() => {}}
+          />
         )}
       </main>
     </div>

@@ -79,17 +79,6 @@ export default function ResultsPage() {
             >
               {shareCopied ? t('share_copied') : t('share')}
             </button>
-            <button
-              onClick={() => setPaywallOpen(true)}
-              className="flex items-center gap-1.5 bg-accent text-white text-[12px] font-semibold px-3 h-8 rounded-[8px] whitespace-nowrap"
-            >
-              {verified && freeCredits > 0 && (
-                <span className="bg-white/25 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                  {freeCredits}
-                </span>
-              )}
-              {tPaywall('title')}
-            </button>
           </div>
         }
       />

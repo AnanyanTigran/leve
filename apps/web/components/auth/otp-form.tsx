@@ -73,12 +73,12 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
   const isFilled = digits.every((d) => d !== '')
 
   return (
-    <div className="overflow-hidden" style={{ maxHeight: '400px', transition: 'max-height 300ms ease' }}>
-      <p className="text-[14px] text-text-secondary text-center mb-4">
+    <div className="bg-bg-surface border border-border-default rounded-[16px] p-6 flex flex-col gap-5">
+      <p className="text-[14px] text-text-secondary text-center">
         {t('otp_sent_to', { contact })}
       </p>
 
-      <div className="flex justify-center gap-2">
+      <div className="flex justify-center gap-1.5">
         {digits.map((digit, i) => (
           <input
             key={i}
@@ -90,8 +90,8 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             className={cn(
-              'w-12 h-[52px] text-center text-[24px] font-semibold text-text-primary',
-              'bg-bg-elevated border rounded-[8px] outline-none transition-colors',
+              'w-10 h-12 text-center text-[20px] font-semibold text-text-primary',
+              'bg-bg-elevated border-2 rounded-[10px] outline-none transition-colors',
               error
                 ? 'border-[#DC2626]'
                 : digit
@@ -102,7 +102,7 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
         ))}
       </div>
 
-      <p className="text-center mt-4">
+      <p className="text-center">
         {countdown > 0 ? (
           <span className="text-[13px] text-text-muted">
             {t('otp_resend_countdown', { seconds: countdown })}
@@ -115,14 +115,14 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
       </p>
 
       {error && (
-        <p className="text-[13px] text-[#DC2626] text-center mt-2">{t('otp_invalid')}</p>
+        <p className="text-[13px] text-[#DC2626] text-center">{t('otp_invalid')}</p>
       )}
 
       <button
         type="button"
         onClick={handleVerify}
         disabled={!isFilled}
-        className="btn-primary btn-full mt-4"
+        className="btn-primary btn-full"
       >
         {t('verify')}
       </button>
