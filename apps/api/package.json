@@ -27,6 +27,7 @@
     "ioredis": "^5.4.1",
     "libphonenumber-js": "^1.13.2",
     "nanoid": "^3.3.12",
+    "nodemailer": "^8.0.7",
     "pino": "^9.5.0",
     "sharp": "^0.34.5",
     "zod": "^3.23.8"
@@ -35,6 +36,7 @@
     "@leve/config": "*",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
+    "@types/nodemailer": "^8.0.0",
     "@types/sharp": "^0.31.1",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",

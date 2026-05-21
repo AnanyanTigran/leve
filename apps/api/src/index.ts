@@ -7,6 +7,7 @@ import { validateEnv } from './config/env'
 import { registerAuthMiddleware } from './middleware/auth'
 import { registerSessionInit } from './routes/session/init'
 import { registerUploadRoute } from './routes/upload/index'
+import { registerOtpRoutes } from './routes/register/otp'
 
 const env = validateEnv()
 
@@ -45,6 +46,7 @@ async function bootstrap() {
 
   await registerSessionInit(app)
   await registerUploadRoute(app)
+  await registerOtpRoutes(app)
 
   // Routes will be registered here
   // await app.register(import('./routes/generate'), { prefix: '/api/generate' })
