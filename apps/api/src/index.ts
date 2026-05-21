@@ -8,6 +8,9 @@ import { registerAuthMiddleware } from './middleware/auth'
 import { registerSessionInit } from './routes/session/init'
 import { registerUploadRoute } from './routes/upload/index'
 import { registerOtpRoutes } from './routes/register/otp'
+import { registerGenerateRoutes } from './routes/generate/index'
+import { startPreviewWorker } from './workers/preview.worker'
+import { startHdWorker } from './workers/hd.worker'
 
 const env = validateEnv()
 
@@ -47,6 +50,7 @@ async function bootstrap() {
   await registerSessionInit(app)
   await registerUploadRoute(app)
   await registerOtpRoutes(app)
+  await registerGenerateRoutes(app)
 
   // Routes will be registered here
   // await app.register(import('./routes/generate'), { prefix: '/api/generate' })
@@ -54,6 +58,9 @@ async function bootstrap() {
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
   app.log.info(`API running on port ${env.PORT}`)
+
+  startPreviewWorker()
+  startHdWorker()
 }
 
 bootstrap().catch((err) => {

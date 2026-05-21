@@ -41,6 +41,7 @@ model GenerationJob {
   provider         String?   // "fal_schnell"|"fal_dev"|"replicate_ipadapter"|"replicate_fallback"
   status           String    @default("queued") // "queued"|"processing"|"done"|"failed"|"credit_refunded"
   uploadS3Key      String
+  compiledPrompt   String?
   previewS3Keys    String[]  @default([])
   hdS3Key          String?
   qualityGatePassed Boolean?
