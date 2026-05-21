@@ -5,6 +5,9 @@ import rateLimit from '@fastify/rate-limit'
 import cookie from '@fastify/cookie'
 import { validateEnv } from './config/env'
 import { registerAuthMiddleware } from './middleware/auth'
+import { redis } from './lib/redis'
+import { prisma } from './lib/prisma'
+import { previewQueue, hdQueue } from './lib/queues'
 import { registerSessionInit } from './routes/session/init'
 import { registerUploadRoute } from './routes/upload/index'
 import { registerOtpRoutes } from './routes/register/otp'
@@ -49,7 +52,38 @@ async function bootstrap() {
   await registerAuthMiddleware(app)
 
   // Health check
-  app.get('/health', async () => ({ status: 'ok', ts: Date.now() }))
+  app.get('/health', async (_request, reply) => {
+    const checks: Record<string, string> = {}
+
+    try {
+      await redis.ping()
+      checks['redis'] = 'ok'
+    } catch {
+      checks['redis'] = 'error'
+    }
+
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      checks['postgres'] = 'ok'
+    } catch {
+      checks['postgres'] = 'error'
+    }
+
+    try {
+      await previewQueue.getJobCounts()
+      await hdQueue.getJobCounts()
+      checks['queues'] = 'ok'
+    } catch {
+      checks['queues'] = 'error'
+    }
+
+    const allOk = Object.values(checks).every((v) => v === 'ok')
+    return reply.status(allOk ? 200 : 503).send({
+      status: allOk ? 'ok' : 'degraded',
+      checks,
+      ts: Date.now(),
+    })
+  })
 
   await registerSessionInit(app)
   await registerUploadRoute(app)

@@ -55,7 +55,13 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         })
       }
 
-      const signedUrl = buildCloudfrontSignedUrl(grant.job.hdS3Key)
+      let signedUrl: string
+      try {
+        signedUrl = buildCloudfrontSignedUrl(grant.job.hdS3Key)
+      } catch (err) {
+        app.log.error({ requestId, err }, 'cloudfront signing failed')
+        return reply.status(500).send({ success: false, error: 'signing_failed', requestId })
+      }
 
       // Track download count async — do not block response
       prisma.downloadGrant
@@ -137,7 +143,13 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(500).send({ success: false, error: 'export_failed', requestId })
       }
 
-      const signedUrl = buildCloudfrontSignedUrl(exportKey)
+      let signedUrl: string
+      try {
+        signedUrl = buildCloudfrontSignedUrl(exportKey)
+      } catch (err) {
+        app.log.error({ requestId, err }, 'cloudfront signing failed')
+        return reply.status(500).send({ success: false, error: 'signing_failed', requestId })
+      }
 
       app.log.info({ requestId, jobId, platform }, 'platform export issued')
 
@@ -178,9 +190,15 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       }
 
       // Previews get 48h expiry — shorter than HD downloads
-      const signedUrls = job.previewS3Keys.map((key) =>
-        buildCloudfrontSignedUrl(key, 60 * 60 * 48),
-      )
+      let signedUrls: string[]
+      try {
+        signedUrls = job.previewS3Keys.map((key) =>
+          buildCloudfrontSignedUrl(key, 60 * 60 * 48),
+        )
+      } catch (err) {
+        app.log.error({ requestId, err }, 'cloudfront signing failed')
+        return reply.status(500).send({ success: false, error: 'signing_failed', requestId })
+      }
 
       return reply.send({
         success: true,
