@@ -9,8 +9,10 @@ import { registerSessionInit } from './routes/session/init'
 import { registerUploadRoute } from './routes/upload/index'
 import { registerOtpRoutes } from './routes/register/otp'
 import { registerGenerateRoutes } from './routes/generate/index'
+import { registerPaymentRoutes } from './routes/payments/index'
 import { startPreviewWorker } from './workers/preview.worker'
 import { startHdWorker } from './workers/hd.worker'
+import formbody from '@fastify/formbody'
 
 const env = validateEnv()
 
@@ -41,6 +43,7 @@ async function bootstrap() {
   })
 
   await app.register(cookie, { secret: env.SESSION_COOKIE_SECRET })
+  await app.register(formbody)
 
   await registerAuthMiddleware(app)
 
@@ -51,10 +54,7 @@ async function bootstrap() {
   await registerUploadRoute(app)
   await registerOtpRoutes(app)
   await registerGenerateRoutes(app)
-
-  // Routes will be registered here
-  // await app.register(import('./routes/generate'), { prefix: '/api/generate' })
-  // await app.register(import('./routes/payments'), { prefix: '/api/payments' })
+  await registerPaymentRoutes(app)
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
   app.log.info(`API running on port ${env.PORT}`)
