@@ -10,6 +10,7 @@ import { registerUploadRoute } from './routes/upload/index'
 import { registerOtpRoutes } from './routes/register/otp'
 import { registerGenerateRoutes } from './routes/generate/index'
 import { registerPaymentRoutes } from './routes/payments/index'
+import { registerDownloadRoutes } from './routes/download/index'
 import { startPreviewWorker } from './workers/preview.worker'
 import { startHdWorker } from './workers/hd.worker'
 import formbody from '@fastify/formbody'
@@ -55,6 +56,7 @@ async function bootstrap() {
   await registerOtpRoutes(app)
   await registerGenerateRoutes(app)
   await registerPaymentRoutes(app)
+  await registerDownloadRoutes(app)
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
   app.log.info(`API running on port ${env.PORT}`)
