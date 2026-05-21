@@ -1,0 +1,52 @@
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import { SessionService } from '../services/session.service'
+import { LeveSession } from '../lib/session.types'
+import { validateEnv } from '../config/env'
+
+const env = validateEnv()
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    session: LeveSession
+  }
+}
+
+export async function registerAuthMiddleware(app: FastifyInstance) {
+  app.decorateRequest('session', null)
+
+  // Decorator: requireSession — attaches session to request or 401
+  app.decorate('requireSession', async (request: FastifyRequest, reply: FastifyReply) => {
+    const sessionId = request.cookies?.[env.SESSION_COOKIE_NAME]
+    if (!sessionId) {
+      return reply.status(401).send({ success: false, error: 'no_session', requestId: '' })
+    }
+    const session = await SessionService.get(sessionId)
+    if (!session) {
+      return reply.status(401).send({ success: false, error: 'session_expired', requestId: '' })
+    }
+    request.session = session
+  })
+
+  // Decorator: requireVerified — session must have completed OTP
+  app.decorate('requireVerified', async (request: FastifyRequest, reply: FastifyReply) => {
+    const sessionId = request.cookies?.[env.SESSION_COOKIE_NAME]
+    if (!sessionId) {
+      return reply.status(401).send({ success: false, error: 'no_session', requestId: '' })
+    }
+    const session = await SessionService.get(sessionId)
+    if (!session) {
+      return reply.status(401).send({ success: false, error: 'session_expired', requestId: '' })
+    }
+    if (!session.isVerified) {
+      return reply.status(403).send({ success: false, error: 'otp_required', requestId: '' })
+    }
+    request.session = session
+  })
+}
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    requireSession: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+    requireVerified: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+  }
+}

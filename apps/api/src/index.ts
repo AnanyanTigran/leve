@@ -2,7 +2,10 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
 import rateLimit from '@fastify/rate-limit'
+import cookie from '@fastify/cookie'
 import { validateEnv } from './config/env'
+import { registerAuthMiddleware } from './middleware/auth'
+import { registerSessionInit } from './routes/session/init'
 
 const env = validateEnv()
 
@@ -32,14 +35,19 @@ async function bootstrap() {
     timeWindow: '1 minute',
   })
 
+  await app.register(cookie, { secret: env.SESSION_COOKIE_SECRET })
+
+  await registerAuthMiddleware(app)
+
   // Health check
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }))
+
+  await registerSessionInit(app)
 
   // Routes will be registered here
   // await app.register(import('./routes/upload'), { prefix: '/api/upload' })
   // await app.register(import('./routes/generate'), { prefix: '/api/generate' })
   // await app.register(import('./routes/payments'), { prefix: '/api/payments' })
-  // await app.register(import('./routes/session'), { prefix: '/api/session' })
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
   app.log.info(`API running on port ${env.PORT}`)
