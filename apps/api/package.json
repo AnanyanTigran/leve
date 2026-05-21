@@ -9,21 +9,31 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1051.0",
+    "@aws-sdk/cloudfront-signer": "^3.1048.0",
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^9.0.1",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/helmet": "^13.0.2",
     "@fastify/multipart": "^8.3.0",
     "@fastify/rate-limit": "^9.1.0",
     "@leve/types": "*",
     "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
     "bullmq": "^5.34.0",
     "fastify": "^4.28.1",
     "ioredis": "^5.4.1",
-    "nanoid": "^3.3.8",
+    "libphonenumber-js": "^1.13.2",
+    "nanoid": "^3.3.12",
     "pino": "^9.5.0",
+    "sharp": "^0.34.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@leve/config": "*",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
+    "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

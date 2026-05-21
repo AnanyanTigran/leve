@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id           String    @id @default(cuid())
+  sessionId    String
+  provider     String    // "idram" | "telcell"
+  providerId   String?   @unique  // provider's own TX id (set on webhook)
+  orderId      String    @unique  // LEVE internal order id (nanoid)
+  pack         String    // "starter" | "creator" | "pro_monthly"
+  amountAMD    Int
+  credits      Int
+  status       String    @default("pending") // "pending"|"completed"|"failed"|"refunded"
+  ipAddress    String?
+  userAgent    String?
+  providerMeta Json?
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+  failedAt     DateTime?
+
+  downloadGrants DownloadGrant[]
+
+  @@index([sessionId])
+  @@index([orderId])
+  @@index([status])
+}
+
+model GenerationJob {
+  id               String    @id @default(cuid())
+  sessionId        String
+  bullJobId        String?   @unique
+  templateId       String
+  intent           String    // "product_photo"|"lifestyle"|"marketplace"
+  category         String    // "beauty_cosmetics"|"jewelry_accessories"|"fashion"|"food"|"marketplace"|"custom"
+  provider         String?   // "fal_schnell"|"fal_dev"|"replicate_ipadapter"|"replicate_fallback"
+  status           String    @default("queued") // "queued"|"processing"|"done"|"failed"|"credit_refunded"
+  uploadS3Key      String
+  previewS3Keys    String[]  @default([])
+  hdS3Key          String?
+  qualityGatePassed Boolean?
+  creditsCost      Int       @default(0)
+  requestId        String
+  errorCode        String?
+  durationMs       Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  downloadGrants DownloadGrant[]
+
+  @@index([sessionId])
+  @@index([status])
+}
+
+model OtpRecord {
+  id             String   @id @default(cuid())
+  identifier     String   // E.164 phone or email
+  identifierType String   // "phone" | "email"
+  codeHash       String   // bcrypt hash
+  sessionId      String
+  attempts       Int      @default(0)
+  verified       Boolean  @default(false)
+  exhausted      Boolean  @default(false)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([identifier, verified])
+  @@index([sessionId])
+}
+
+model DownloadGrant {
+  id               String    @id @default(cuid())
+  sessionId        String
+  jobId            String
+  transactionId    String
+  hdS3Key          String
+  signedUrlIssuedAt DateTime?
+  downloadCount    Int       @default(0)
+  createdAt        DateTime  @default(now())
+
+  job         GenerationJob @relation(fields: [jobId], references: [id])
+  transaction Transaction   @relation(fields: [transactionId], references: [id])
+
+  @@unique([transactionId, jobId])
+  @@index([sessionId])
+  @@index([jobId])
+}
