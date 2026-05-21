@@ -6,6 +6,7 @@ import cookie from '@fastify/cookie'
 import { validateEnv } from './config/env'
 import { registerAuthMiddleware } from './middleware/auth'
 import { registerSessionInit } from './routes/session/init'
+import { registerUploadRoute } from './routes/upload/index'
 
 const env = validateEnv()
 
@@ -43,9 +44,9 @@ async function bootstrap() {
   app.get('/health', async () => ({ status: 'ok', ts: Date.now() }))
 
   await registerSessionInit(app)
+  await registerUploadRoute(app)
 
   // Routes will be registered here
-  // await app.register(import('./routes/upload'), { prefix: '/api/upload' })
   // await app.register(import('./routes/generate'), { prefix: '/api/generate' })
   // await app.register(import('./routes/payments'), { prefix: '/api/payments' })
 

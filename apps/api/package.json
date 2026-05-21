@@ -9,6 +9,7 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.1051.0",
     "@aws-sdk/client-s3": "^3.1051.0",
     "@aws-sdk/cloudfront-signer": "^3.1048.0",
     "@fastify/cookie": "^9.4.0",
@@ -22,6 +23,7 @@
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.34.0",
     "fastify": "^4.28.1",
+    "file-type": "^18.7.0",
     "ioredis": "^5.4.1",
     "libphonenumber-js": "^1.13.2",
     "nanoid": "^3.3.12",
@@ -33,6 +35,7 @@
     "@leve/config": "*",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
+    "@types/sharp": "^0.31.1",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
