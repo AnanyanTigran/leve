@@ -22,7 +22,7 @@ export function AppHeader({
   showLangSwitcher = false,
 }: AppHeaderProps) {
   return (
-    <header className="flex items-center justify-between h-[52px] px-4 bg-bg-base border-b border-border-default">
+    <header className="flex items-center justify-between h-[52px] px-4 bg-bg-base border-b border-border-default sticky top-0 z-50">
       {/* Left side */}
       <div className="flex items-center min-w-[44px]">
         {variant === 'landing' ? (

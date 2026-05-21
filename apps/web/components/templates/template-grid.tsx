@@ -78,7 +78,7 @@ export function TemplateGrid() {
   }, [selectedId, selectedChips, customText, router])
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Tab bar */}
       <div className="sticky top-[52px] z-10 bg-bg-base border-b border-border-default px-4">
         <div className="page-content flex gap-6">

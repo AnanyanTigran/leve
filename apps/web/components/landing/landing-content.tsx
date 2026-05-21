@@ -46,6 +46,7 @@ export function LandingContent() {
         showLangSwitcher
         rightSlot={
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <button
               type="button"
               onClick={() => router.push('/register')}
@@ -53,7 +54,6 @@ export function LandingContent() {
             >
               {t('signin')}
             </button>
-            <ThemeToggle />
           </div>
         }
       />
