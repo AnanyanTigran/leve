@@ -7,7 +7,7 @@ import { validateEnv } from './config/env'
 import { registerAuthMiddleware } from './middleware/auth'
 import { redis } from './lib/redis'
 import { prisma } from './lib/prisma'
-import { previewQueue, hdQueue } from './lib/queues'
+import { previewQueue } from './lib/queues'
 import { registerSessionInit } from './routes/session/init'
 import { registerUploadRoute } from './routes/upload/index'
 import { registerOtpRoutes } from './routes/register/otp'
@@ -15,7 +15,6 @@ import { registerGenerateRoutes } from './routes/generate/index'
 import { registerPaymentRoutes } from './routes/payments/index'
 import { registerDownloadRoutes } from './routes/download/index'
 import { startPreviewWorker } from './workers/preview.worker'
-import { startHdWorker } from './workers/hd.worker'
 import formbody from '@fastify/formbody'
 
 const env = validateEnv()
@@ -71,7 +70,6 @@ async function bootstrap() {
 
     try {
       await previewQueue.getJobCounts()
-      await hdQueue.getJobCounts()
       checks['queues'] = 'ok'
     } catch {
       checks['queues'] = 'error'
@@ -96,7 +94,6 @@ async function bootstrap() {
   app.log.info(`API running on port ${env.PORT}`)
 
   startPreviewWorker()
-  startHdWorker()
 }
 
 bootstrap().catch((err) => {
