@@ -2,12 +2,12 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
-import { previewQueue, hdQueue, PRIORITIES } from '../../lib/queues'
-import { compilePrompt } from '../../services/prompt.service'
+import { previewQueue, PRIORITIES } from '../../lib/queues'
+import { compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
 
 const previewSchema = z.object({
   uploadKey: z.string().min(1),
-  templateId: z.string().min(1),
+  sceneId: z.string().min(1),
   category: z.enum([
     'beauty_cosmetics',
     'jewelry_accessories',
@@ -18,22 +18,18 @@ const previewSchema = z.object({
   ]),
   intent: z.enum(['product_photo', 'lifestyle', 'marketplace']),
   refinementChips: z.array(z.string()).default([]),
-  customText: z.string().max(200).optional(),
-  requiresIPAdapter: z.boolean().default(false),
+  customText: z.string().max(200).transform(sanitizeCustomText).optional(),
+  aspectRatio: z.enum(['1:1', '4:5', '3:4', '9:16', '16:9']).default('1:1'),
+  isEdit: z.boolean().default(false),
+  sourceJobId: z.string().optional(), // for iterative edits — the job whose output to edit
 })
-
-const hdSchema = z.object({
-  jobId: z.string().min(1),
-})
-
-const IP_ADAPTER_CATEGORIES = new Set(['jewelry_accessories'])
 
 export async function registerGenerateRoutes(app: FastifyInstance) {
 
-  // POST /api/generate/preview
+  // POST /api/generate/preview — anonymous and verified sessions allowed
   app.post(
     '/api/generate/preview',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireSession] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session
@@ -43,46 +39,60 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
-      const { uploadKey, templateId, category, intent, refinementChips, customText, requiresIPAdapter } =
+      const { uploadKey, sceneId, category, intent, refinementChips, customText, aspectRatio, isEdit, sourceJobId } =
         parsed.data
 
       if (!uploadKey.startsWith(`uploads/${session.sessionId}/`)) {
         return reply.status(403).send({ success: false, error: 'invalid_upload_key', requestId })
       }
 
-      if (session.creditsRemaining <= 0) {
+      // Verified users need credits for generation; anon users use a separate generation budget
+      if (session.isVerified && session.creditsRemaining <= 0) {
         return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
       }
 
-      const compiledPrompt = compilePrompt({ templateId, category, refinementChips, customText })
-      const shouldUseIPAdapter = requiresIPAdapter || IP_ADAPTER_CATEGORIES.has(category)
+      const compiledPrompt = compilePrompt({ templateId: sceneId, category, refinementChips, customText })
 
       const job = await prisma.generationJob.create({
         data: {
           sessionId: session.sessionId,
-          templateId,
+          templateId: sceneId,  // store sceneId as templateId
           intent,
           category,
           status: 'queued',
           uploadS3Key: uploadKey,
           compiledPrompt,
-          creditsCost: 1,
+          creditsCost: session.isVerified ? 1 : 0,
           requestId,
         },
       })
 
-      const priority = session.isPaid ? PRIORITIES.PAID : PRIORITIES.VERIFIED
+      // Determine source image for iterative edits
+      let sourceImageS3Key: string | undefined
+      if (isEdit && sourceJobId) {
+        const sourceJob = await prisma.generationJob.findUnique({
+          where: { id: sourceJobId },
+        })
+        if (sourceJob?.sessionId === session.sessionId && sourceJob.previewS3Keys[0]) {
+          sourceImageS3Key = sourceJob.previewS3Keys[0]
+        }
+      }
+
+      const priority = session.isPaid ? PRIORITIES.PAID : session.isVerified ? PRIORITIES.VERIFIED : PRIORITIES.ANON
+
       await previewQueue.add(
         'preview',
         {
           jobId: job.id,
           sessionId: session.sessionId,
           uploadS3Key: uploadKey,
-          templateId,
+          sceneId,
           category,
-          intent,
           compiledPrompt,
-          requiresIPAdapter: shouldUseIPAdapter,
+          isVerified: session.isVerified,
+          aspectRatio,
+          isEdit,
+          sourceImageS3Key,
           requestId,
         },
         { priority },
@@ -98,10 +108,10 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
     },
   )
 
-  // GET /api/generate/status/:jobId
+  // GET /api/generate/status/:jobId — anonymous and verified sessions allowed
   app.get(
     '/api/generate/status/:jobId',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireSession] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const { jobId } = request.params as { jobId: string }
@@ -127,81 +137,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
     },
   )
 
-  // POST /api/generate/hd
-  app.post(
-    '/api/generate/hd',
-    { preHandler: [app.requireVerified] },
-    async (request, reply) => {
-      const requestId = nanoid(10)
-      const session = request.session
-
-      const parsed = hdSchema.safeParse(request.body)
-      if (!parsed.success) {
-        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
-      }
-
-      const { jobId } = parsed.data
-
-      const grant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: session.sessionId },
-        include: { job: true },
-      })
-
-      if (!grant) {
-        return reply.status(403).send({ success: false, error: 'payment_required', requestId })
-      }
-
-      if (grant.job.hdS3Key) {
-        return reply.send({
-          success: true,
-          data: { jobId, hdReady: true },
-          requestId,
-        })
-      }
-
-      const hdJob = await prisma.generationJob.create({
-        data: {
-          sessionId: session.sessionId,
-          templateId: grant.job.templateId,
-          intent: grant.job.intent,
-          category: grant.job.category,
-          status: 'queued',
-          uploadS3Key: grant.job.uploadS3Key,
-          compiledPrompt: grant.job.compiledPrompt,
-          creditsCost: 0,
-          requestId,
-        },
-      })
-
-      await hdQueue.add(
-        'hd',
-        {
-          jobId: hdJob.id,
-          sessionId: session.sessionId,
-          uploadS3Key: grant.job.uploadS3Key,
-          templateId: grant.job.templateId,
-          category: grant.job.category,
-          compiledPrompt: grant.job.compiledPrompt ?? '',
-          requiresIPAdapter: IP_ADAPTER_CATEGORIES.has(grant.job.category),
-          requestId,
-        },
-        { priority: PRIORITIES.PAID },
-      )
-
-      await prisma.downloadGrant.update({
-        where: { id: grant.id },
-        data: { hdS3Key: hdJob.id },
-      })
-
-      return reply.status(202).send({
-        success: true,
-        data: { jobId: hdJob.id, hdReady: false },
-        requestId,
-      })
-    },
-  )
-
-  // GET /api/session/history
+  // GET /api/session/history — requires OTP verification
   app.get(
     '/api/session/history',
     { preHandler: [app.requireVerified] },
