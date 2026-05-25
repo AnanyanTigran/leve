@@ -34,6 +34,10 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+
+  // Amazon Translate — uses existing AWS credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
+  // IAM policy must include: { "Action": ["translate:TranslateText"], "Resource": "*" }
+  AWS_TRANSLATE_ENABLED: z.enum(['true', 'false']).default('false'),
 })
 
 export type Env = z.infer<typeof envSchema>
