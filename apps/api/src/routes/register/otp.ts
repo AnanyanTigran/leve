@@ -96,7 +96,7 @@ export async function registerOtpRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'verification_failed', requestId })
       }
 
-      // Promote session — attach identifier, grant free credits, extend TTL
+      // Promote session — attach identifier, restore/grant credits, extend TTL
       const updatedSession = await SessionService.promoteToVerified(
         request.session.sessionId,
         validation.normalized,
@@ -114,14 +114,18 @@ export async function registerOtpRoutes(app: FastifyInstance) {
 
       app.log.info(
         { requestId, sessionId: request.session.sessionId },
-        'otp verified — session promoted',
+        updatedSession.isPaid ? 'otp verified — returning user restored' : 'otp verified — new user',
       )
 
       return reply.send({
         success: true,
         data: {
           isVerified: true,
+          isReturning: updatedSession.isPaid || updatedSession.purchaseCount > 0,
           creditsRemaining: updatedSession.creditsRemaining,
+          purchaseCount: updatedSession.purchaseCount,
+          brandName: updatedSession.brandName,
+          favoriteSceneId: updatedSession.favoriteSceneId,
         },
         requestId,
       })
