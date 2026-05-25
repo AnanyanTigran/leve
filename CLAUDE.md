@@ -297,3 +297,38 @@ leve/
 6. Showing Pro subscription offer before the user has made 3 purchases.
 7. Letting session expire during payment flow — extend TTL on payment initiation.
 8. Hardcoding any user-facing text — all copy goes through i18n from day one.
+
+---
+
+## Architecture Decisions Log
+
+### 2026-05 — Kontext Migration
+- Switched from FLUX.1-schnell (preview) + FLUX.1-dev (HD) to FLUX.1 Kontext [pro] only
+- Reason: Kontext is image-to-image — preserves product shape exactly
+- HD download = same generated file, watermark removed via CloudFront signed URL
+- No separate HD generation queue — hdQueue and hd.worker removed
+- Cost: $0.04/image fixed, same for anon (1024px) and verified (2048px)
+
+### 2026-05 — Auth Gate Repositioning
+- OTP moved from before-generation to before-HD-download
+- Anonymous users: 2 free watermarked generations, then OTP wall
+- Verified users: unlimited generations, 2 free downloads, then pay
+- Rationale: show value first, gate at purchase intent moment
+
+### 2026-05 — User Model Added
+- Persistent User record in PostgreSQL (phone or email as unique key)
+- Credits dual-written: Redis session (real-time) + User.creditsRemaining (persistent)
+- Session expiry no longer loses credits — restored on OTP re-verification
+- brandName and favoriteSceneId stored on User for brand consistency
+
+### 2026-05 — Scene Library
+- Replaced 10 hero templates with 30 scenes across 5 groups
+- Scene-first UX: user picks scene, category filters default shown
+- 4 universal chip groups + category-specific chips
+- Aspect ratio selected before generation (native Kontext composition)
+
+### 2026-05 — Text-on-Image Detection
+- Custom text parsed server-side: scene description vs text overlay request
+- Overlay text: NOT translated, NOT sent to AI, applied as sharp SVG composite
+- Preserves exact text (Armenian, Russian, English) with pixel-perfect typography
+- Amazon Translate: scene description portion only, auto-detect source language
