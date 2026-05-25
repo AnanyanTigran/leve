@@ -2,8 +2,7 @@ import { Queue } from 'bullmq'
 import { redis } from './redis'
 
 export const QUEUE_NAMES = {
-  PREVIEW: 'generation-preview',
-  HD: 'generation-hd',
+  PREVIEW: 'generation:preview',
 } as const
 
 export const PRIORITIES = {
@@ -16,41 +15,22 @@ export const previewQueue = new Queue(QUEUE_NAMES.PREVIEW, {
   connection: redis,
   defaultJobOptions: {
     attempts: 2,
-    backoff: { type: 'fixed', delay: 2000 },
-    removeOnComplete: 100,
-    removeOnFail: 200,
-  },
-})
-
-export const hdQueue = new Queue(QUEUE_NAMES.HD, {
-  connection: redis,
-  defaultJobOptions: {
-    attempts: 2,
-    backoff: { type: 'fixed', delay: 5000 },
+    backoff: { type: 'fixed', delay: 3000 },
     removeOnComplete: 100,
     removeOnFail: 200,
   },
 })
 
 export interface PreviewJobData {
-  jobId: string
+  jobId: string          // GenerationJob.id (DB)
   sessionId: string
   uploadS3Key: string
-  templateId: string
-  category: string
-  intent: string
-  compiledPrompt: string
-  requiresIPAdapter: boolean
-  requestId: string
-}
-
-export interface HdJobData {
-  jobId: string
-  sessionId: string
-  uploadS3Key: string
-  templateId: string
+  sceneId: string        // scene identifier (e.g. 'marble_luxury')
   category: string
   compiledPrompt: string
-  requiresIPAdapter: boolean
+  isVerified: boolean
+  aspectRatio: string    // '1:1' | '4:5' | '3:4' | '9:16' | '16:9'
+  isEdit: boolean
+  sourceImageS3Key?: string  // for iterative edits
   requestId: string
 }
