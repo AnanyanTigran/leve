@@ -3,30 +3,46 @@ import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
 import { SessionService } from '../services/session.service'
 import { runGeneration } from '../providers/model-router'
-import { getNegativePrompt } from '../services/prompt.service'
+import { downloadFromS3 } from '../lib/cloudfront'
 import { QUEUE_NAMES, PreviewJobData } from '../lib/queues'
 
 const PREVIEW_CONCURRENCY = 8
 
-async function processPreviewJob(job: Job<PreviewJobData>): Promise<void> {
-  const { jobId, sessionId, uploadS3Key, compiledPrompt, category, requiresIPAdapter, requestId } =
-    job.data
+async function processJob(job: Job<PreviewJobData>): Promise<void> {
+  const {
+    jobId,
+    sessionId,
+    uploadS3Key,
+    compiledPrompt,
+    isVerified,
+    aspectRatio,
+    isEdit,
+    sourceImageS3Key,
+    requestId,
+  } = job.data
 
-  console.info({ requestId, jobId }, '[preview worker] job start')
+  console.info({ requestId, jobId, isEdit }, '[preview worker] job start')
 
+  // Mark processing in DB
   await prisma.generationJob.update({
     where: { id: jobId },
     data: { status: 'processing', bullJobId: String(job.id) },
   })
 
-  const credited = await SessionService.deductCredit(sessionId)
-  if (!credited) {
-    await prisma.generationJob.update({
-      where: { id: jobId },
-      data: { status: 'failed', errorCode: 'insufficient_credits' },
-    })
-    return
+  // Deduct 1 credit BEFORE calling provider
+  // Anonymous users (isVerified=false) have anon generation budget tracked separately
+  if (isVerified) {
+    const credited = await SessionService.deductCredit(sessionId)
+    if (!credited) {
+      await prisma.generationJob.update({
+        where: { id: jobId },
+        data: { status: 'failed', errorCode: 'insufficient_credits' },
+      })
+      return
+    }
   }
+  // Note: anonymous generation deducts from anon_generations_used counter (not credits)
+  // That counter is tracked in the session object, not here
 
   try {
     const output = await runGeneration({
@@ -34,20 +50,20 @@ async function processPreviewJob(job: Job<PreviewJobData>): Promise<void> {
       jobId,
       uploadS3Key,
       compiledPrompt,
-      negativePrompt: getNegativePrompt(category),
-      requiresIPAdapter,
-      isHD: false,
+      isVerified,
+      aspectRatio: aspectRatio ?? '1:1',
+      isEdit: isEdit ?? false,
+      sourceImageS3Key,
     })
 
-    if (output.s3Keys.length === 0) {
-      throw new Error('quality_gate_failed')
-    }
+    // Store clean file — watermark applied in the serving layer (GET /download/preview-url)
+    // HD download serves the same S3 key without watermark via CloudFront signed URL
 
     await prisma.generationJob.update({
       where: { id: jobId },
       data: {
         status: 'done',
-        previewS3Keys: output.s3Keys,
+        previewS3Keys: [output.s3Key],  // single image, array for schema compatibility
         provider: output.provider,
         durationMs: output.durationMs,
         qualityGatePassed: true,
@@ -58,25 +74,30 @@ async function processPreviewJob(job: Job<PreviewJobData>): Promise<void> {
 
     console.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
   } catch (err) {
-    console.error({ requestId, jobId, err }, '[preview worker] failed — refunding credit')
+    const errorCode = err instanceof Error ? err.message : 'unknown'
+    console.error({ requestId, jobId, errorCode }, '[preview worker] failed — refunding credit if verified')
 
-    await SessionService.refundCredit(sessionId)
+    // Only refund if the user was verified (anon has no credits to refund)
+    if (isVerified) {
+      await SessionService.refundCredit(sessionId)
+    }
 
     await prisma.generationJob.update({
       where: { id: jobId },
       data: {
-        status: 'credit_refunded',
-        errorCode: err instanceof Error ? err.message : 'unknown',
+        status: isVerified ? 'credit_refunded' : 'failed',
+        errorCode,
       },
     })
   }
 }
 
 export function startPreviewWorker() {
-  const worker = new Worker<PreviewJobData>(QUEUE_NAMES.PREVIEW, processPreviewJob, {
-    connection: redis,
-    concurrency: PREVIEW_CONCURRENCY,
-  })
+  const worker = new Worker<PreviewJobData>(
+    QUEUE_NAMES.PREVIEW,
+    processJob,
+    { connection: redis, concurrency: PREVIEW_CONCURRENCY },
+  )
 
   worker.on('failed', (job, err) => {
     console.error({ jobId: job?.id, err }, '[preview worker] bullmq job failed')
