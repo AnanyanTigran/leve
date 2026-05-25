@@ -234,6 +234,49 @@ export interface TextOverlay {
   size: 'sm' | 'md' | 'lg'
 }
 
+// ─── Scene System ─────────────────────────────────────────────────────────────
+
+export type SceneGroup =
+  | 'studio'
+  | 'lifestyle_surfaces'
+  | 'environment'
+  | 'seasonal'
+  | 'creative'
+
+export type AspectRatio = '1:1' | '4:5' | '3:4' | '9:16' | '16:9'
+
+export interface Scene {
+  id: string
+  group: SceneGroup
+  name: string              // display name (English)
+  nameHY: string            // Armenian
+  nameRU: string            // Russian
+  thumbnailGradient: string // CSS gradient used as placeholder until real thumbnail loads
+  bestFor: string           // short description shown in tooltip/subtitle
+}
+
+export interface RefinementChip {
+  id: string
+  group: 'lighting' | 'angle' | 'mood' | 'category_specific'
+  label: string
+  labelHY: string
+  labelRU: string
+}
+
+// Category → default scene IDs to show (ordered best-first)
+// All 30 scenes accessible via "Show all"
+export type CategorySceneMap = Record<ProductCategory, string[]>
+
+export interface AspectRatioOption {
+  id: AspectRatio
+  label: string
+  labelHY: string
+  labelRU: string
+  description: string  // e.g. "Wildberries standard"
+  width: number
+  height: number
+}
+
 // --- Credit packs (static config, shared) ---
 
 export const CREDIT_PACKS: CreditPackDefinition[] = [
