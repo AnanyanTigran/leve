@@ -180,6 +180,18 @@
     "skip": "Skip for now",
     "generate_another": "Generate another"
   },
+  "refinement": {
+    "refine_optional": "Refine (optional)",
+    "selected": "selected",
+    "format": "Format / Aspect Ratio",
+    "lighting": "Lighting",
+    "angle": "Angle",
+    "mood": "Mood",
+    "style": "Style",
+    "custom_prompt": "Additional Instructions",
+    "custom_placeholder": "e.g. warm lighting, flowers in background, on a wooden shelf",
+    "custom_hint": "Write in any language — Armenian, Russian, or English"
+  },
   "history": {
     "generate_first": "Generate your first image",
     "active_session": "You have a generation in progress",
