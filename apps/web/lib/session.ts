@@ -17,7 +17,7 @@ export function setVerified(contact: string, method: string) {
   sessionStorage.setItem('leve_verified', 'true')
   sessionStorage.setItem('leve_contact', contact)
   sessionStorage.setItem('leve_auth_method', method)
-  sessionStorage.setItem('leve_free_credits', '3')
+  sessionStorage.setItem('leve_free_credits', '2')
 }
 
 export function isVerified(): boolean {
