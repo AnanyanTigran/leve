@@ -3,8 +3,8 @@ import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
 import { SessionService } from '../services/session.service'
 import { runGeneration } from '../providers/model-router'
-import { downloadFromS3 } from '../lib/cloudfront'
 import { QUEUE_NAMES, PreviewJobData } from '../lib/queues'
+import { applyTextOverlayToS3Image } from '../lib/text-overlay'
 
 const PREVIEW_CONCURRENCY = 8
 
@@ -56,14 +56,34 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       sourceImageS3Key,
     })
 
-    // Store clean file — watermark applied in the serving layer (GET /download/preview-url)
-    // HD download serves the same S3 key without watermark via CloudFront signed URL
+    // Apply text overlay if the route stored one on the job record
+    const jobRecord = await prisma.generationJob.findUnique({
+      where: { id: jobId },
+      select: { overlayText: true, overlayPosition: true },
+    })
+
+    let finalS3Key = output.s3Key
+
+    if (jobRecord?.overlayText) {
+      try {
+        finalS3Key = await applyTextOverlayToS3Image({
+          sourceS3Key: output.s3Key,
+          sessionId,
+          jobId,
+          text: jobRecord.overlayText,
+          position: (jobRecord.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
+        })
+      } catch (err) {
+        // Non-fatal — serve image without overlay rather than failing the job
+        console.error({ requestId, jobId, err }, '[preview worker] text overlay failed — serving without overlay')
+      }
+    }
 
     await prisma.generationJob.update({
       where: { id: jobId },
       data: {
         status: 'done',
-        previewS3Keys: [output.s3Key],  // single image, array for schema compatibility
+        previewS3Keys: [finalS3Key],
         provider: output.provider,
         durationMs: output.durationMs,
         qualityGatePassed: true,
