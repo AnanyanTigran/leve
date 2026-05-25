@@ -9,6 +9,7 @@ import { redis } from './lib/redis'
 import { prisma } from './lib/prisma'
 import { previewQueue } from './lib/queues'
 import { registerSessionInit } from './routes/session/init'
+import { registerSessionPreferences } from './routes/session/preferences'
 import { registerUploadRoute } from './routes/upload/index'
 import { registerOtpRoutes } from './routes/register/otp'
 import { registerGenerateRoutes } from './routes/generate/index'
@@ -84,6 +85,7 @@ async function bootstrap() {
   })
 
   await registerSessionInit(app)
+  await registerSessionPreferences(app)
   await registerUploadRoute(app)
   await registerOtpRoutes(app)
   await registerGenerateRoutes(app)
