@@ -28,3 +28,13 @@ export function isVerified(): boolean {
     return false
   }
 }
+
+export function getBrandName(): string | null {
+  if (typeof window === 'undefined') return null
+  return sessionStorage.getItem('leve_brand_name')
+}
+
+export function setBrandNameLocal(name: string): void {
+  if (typeof window === 'undefined') return
+  sessionStorage.setItem('leve_brand_name', name)
+}
