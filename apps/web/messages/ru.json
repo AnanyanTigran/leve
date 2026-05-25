@@ -205,5 +205,24 @@
     "phone_banner_title": "Доступ к дизайнам с любого устройства",
     "phone_banner_sub": "Добавьте номер телефона, чтобы синхронизировать дизайны между устройствами",
     "phone_banner_btn": "Добавить номер телефона"
+  },
+  "scenes": {
+    "title": "Выберите сцену",
+    "subtitle": "Ваш товар будет помещён в эту обстановку",
+    "show_all": "Все сцены",
+    "show_less": "Скрыть",
+    "selected": "Выбрано",
+    "generate_btn": "Создать студийное фото",
+    "generating": "Создаётся...",
+    "group_studio": "Студия",
+    "group_lifestyle_surfaces": "Поверхности",
+    "group_environment": "Интерьер",
+    "group_seasonal": "Сезонные",
+    "group_creative": "Креативные",
+    "your_photo": "Ваше фото",
+    "change_photo": "Изменить",
+    "scene_tip": "Выберите сцену, чтобы увидеть результат",
+    "set_as_default": "Сделать сценой по умолчанию",
+    "default_scene_saved": "Сцена по умолчанию сохранена"
   }
 }

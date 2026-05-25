@@ -205,5 +205,24 @@
     "phone_banner_title": "Access your designs anywhere",
     "phone_banner_sub": "Add your phone number to sync designs across devices",
     "phone_banner_btn": "Add phone number"
+  },
+  "scenes": {
+    "title": "Choose a scene",
+    "subtitle": "Your product will be placed in this setting",
+    "show_all": "Show all scenes",
+    "show_less": "Show less",
+    "selected": "Selected",
+    "generate_btn": "Generate studio image",
+    "generating": "Generating...",
+    "group_studio": "Studio",
+    "group_lifestyle_surfaces": "Surfaces",
+    "group_environment": "Environments",
+    "group_seasonal": "Seasonal",
+    "group_creative": "Creative",
+    "your_photo": "Your photo",
+    "change_photo": "Change photo",
+    "scene_tip": "Select a scene to see how your product looks",
+    "set_as_default": "Set as my default scene",
+    "default_scene_saved": "Default scene saved"
   }
 }
