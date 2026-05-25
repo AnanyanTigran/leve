@@ -27,6 +27,11 @@ You are a senior backend engineer working on the LEVE API. The backend is Node.j
 - Check credit balance BEFORE dispatching AI generation job
 - Update credit balance atomically (use Redis DECR, not read-then-write)
 
+### Auth guard notes
+- Upload and generate routes use `requireSession` (anonymous allowed — OTP not required before generation)
+- HD download routes use `requireVerified` (OTP required)
+- `requireVerified` on upload/generate will change to `requireSession` in M5 if not already done
+
 ## Session Management
 
 Sessions are Redis-backed, not database-backed (for V1 performance).
@@ -51,9 +56,10 @@ Three queues, each with separate worker pools:
 
 ```typescript
 // Queue names
+// NOTE: No separate HD queue — HD download is a signed CloudFront URL to the existing
+// generated file. There is no re-generation step; the preview IS the final image.
 const QUEUES = {
-  PREVIEW: 'generation:preview',    // FLUX.1-schnell, 8 concurrent workers
-  HD: 'generation:hd',              // FLUX.1-dev, 3 concurrent workers  
+  GENERATION: 'generation:kontext', // fal.ai FLUX.1 Kontext [pro] (all generation)
   VALIDATION: 'image:validation',   // Fast, 16 concurrent workers
 }
 
@@ -151,7 +157,7 @@ AWS_CLOUDFRONT_DOMAIN=
 
 # AI Providers
 FAL_API_KEY=
-REPLICATE_API_TOKEN=
+# REPLICATE_API_TOKEN — not used; Kontext handles all generation
 
 # Payments
 IDRAM_SECRET_KEY=

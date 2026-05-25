@@ -9,25 +9,34 @@ Verify whether a feature or task is in V1 scope before implementing it.
 
 ## V1 IN SCOPE ✅
 
-- Photo upload (JPEG, PNG, WEBP, max 20MB)
+- Photo upload (JPEG, PNG, WEBP, max 20MB) — anonymous allowed, no OTP needed
 - Image validation (type, size, dimensions, content moderation)
+- 2 free anonymous watermarked generations before OTP wall
 - 6 product category cards (Beauty, Jewelry, Fashion, Food, Marketplace, Custom)
-- Phone OR email OTP registration (/register page) — required before first generation
-- Template selection (10 hero templates)
-- Category pre-filter on template tabs (reads leve_category from sessionStorage)
-- Style refinement chips + custom text panel (RefinementPanel component)
-- AI preview generation (4 variants, fal.ai FLUX.1-schnell)
-- AI HD generation (1 output, fal.ai FLUX.1-dev or Replicate IP-Adapter)
-- Armenian/Russian text overlays (price tag, "Sale", "New Collection")
+- Phone OR email OTP registration — required before HD download (NOT before generation)
+- 2 free HD download credits granted on OTP verification
+- 30-scene library across 5 groups (Studio, Lifestyle Surfaces, Environment, Seasonal, Creative)
+- Category → scene filtering (6-8 relevant scenes first, "Show all" expands to 30)
+- 4 universal refinement chip groups (Lighting, Angle, Mood, Format/aspect ratio)
+- Category-specific refinement chips
+- Aspect ratio picker BEFORE generation (1:1, 4:5, 3:4, 9:16, 16:9)
+- Single generated image output (not 4 variants)
+- Iterative editing: "Edit" button sends generated image + instruction back to Kontext
+- AI generation via FLUX.1 Kontext [pro] only — no schnell, no dev, no Replicate
+- Server-side custom text detection — text overlay requests applied via sharp SVG composite, NOT sent to AI
+- Armenian/Russian text translation via Amazon Translate before prompt injection
+- Armenian/Russian/English text overlays (price tag, "Sale", "New Collection", custom)
 - Before/After reveal slider
-- Watermarked preview (low-res, LEVE stamp)
-- HD download (unlocked via payment)
+- Watermarked preview (anonymous: 1024px, verified: 2048px)
+- HD download = same file, no watermark, CloudFront signed URL
 - Idram payment integration
 - Telcell payment integration
-- Session-based credit tracking (Redis)
-- Phone number capture (optional, post-first-generation)
+- Persistent User model (phone/email identity, credits survive session expiry)
+- Brand name capture after OTP (optional, stored in User record)
+- Favorite scene persistence (stored in User record)
+- Session-based credit tracking (Redis) + User record for persistence
 - Platform export picker (8 platforms: Instagram feed/story, Facebook, WB, Ozon, Telegram, list.am, Original HD)
-- CREDIT_PACKAGES: Starter (1500֏/5), Creator (4000֏/20), Monthly (12000֏/50)
+- CREDIT_PACKAGES: Starter (1500֏/5), Creator (4000֏/20), Monthly (12000֏/50 — show price only)
 - next-intl localisation with cookie-based locale (hy/ru/en), LanguageSwitcher component
 - Session persistence (48h anonymous, 30d phone-captured)
 - Rate limiting (10 uploads/hour for anonymous)
@@ -37,11 +46,12 @@ Verify whether a feature or task is in V1 scope before implementing it.
 
 ## V1 OUT OF SCOPE ❌ (Do not implement)
 
-- Persistent user accounts (V1 uses session-only; phone/email is for session recovery, not a login system)
-- Password reset
-- Brand kit / saved brand styles
+- Password / email+password signup
+- Google / Apple OAuth
+- Persistent user accounts with password reset
+- Brand Kit (logo, font palette) — brand NAME only in V1
 - Caption / copywriting generator
-- Multi-platform export (Instagram story sizing, Telegram format, etc.)
+- Multi-product scene upload
 - Video generation / animated promos
 - Agency workspace / multi-client management
 - Team collaboration features
@@ -52,7 +62,7 @@ Verify whether a feature or task is in V1 scope before implementing it.
 - Smart pricing overlays
 - AI-generated hashtags
 - Bulk SKU processing (V2)
-- Subscription billing (V2)
+- Full subscription billing (V2) — show Monthly price, no billing in V1
 - Push notifications
 - Desktop-optimized layouts (mobile-first only in V1)
 

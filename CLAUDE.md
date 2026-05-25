@@ -4,7 +4,7 @@
 
 LEVE is a verticalized AI creative engine for Armenian SMEs. It transforms mobile product photos into studio-grade marketing visuals. V1 targets retail, beauty, and marketplace sellers (Wildberries/Ozon).
 
-**Core Promise:** Upload a product photo → get 4 marketplace-ready variants → pay to download HD → done in under 30 seconds.
+**Core Promise:** Upload a product photo → see ONE studio-quality image in 20 seconds → pay to download it clean → done.
 
 **Market:** Armenian micro-businesses, Instagram boutiques, Wildberries sellers, beauty clinics, jewelry shops.
 
@@ -34,21 +34,22 @@ Infrastructure
 
 ## AI Provider Strategy
 
-**Primary:** fal.ai with FLUX.1-schnell (preview) and FLUX.1-dev (HD output)
-**Product Preservation:** Replicate + IP-Adapter SDXL for jewelry/glass/transparent products
+**Primary:** fal.ai with FLUX.1 Kontext [pro] — image-to-image editing model that preserves product shape exactly while changing background and environment. All generations go through Kontext.
 **Content Moderation:** AWS Rekognition on every upload
 **Model Router:** ALL AI calls go through `/src/providers/model-router.ts` — never call providers directly from routes or workers
 
 ### Provider Routing Logic
 ```
-Preview generation (all) → fal.ai FLUX.1-schnell (target: <8s)
-HD generation (standard) → fal.ai FLUX.1-dev (target: <18s)
-HD generation (jewelry/reflective) → Replicate IP-Adapter (target: <25s)
-fal.ai failure → Replicate SDXL fallback
-Both fail → error + retry offer + NO credit deduction
+All generation (anonymous preview) → fal.ai FLUX.1 Kontext [pro] at 1024px ($0.04)
+All generation (verified user)     → fal.ai FLUX.1 Kontext [pro] at 2048px ($0.04)
+fal.ai failure                     → return error + retry offer, NO credit deduction
 ```
 
-**Do NOT use Stability AI.** Business instability + poor product shape preservation without heavy ControlNet pipelines.
+No Replicate. No IP-Adapter. No schnell. No dev. Kontext handles all categories.
+
+**Do NOT use FLUX.1-schnell, FLUX.1-dev, Replicate, or Stability AI.**
+
+Kontext is image-to-image — it takes the user's actual product photo as input and edits the background/environment while preserving the product exactly.
 
 ---
 
@@ -151,11 +152,14 @@ Ask: "Build a React component for [screen name] using this design system: bg #0A
 1. **Session Identity:** Capture phone number after first successful generation (never before). Store sessionId in httpOnly cookie + Redis. Never destroy a session that has generated images within 48h.
 
 2. **Credit Logic:**
-   - Free: 3 HD images given after verification (leve_free_credits in sessionStorage)
+   - Anonymous: 2 free watermarked generations (no OTP required), then OTP wall
+   - Free on OTP verification: 2 HD download credits
    - Starter: 1,500 AMD → 5 HD downloads
    - Creator: 4,000 AMD → 20 HD downloads (default selected, lowest per-image cost)
-   - Monthly: 12,000 AMD/month → 50 HD downloads (resets monthly)
-   - Pro subscription: show price only, billing is V2 (shown ONLY after 3+ purchases)
+   - Monthly: 12,000 AMD/month → 50 HD downloads (V2 — show price only at launch)
+   - Subscription: shown ONLY after 3+ purchases
+   - NEVER use the word "credits" in UI copy. Say "images" or "studio images."
+   - Soft daily cap: 15 free generations/day for verified users → show nudge to buy, not hard block
 
 3. **Credit safety:** Check credits BEFORE dispatching job. Deduct ONLY on successful generation. Refund automatically on generation failure. Use atomic Redis MULTI/EXEC for all credit operations.
 
@@ -195,43 +199,50 @@ Ask: "Build a React component for [screen name] using this design system: bg #0A
 ## V1 Scope — Final List
 
 **IN SCOPE:**
-- Upload + validation pipeline
+- Upload + validation pipeline (anonymous allowed, no OTP needed)
+- 2 free anonymous watermarked generations before OTP wall
 - 6 product category cards (Beauty, Jewelry, Fashion, Food, Marketplace, Custom)
-- Phone OR email OTP registration (/register page, required before first generation)
-- 10 hero templates (beauty ×3, retail ×3, marketplace ×4)
-- Category pre-filter on template tabs + RefinementPanel (style chips + custom text)
-- Platform export picker (8 formats: Original HD, Instagram feed/story, Facebook, WB, Ozon, Telegram, list.am)
-- CATEGORY_CONFIG with per-category prompt config + refinement chips (in lib/constants.ts)
-- next-intl localisation (cookie-based, hy/ru/en, LanguageSwitcher in header)
-- AI preview generation (4 variants, fal.ai FLUX-schnell)
-- AI HD generation (fal.ai FLUX-dev + Replicate IP-Adapter)
-- Armenian/Russian/English text overlays (price, sale, new collection)
+- Phone OR email OTP registration — required before HD download (NOT before generation)
+- 2 free HD download credits granted on OTP verification
+- 30-scene library across 5 groups (Studio, Lifestyle Surfaces, Environment, Seasonal, Creative)
+- Category → scene filtering (shows 6-8 relevant scenes first, "Show all" expands to 30)
+- 4 universal refinement chip groups (Lighting, Angle, Mood, Format/aspect ratio)
+- Category-specific refinement chips
+- Aspect ratio picker BEFORE generation (1:1, 4:5, 3:4, 9:16, 16:9)
+- Single generated image output (not 4 variants)
+- Iterative editing: "Edit" button sends generated image + instruction back to Kontext
+- AI generation via FLUX.1 Kontext [pro] only — no schnell, no dev, no Replicate
+- Server-side custom text detection — text overlay requests extracted, applied via sharp SVG composite, NOT sent to AI
+- Armenian/Russian text translation via Amazon Translate before prompt injection
+- Brand name capture after OTP (optional, stored in User record)
+- Favorite scene persistence (stored in User record)
+- Armenian/Russian/English text overlays (price tag, Sale, New Collection, custom)
 - Before/After reveal slider
-- Watermarked free preview (2 per session)
-- HD download behind paywall
+- Watermarked preview (anonymous: 1024px, verified: 2048px)
+- HD download = same generated file, no watermark, served via CloudFront signed URL
 - Idram payment integration
 - Telcell payment integration
-- Session tracking (Redis, httpOnly cookie)
-- Phone capture (optional, post-generation)
+- Persistent User model (phone/email as identity, credits survive session expiry)
+- Platform export picker (8 formats: Original HD, Instagram feed/story, Facebook, WB, Ozon, Telegram, list.am)
+- next-intl localisation (hy/ru/en)
 - Rate limiting
-- HY + RU + EN UI strings
 - Mobile-first responsive (390px primary)
 
-**OUT OF SCOPE (V2 only — do not implement):**
-- Persistent user accounts / password reset (session-only in V1)
-- Brand kit / saved brand styles
-- Caption / copywriting generator
-- Multi-platform export (story sizing, Telegram format)
-- Video generation / animated promos
+**OUT OF SCOPE (V2 only):**
+- Password / email+password signup
+- Google / Apple OAuth
+- Brand Kit (logo, font palette) — brand NAME only in V1
+- Caption generator
+- Video generation
 - Agency workspace
 - Analytics dashboard
 - Social calendar
-- Holiday template automation
 - Marketplace API direct upload
 - Bulk SKU processing
-- Pro subscription billing (show price, but billing is V2)
+- Full subscription billing (show Monthly price, no billing in V1)
 - Desktop-optimized layouts
 - Push notifications
+- Multi-product scene upload
 
 ---
 

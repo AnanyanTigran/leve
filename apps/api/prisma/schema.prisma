@@ -7,6 +7,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                    String    @id @default(cuid())
+  phone                 String?   @unique
+  email                 String?   @unique
+  creditsRemaining      Int       @default(0)
+  totalCreditsPurchased Int       @default(0)
+  totalCreditsUsed      Int       @default(0)
+  generationCount       Int       @default(0)
+  purchaseCount         Int       @default(0)
+  brandName             String?   // saved brand/store name for text overlays
+  favoriteSceneId       String?   // saved default scene id
+  lastSessionId         String?   // most recent Redis session linked to this user
+  createdAt             DateTime  @default(now())
+  lastSeenAt            DateTime  @updatedAt
+
+  @@index([phone])
+  @@index([email])
+}
+
 model Transaction {
   id           String    @id @default(cuid())
   sessionId    String

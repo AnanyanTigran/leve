@@ -10,18 +10,18 @@ export interface CreditPackage {
 export const CREDIT_PACKAGES: Record<string, CreditPackage> = {
   starter: {
     id: 'starter',
-    amountAMD: 1000,
+    amountAMD: 1500,
     credits: 5,
   },
   creator: {
     id: 'creator',
-    amountAMD: 3500,
-    credits: 15,
+    amountAMD: 4000,
+    credits: 20,
   },
   pro_monthly: {
     id: 'pro_monthly',
-    amountAMD: 10000,
-    credits: 999,
+    amountAMD: 12000,
+    credits: 50,
   },
 }
 
