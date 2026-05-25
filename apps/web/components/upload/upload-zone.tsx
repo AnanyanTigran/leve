@@ -46,6 +46,7 @@ export function UploadZone() {
   const [fileState, setFileState] = useState<FileState | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ACCEPTED_TYPES.includes(file.type)) return t('error_type')
@@ -95,15 +96,48 @@ export function UploadZone() {
   }, [fileState])
 
   const handleContinue = useCallback(async () => {
-    if (fileState) {
-      sessionStorage.setItem('leve_upload_name', fileState.file.name)
-      const dataUrl = await compressToDataUrl(fileState.file)
-      sessionStorage.setItem('leve_upload_preview', dataUrl)
-      router.push('/templates')
-    }
-  }, [fileState, router])
+    if (!fileState) return
 
-  const isValid = fileState !== null && error === null
+    setIsUploading(true)
+    setError(null)
+
+    try {
+      // Generate compressed preview for the scene selection page
+      const dataUrl = await compressToDataUrl(fileState.file)
+
+      // Upload file to API to get S3 key
+      const formData = new FormData()
+      formData.append('file', fileState.file)
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json.error ?? t('error_type'))
+        return
+      }
+
+      const uploadKey: string = json.data.uploadKey
+
+      sessionStorage.setItem('leve_upload_key', uploadKey)
+      sessionStorage.setItem('leve_upload_preview', dataUrl)
+      sessionStorage.setItem('leve_upload_name', fileState.file.name)
+      // leve_category is set by the landing page — no need to overwrite here
+
+      router.push('/templates')
+    } catch {
+      setError(t('error_type'))
+    } finally {
+      setIsUploading(false)
+    }
+  }, [fileState, router, t])
+
+  const isValid = fileState !== null && error === null && !isUploading
 
   return (
     <div className="flex flex-col flex-1">
@@ -231,7 +265,14 @@ export function UploadZone() {
             disabled={!isValid}
             className="btn-primary btn-full"
           >
-            {tCommon('continue')}
+            {isUploading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                {tCommon('loading')}
+              </div>
+            ) : (
+              tCommon('continue')
+            )}
           </button>
         </div>
       </div>
