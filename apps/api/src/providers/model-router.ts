@@ -1,183 +1,130 @@
 import * as fal from '@fal-ai/serverless-client'
-import Replicate from 'replicate'
 import { validateEnv } from '../config/env'
 import { uploadToS3, buildS3Key } from '../lib/s3'
-import { getNegativePrompt } from '../services/prompt.service'
+import { downloadFromS3 } from '../lib/cloudfront'
 import axios from 'axios'
 
 const env = validateEnv()
 
 fal.config({ credentials: env.FAL_API_KEY })
-const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN })
+
+// Aspect ratio → pixel dimensions (long edge = 2048px for verified users)
+export const ASPECT_RATIO_SIZES: Record<string, { width: number; height: number }> = {
+  '1:1':  { width: 2048, height: 2048 },
+  '4:5':  { width: 1638, height: 2048 },
+  '3:4':  { width: 1536, height: 2048 },
+  '9:16': { width: 1152, height: 2048 },
+  '16:9': { width: 2048, height: 1152 },
+}
+
+// Anonymous users get lower resolution (same cost, lower quality — creates upgrade incentive)
+const ANON_SIZE = { width: 1024, height: 1024 }
 
 export interface GenerationInput {
   sessionId: string
   jobId: string
-  uploadS3Key: string
-  compiledPrompt: string
-  negativePrompt: string
-  requiresIPAdapter: boolean
-  isHD: boolean
+  uploadS3Key: string      // user's product photo in S3
+  compiledPrompt: string   // scene + chips + translated custom text (NO text overlay content)
+  isVerified: boolean      // determines output resolution
+  aspectRatio?: string     // '1:1' | '4:5' | '3:4' | '9:16' | '16:9', default '1:1'
+  isEdit?: boolean         // true = iterative edit, sourceImageS3Key is prior output
+  sourceImageS3Key?: string // for iterative edits: the previously generated image
 }
 
 export interface GenerationOutput {
-  s3Keys: string[]
+  s3Key: string      // single output image stored in S3
   provider: string
   durationMs: number
 }
 
+// Single entry point for ALL generation. No routing logic needed — always Kontext [pro].
 export async function runGeneration(input: GenerationInput): Promise<GenerationOutput> {
   const start = Date.now()
-  if (input.isHD) {
-    return runHdGeneration(input, start)
-  }
-  return runPreviewGeneration(input, start)
-}
 
-async function runPreviewGeneration(
-  input: GenerationInput,
-  start: number,
-): Promise<GenerationOutput> {
-  try {
-    const result = await Promise.race([
-      falSchnellGenerate(input, 4),
-      timeoutReject(15000, 'fal_schnell_timeout'),
-    ])
+  // Determine image_size based on verification state and chosen aspect ratio
+  const imageSize = input.isVerified
+    ? (ASPECT_RATIO_SIZES[input.aspectRatio ?? '1:1'] ?? ASPECT_RATIO_SIZES['1:1'])
+    : ANON_SIZE
 
-    const s3Keys = await downloadAndStore(result.imageUrls, 'previews', input.sessionId, input.jobId)
-    return { s3Keys, provider: 'fal_schnell', durationMs: Date.now() - start }
-  } catch {
-    const result = await Promise.race([
-      replicateSdxlGenerate(input, 4),
-      timeoutReject(30000, 'replicate_timeout'),
-    ])
+  // Use uploaded photo as input for initial generation,
+  // or previously generated image for iterative edits
+  const sourceKey = input.isEdit && input.sourceImageS3Key
+    ? input.sourceImageS3Key
+    : input.uploadS3Key
 
-    const s3Keys = await downloadAndStore(result.imageUrls, 'previews', input.sessionId, input.jobId)
-    return { s3Keys, provider: 'replicate_fallback', durationMs: Date.now() - start }
-  }
-}
+  // Get presigned URL for the source image so fal.ai can read it
+  const sourcePresignedUrl = await getS3PresignedUrl(sourceKey)
 
-async function runHdGeneration(
-  input: GenerationInput,
-  start: number,
-): Promise<GenerationOutput> {
-  if (input.requiresIPAdapter) {
-    try {
-      const result = await Promise.race([
-        replicateIpAdapterGenerate(input),
-        timeoutReject(25000, 'replicate_ipadapter_timeout'),
-      ])
+  // Enforce product preservation in every prompt — never allow Kontext to alter the product
+  const safePrompt = buildSafePrompt(input.compiledPrompt, input.isEdit ?? false)
 
-      const s3Keys = await downloadAndStore(result.imageUrls, 'hd', input.sessionId, input.jobId)
-      return { s3Keys, provider: 'replicate_ipadapter', durationMs: Date.now() - start }
-    } catch {
-      // fall through to fal.ai dev
-    }
-  }
+  let falResult: { images: { url: string }[] }
 
   try {
-    const result = await Promise.race([
-      falDevGenerate(input),
-      timeoutReject(25000, 'fal_dev_timeout'),
+    falResult = await Promise.race([
+      fal.run('fal-ai/flux-pro/kontext', {
+        input: {
+          image_url: sourcePresignedUrl,
+          prompt: safePrompt,
+          image_size: imageSize,
+          num_inference_steps: 28,
+          guidance_scale: 3.5,
+        },
+      }) as Promise<{ images: { url: string }[] }>,
+      timeout(30000, 'kontext_timeout'),
     ])
-
-    const s3Keys = await downloadAndStore(result.imageUrls, 'hd', input.sessionId, input.jobId)
-    return { s3Keys, provider: 'fal_dev', durationMs: Date.now() - start }
   } catch (err) {
-    throw new Error('all_providers_failed')
+    const message = err instanceof Error ? err.message : 'kontext_failed'
+    throw new Error(message)
   }
-}
 
-// ── Provider implementations ──────────────────────────────────────────────────
+  const imageUrl = falResult.images?.[0]?.url
+  if (!imageUrl) throw new Error('kontext_no_output')
 
-async function falSchnellGenerate(
-  input: GenerationInput,
-  numImages: number,
-): Promise<{ imageUrls: string[] }> {
-  const result = await fal.run('fal-ai/flux/schnell', {
-    input: {
-      prompt: input.compiledPrompt,
-      num_images: numImages,
-      image_size: 'square_hd',
-      enable_safety_checker: true,
-    },
-  }) as { images: { url: string }[] }
+  // Download from fal.ai CDN and store in our S3
+  const imageBuffer = await downloadImageFromUrl(imageUrl)
+  const s3Key = buildS3Key('previews', input.sessionId, `${input.jobId}-output.jpg`)
+  await uploadToS3(s3Key, imageBuffer, 'image/jpeg')
 
-  return { imageUrls: result.images.map((img) => img.url) }
-}
-
-async function falDevGenerate(
-  input: GenerationInput,
-): Promise<{ imageUrls: string[] }> {
-  const result = await fal.run('fal-ai/flux/dev', {
-    input: {
-      prompt: input.compiledPrompt,
-      num_images: 1,
-      image_size: 'square_hd',
-      enable_safety_checker: true,
-    },
-  }) as { images: { url: string }[] }
-
-  return { imageUrls: result.images.map((img) => img.url) }
-}
-
-async function replicateSdxlGenerate(
-  input: GenerationInput,
-  numImages: number,
-): Promise<{ imageUrls: string[] }> {
-  const output = await replicate.run(
-    'stability-ai/sdxl:39ed52f2319f9bc3748c78f960f6ef96100f33bd3fee1234b1bc8f62f7d9',
-    {
-      input: {
-        prompt: input.compiledPrompt,
-        negative_prompt: input.negativePrompt,
-        num_outputs: numImages,
-      },
-    },
-  )
-
-  return { imageUrls: (output as string[]) }
-}
-
-async function replicateIpAdapterGenerate(
-  input: GenerationInput,
-): Promise<{ imageUrls: string[] }> {
-  const output = await replicate.run(
-    'lucataco/ip-adapter-sdxl:c6e78d2501b3c272768eb1f35f2dd7e753b7e5db2ca1d4e5296cd69ab7cd56d5a26ed5d6a',
-    {
-      input: {
-        prompt: input.compiledPrompt,
-        negative_prompt: input.negativePrompt,
-        num_outputs: 1,
-      },
-    },
-  )
-
-  return { imageUrls: (output as string[]) }
+  return {
+    s3Key,
+    provider: 'fal_kontext_pro',
+    durationMs: Date.now() - start,
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function downloadAndStore(
-  urls: string[],
-  folder: 'previews' | 'hd',
-  sessionId: string,
-  jobId: string,
-): Promise<string[]> {
-  const keys: string[] = []
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i]
-    if (!url) continue
-    const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 })
-    const buffer = Buffer.from(response.data as ArrayBuffer)
-    const key = buildS3Key(folder, sessionId, `${jobId}-${i}.jpg`)
-    await uploadToS3(key, buffer, 'image/jpeg')
-    keys.push(key)
-  }
-  return keys
+function buildSafePrompt(userPrompt: string, isEdit: boolean): string {
+  const productPreservation = isEdit
+    ? 'Make ONLY the described change. Preserve the product completely — same shape, colors, labels, texture.'
+    : 'Change ONLY the background and lighting environment. The product must remain completely identical — same shape, colors, labels, text, texture, proportions. No promotional text. No fake badges.'
+
+  return `${productPreservation} ${userPrompt}`
 }
 
-function timeoutReject(ms: number, label: string): Promise<never> {
+async function getS3PresignedUrl(s3Key: string): Promise<string> {
+  const { GetObjectCommand } = await import('@aws-sdk/client-s3')
+  const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
+  const { s3 } = await import('../lib/s3')
+
+  const command = new GetObjectCommand({
+    Bucket: env.AWS_S3_BUCKET,
+    Key: s3Key,
+  })
+  // 10 minute expiry — enough for fal.ai to download during generation
+  return getSignedUrl(s3, command, { expiresIn: 600 })
+}
+
+async function downloadImageFromUrl(url: string): Promise<Buffer> {
+  const response = await axios.get(url, {
+    responseType: 'arraybuffer',
+    timeout: 30000,
+  })
+  return Buffer.from(response.data as ArrayBuffer)
+}
+
+function timeout(ms: number, label: string): Promise<never> {
   return new Promise((_, reject) =>
     setTimeout(() => reject(new Error(label)), ms),
   )
