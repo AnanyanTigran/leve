@@ -33,9 +33,6 @@ export default function ResultsPage() {
   }, [router])
 
   const verified = typeof window !== 'undefined' ? isVerified() : false
-  const freeCredits = verified
-    ? Number(sessionStorage.getItem('leve_free_credits') ?? 0)
-    : 0
 
   const uploadPreview = typeof window !== 'undefined'
     ? sessionStorage.getItem('leve_upload_preview')
@@ -116,11 +113,6 @@ export default function ResultsPage() {
             >
               {tPaywall('title')}
             </button>
-            {verified && freeCredits > 0 && (
-              <p className="text-center text-[12px] text-text-muted mt-2">
-                {t('free_bar', { count: freeCredits })}
-              </p>
-            )}
           </div>
         </div>
       </main>
