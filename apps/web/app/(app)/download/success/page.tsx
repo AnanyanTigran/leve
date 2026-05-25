@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isVerified } from '@/lib/session'
@@ -41,7 +41,9 @@ const PLATFORM_ORDER: ExportPlatform[] = [
 export default function DownloadSuccessPage() {
   const router = useRouter()
   const t = useTranslations('download')
+  const locale = useLocale()
   const [selectedPlatform, setSelectedPlatform] = useState<ExportPlatform>('original_hd')
+  const [isDownloading, setIsDownloading] = useState(false)
 
   useEffect(() => {
     if (!isVerified()) router.replace('/register')
@@ -51,13 +53,54 @@ export default function DownloadSuccessPage() {
     ? t('download_btn')
     : `${t('download_for')} ${PLATFORM_SPECS[selectedPlatform].label}`
 
-  const handleDownload = () => {
-    const preview = sessionStorage.getItem('leve_upload_preview')
-    if (!preview) return
-    const a = document.createElement('a')
-    a.href = preview
-    a.download = `leve-${selectedPlatform}.jpg`
-    a.click()
+  async function handleDownload() {
+    const jobId = sessionStorage.getItem('leve_job_id')
+    if (!jobId) return
+
+    setIsDownloading(true)
+
+    try {
+      let downloadUrl: string
+
+      if (selectedPlatform === 'original_hd') {
+        const res = await fetch(
+          `/api/download/url?jobId=${jobId}`,
+          { credentials: 'include' },
+        )
+        const data = await res.json()
+
+        if (!res.ok || !data?.data?.url) {
+          console.error('download URL fetch failed', data)
+          return
+        }
+        downloadUrl = data.data.url
+      } else {
+        const res = await fetch('/api/download/export', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId, platform: selectedPlatform }),
+        })
+        const data = await res.json()
+
+        if (!res.ok || !data?.data?.url) {
+          console.error('export URL fetch failed', data)
+          return
+        }
+        downloadUrl = data.data.url
+      }
+
+      const a = document.createElement('a')
+      a.href = downloadUrl
+      a.download = `leve-${selectedPlatform}.jpg`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('download failed', err)
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   return (
@@ -79,9 +122,18 @@ export default function DownloadSuccessPage() {
         </div>
 
         {/* Primary download button */}
-        <button onClick={handleDownload} className="btn-primary btn-full h-14 text-[16px] mt-6 gap-2">
+        <button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className={cn(
+            'btn-primary btn-full h-14 text-[16px] mt-6 gap-2',
+            isDownloading && 'opacity-50 cursor-not-allowed',
+          )}
+        >
           <Download className="w-[18px] h-[18px]" />
-          {primaryButtonLabel}
+          {isDownloading
+            ? (locale === 'hy' ? 'Ներբեռնվում է...' : locale === 'ru' ? 'Загружается...' : 'Downloading...')
+            : primaryButtonLabel}
         </button>
 
         {/* Platform picker */}
