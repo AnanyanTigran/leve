@@ -2,12 +2,18 @@ export interface LeveSession {
   sessionId: string
   phone: string | null
   email: string | null
+  identifierType: 'phone' | 'email' | null
   isVerified: boolean       // OTP completed — gates generation
   creditsRemaining: number
   previewsUsed: number      // not used in Option A but keep for future
   generationHistory: string[] // last 50 GenerationJob IDs
   isPaid: boolean
   purchaseCount: number
+  brandName: string | null
+  favoriteSceneId: string | null
+  anonGenerationsUsed: number   // tracks anonymous generation count
+  dailyGenerationsUsed: number  // tracks soft cap (resets daily)
+  dailyGenerationsDate: string  // ISO date string 'YYYY-MM-DD' for reset check
   lastActiveAt: number
   createdAt: number
 }
