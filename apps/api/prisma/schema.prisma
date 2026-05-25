@@ -61,6 +61,8 @@ model GenerationJob {
   status           String    @default("queued") // "queued"|"processing"|"done"|"failed"|"credit_refunded"
   uploadS3Key      String
   compiledPrompt   String?
+  overlayText      String?   // extracted text-on-image request, applied post-generation
+  overlayPosition  String?   // "top" | "center" | "bottom" — default "bottom"
   previewS3Keys    String[]  @default([])
   hdS3Key          String?
   qualityGatePassed Boolean?
