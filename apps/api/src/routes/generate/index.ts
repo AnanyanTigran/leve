@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
 import { previewQueue, PRIORITIES } from '../../lib/queues'
-import { compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
+import { parseCustomText, compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
+import { translateToEnglish } from '../../services/translate.service'
 import { SessionService } from '../../services/session.service'
 import {
   ANON_FREE_GENERATIONS,
@@ -104,7 +105,28 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
       }
 
-      const compiledPrompt = compilePrompt({ sceneId, category, selectedChipIds: refinementChips, translatedSceneDescription: customText })
+      const rawCustomText = customText ?? ''
+
+      // Step 1: Detect text-on-image intent and split custom text
+      const { sceneDescription, overlayText, hasTextIntent } = parseCustomText(rawCustomText)
+
+      // Step 2: Translate scene description to English (skipped if already ASCII/English)
+      const translatedDescription = sceneDescription
+        ? await translateToEnglish(sceneDescription)
+        : ''
+
+      // Step 3: Compile the final AI prompt — overlay text is never included here
+      const compiledPrompt = compilePrompt({
+        sceneId,
+        category,
+        selectedChipIds: refinementChips,
+        translatedSceneDescription: translatedDescription,
+      })
+
+      app.log.info(
+        { requestId, hasTextIntent, overlayText: overlayText ?? null },
+        'prompt compiled',
+      )
 
       const job = await prisma.generationJob.create({
         data: {
@@ -115,6 +137,8 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
           status: 'queued',
           uploadS3Key: uploadKey,
           compiledPrompt,
+          overlayText: overlayText ?? null,
+          overlayPosition: 'bottom',
           creditsCost: session.isVerified ? 1 : 0,
           requestId,
         },
