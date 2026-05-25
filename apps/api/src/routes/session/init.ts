@@ -66,6 +66,12 @@ export async function registerSessionInit(app: FastifyInstance) {
           isPaid: s.isPaid,
           purchaseCount: s.purchaseCount,
           phone: s.phone,
+          email: s.email,
+          brandName: s.brandName,
+          favoriteSceneId: s.favoriteSceneId,
+          anonGenerationsUsed: s.anonGenerationsUsed ?? 0,
+          dailyGenerationsUsed: s.dailyGenerationsUsed ?? 0,
+          showSubscriptionOffer: s.purchaseCount >= 3,
         },
         requestId,
       })
