@@ -21,7 +21,7 @@ const envSchema = z.object({
   AWS_CLOUDFRONT_PRIVATE_KEY: z.string(), // PEM, newlines as \n
 
   FAL_API_KEY: z.string(),
-  REPLICATE_API_TOKEN: z.string(),
+  REPLICATE_API_TOKEN: z.string().optional(), // removed — Kontext handles all generation
 
   IDRAM_MERCHANT_ID: z.string(),
   IDRAM_SECRET_KEY: z.string(),
