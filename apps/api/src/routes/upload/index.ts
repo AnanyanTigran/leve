@@ -4,24 +4,23 @@ import { validateImage } from '../../services/image-validation.service'
 import { uploadToS3, buildS3Key } from '../../lib/s3'
 import { checkRateLimit, uploadRateLimitKey } from '../../lib/rate-limit'
 
-// Verified sessions: 50/hr. Should not reach anon since OTP is required (Option A).
-const UPLOAD_MAX_PER_HOUR = 50
 const UPLOAD_WINDOW = 3600
 
 export async function registerUploadRoute(app: FastifyInstance) {
   app.post(
     '/api/upload',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session
 
       app.log.info({ requestId, sessionId: session.sessionId }, 'upload start')
 
-      // Rate limit
+      // Tiered rate limit: anon 10/hr, verified 50/hr
+      const uploadMax = session.isVerified ? 50 : 10
       const allowed = await checkRateLimit(
         uploadRateLimitKey(session.sessionId),
-        UPLOAD_MAX_PER_HOUR,
+        uploadMax,
         UPLOAD_WINDOW,
       )
       if (!allowed) {
