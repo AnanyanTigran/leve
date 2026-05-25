@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { CheckCircle } from 'lucide-react'
 import { RefinementPanel } from './refinement-panel'
-import type { ProductCategory } from '@leve/types'
+import type { ProductCategory, AspectRatio } from '@leve/types'
 
 const TEMPLATES = [
   { id: 'luxury-cosmetics', nameKey: 'luxury_cosmetics', category: 'beauty', gradient: 'linear-gradient(135deg, #fdf0eb, #f0d4c4)' },
@@ -45,6 +45,7 @@ export function TemplateGrid() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedChips, setSelectedChips] = useState<string[]>([])
   const [customText, setCustomText] = useState('')
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>('1:1')
 
   useEffect(() => {
     const cat = sessionStorage.getItem('leve_category') as ProductCategory | null
@@ -148,6 +149,8 @@ export function TemplateGrid() {
             category={selectedCategory}
             onChipsChange={setSelectedChips}
             onCustomTextChange={setCustomText}
+            onAspectRatioChange={setSelectedAspectRatio}
+            selectedAspectRatio={selectedAspectRatio}
           />
         )}
         {selectedId && !selectedCategory && (
@@ -155,6 +158,8 @@ export function TemplateGrid() {
             category="custom"
             onChipsChange={setSelectedChips}
             onCustomTextChange={setCustomText}
+            onAspectRatioChange={setSelectedAspectRatio}
+            selectedAspectRatio={selectedAspectRatio}
           />
         )}
       </main>

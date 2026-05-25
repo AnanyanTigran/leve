@@ -145,7 +145,7 @@ export function parseCustomText(rawText: string): ParsedCustomText {
 
   // Extract the exact quoted text — must NOT be translated
   const quotedMatch = cleaned.match(TEXT_EXTRACTION_PATTERN)
-  const overlayText = quotedMatch ? quotedMatch[1].trim() : null
+  const overlayText = quotedMatch?.[1]?.trim() ?? null
 
   // Remove the text request from the scene description
   let sceneDescription = cleaned

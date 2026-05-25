@@ -51,7 +51,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
       }
 
-      const compiledPrompt = compilePrompt({ templateId: sceneId, category, refinementChips, customText })
+      const compiledPrompt = compilePrompt({ sceneId, category, selectedChipIds: refinementChips, translatedSceneDescription: customText })
 
       const job = await prisma.generationJob.create({
         data: {
