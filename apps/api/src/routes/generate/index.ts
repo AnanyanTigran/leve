@@ -4,6 +4,12 @@ import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
 import { previewQueue, PRIORITIES } from '../../lib/queues'
 import { compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
+import { SessionService } from '../../services/session.service'
+import {
+  ANON_FREE_GENERATIONS,
+  FREE_DAILY_GENERATION_SOFT_CAP,
+} from '../../lib/session.types'
+import { checkAnonIpGenerationLimit } from '../../lib/rate-limit'
 
 const previewSchema = z.object({
   uploadKey: z.string().min(1),
@@ -29,7 +35,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
   // POST /api/generate/preview — anonymous and verified sessions allowed
   app.post(
     '/api/generate/preview',
-    { preHandler: [app.requireSession] },
+    { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session
@@ -46,7 +52,54 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(403).send({ success: false, error: 'invalid_upload_key', requestId })
       }
 
-      // Verified users need credits for generation; anon users use a separate generation budget
+      // ── Gate 1: Anonymous generation limit ───────────────────────────────────
+      if (!session.isVerified) {
+        const anonUsed = session.anonGenerationsUsed ?? 0
+        if (anonUsed >= ANON_FREE_GENERATIONS) {
+          return reply.status(403).send({
+            success: false,
+            error: 'otp_required',
+            errorCode: 'anon_limit_reached',
+            data: {
+              anonGenerationsUsed: anonUsed,
+              anonGenerationsLimit: ANON_FREE_GENERATIONS,
+            },
+            requestId,
+          })
+        }
+
+        // Secondary IP check — deterrent against cookie-clearing abuse
+        const clientIp =
+          (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+          request.ip ??
+          'unknown'
+
+        const ipAllowed = await checkAnonIpGenerationLimit(clientIp)
+        if (!ipAllowed) {
+          return reply.status(429).send({
+            success: false,
+            error: 'rate_limit_exceeded',
+            errorCode: 'ip_generation_limit',
+            requestId,
+          })
+        }
+      }
+
+      // ── Gate 2: Verified user daily soft cap (nudge only, not a hard block) ──
+      if (session.isVerified) {
+        const today = new Date().toISOString().split('T')[0]
+        const dailyUsed =
+          session.dailyGenerationsDate === today ? (session.dailyGenerationsUsed ?? 0) : 0
+
+        if (dailyUsed >= FREE_DAILY_GENERATION_SOFT_CAP) {
+          app.log.info(
+            { sessionId: session.sessionId, dailyUsed },
+            'daily soft cap reached — nudge sent but generation allowed',
+          )
+        }
+      }
+
+      // ── Gate 3: Verified user credit check ───────────────────────────────────
       if (session.isVerified && session.creditsRemaining <= 0) {
         return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
       }
@@ -56,7 +109,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
       const job = await prisma.generationJob.create({
         data: {
           sessionId: session.sessionId,
-          templateId: sceneId,  // store sceneId as templateId
+          templateId: sceneId,
           intent,
           category,
           status: 'queued',
@@ -100,9 +153,32 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
 
       app.log.info({ requestId, jobId: job.id }, 'preview job dispatched')
 
+      // Increment the appropriate counter after successful dispatch
+      if (session.isVerified) {
+        await SessionService.incrementDailyGeneration(session.sessionId)
+          .catch((err) => app.log.error({ err }, 'failed to increment daily generation'))
+      } else {
+        await SessionService.incrementAnonGeneration(session.sessionId)
+          .catch((err) => app.log.error({ err }, 'failed to increment anon generation'))
+      }
+
+      const today = new Date().toISOString().split('T')[0]
+      const dailyUsed =
+        session.isVerified && session.dailyGenerationsDate === today
+          ? (session.dailyGenerationsUsed ?? 0) + 1
+          : 0
+      const softCapReached = session.isVerified && dailyUsed >= FREE_DAILY_GENERATION_SOFT_CAP
+
       return reply.status(202).send({
         success: true,
-        data: { jobId: job.id },
+        data: {
+          jobId: job.id,
+          softCapReached,
+          anonGenerationsUsed: session.isVerified
+            ? null
+            : (session.anonGenerationsUsed ?? 0) + 1,
+          anonGenerationsLimit: session.isVerified ? null : ANON_FREE_GENERATIONS,
+        },
         requestId,
       })
     },
@@ -111,7 +187,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
   // GET /api/generate/status/:jobId — anonymous and verified sessions allowed
   app.get(
     '/api/generate/status/:jobId',
-    { preHandler: [app.requireSession] },
+    { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const { jobId } = request.params as { jobId: string }
