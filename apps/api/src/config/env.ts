@@ -28,12 +28,11 @@ const envSchema = z.object({
   TELCELL_MERCHANT_ID: z.string(),
   TELCELL_SECRET_KEY: z.string(),
 
-  OTP_SMS_API_KEY: z.string().optional(), // optional for dev
-  OTP_FROM_NUMBER: z.string().optional(),
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional(),
+  // OTP delivery via AWS SNS (SMS) and SES (email) — uses existing AWS credentials above
+  // Optional in dev: delivery is skipped when NODE_ENV=development
+  AWS_SNS_SENDER_ID: z.string().default('LEVE'),
+  AWS_SES_FROM_EMAIL: z.string().email().optional(),
+  AWS_SES_FROM_NAME: z.string().default('LEVE'),
 
   // Amazon Translate — uses existing AWS credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
   // IAM policy must include: { "Action": ["translate:TranslateText"], "Resource": "*" }

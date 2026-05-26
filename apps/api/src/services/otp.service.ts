@@ -1,11 +1,16 @@
 import bcrypt from 'bcryptjs'
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js'
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns'
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 import { prisma } from '../lib/prisma'
 import { redis } from '../lib/redis'
 import { logger } from '../lib/logger'
 import { validateEnv } from '../config/env'
 
 const env = validateEnv()
+
+const snsClient = new SNSClient({ region: env.AWS_REGION })
+const sesClient = new SESClient({ region: env.AWS_REGION })
 
 const OTP_EXPIRY_SECONDS = 60 * 10      // 10 minutes
 const OTP_MAX_ATTEMPTS = 5
@@ -89,15 +94,15 @@ export async function sendOtp(
     },
   })
 
-  // Deliver — fire and forget logging, do not leak delivery errors to client
   try {
     if (identifierType === 'phone') {
       await deliverSms(identifier, code)
     } else {
       await deliverEmail(identifier, code)
     }
-  } catch (err) {
-    logger.error({ identifier: '***REDACTED***', err }, '[OTP] delivery failed — check provider config')
+  } catch (err: unknown) {
+    const name = (err as { name?: string }).name
+    logger.error({ name, identifier: '***' }, '[OTP] delivery failed')
     // Still return sent:true — prevents user enumeration via delivery errors
   }
 
@@ -154,43 +159,73 @@ export async function verifyOtp(
 // ── Delivery helpers ──────────────────────────────────────────────────────────
 
 async function deliverSms(phone: string, code: string): Promise<void> {
-  if (!env.OTP_SMS_API_KEY) {
-    if (env.NODE_ENV === 'development') {
-      logger.info({ phone: phone.slice(0, 4) + '****' }, `[OTP-DEV] code: ${code}`)
-    } else {
-      logger.error(
-        { phone: '***REDACTED***' },
-        '[OTP] CRITICAL: OTP_SMS_API_KEY not set in non-development environment — SMS not delivered',
-      )
-      throw new Error('sms_provider_not_configured')
-    }
+  if (env.NODE_ENV === 'development') {
+    logger.info({ phone: phone.slice(0, 5) + '****' }, `[OTP-DEV] code: ${code}`)
     return
   }
-  // TODO: replace with Armenian SMS gateway (Ucom/TeamTelecom) or Twilio
-  logger.error({}, '[OTP] SMS provider stub — OTP_SMS_API_KEY is set but no provider is integrated')
-  throw new Error('sms_provider_not_implemented')
+
+  await snsClient.send(
+    new PublishCommand({
+      PhoneNumber: phone, // already E.164 from react-phone-number-input, no normalization applied
+      Message: [
+        `Your LEVE code: ${code}`,
+        `Ձեր LEVE կոդը՝ ${code}`,
+        `Код LEVE: ${code}`,
+      ].join('\n'),
+      MessageAttributes: {
+        'AWS.SNS.SMS.SenderID': {
+          DataType: 'String',
+          StringValue: env.AWS_SNS_SENDER_ID,
+        },
+        'AWS.SNS.SMS.SMSType': {
+          DataType: 'String',
+          StringValue: 'Transactional',
+        },
+      },
+    }),
+  )
+
+  logger.info({ phone: phone.slice(0, 5) + '****' }, '[OTP] SMS sent via SNS')
 }
 
 async function deliverEmail(email: string, code: string): Promise<void> {
-  if (!env.SMTP_HOST) {
-    if (env.NODE_ENV === 'development') {
-      logger.info({ email: email.replace(/(.{2}).+(@.+)/, '$1***$2') }, `[OTP-DEV] code: ${code}`)
-    } else {
-      logger.error({}, '[OTP] CRITICAL: SMTP_HOST not set in non-development environment')
-      throw new Error('email_provider_not_configured')
-    }
+  if (env.NODE_ENV === 'development') {
+    logger.info({ email: email.replace(/(.{2}).+(@.+)/, '$1***$2') }, `[OTP-DEV] code: ${code}`)
     return
   }
-  const nodemailer = await import('nodemailer')
-  const transporter = nodemailer.createTransport({
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT ?? 587,
-    auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
-  })
-  await transporter.sendMail({
-    from: `LEVE <${env.SMTP_USER}>`,
-    to: email,
-    subject: 'Your LEVE verification code',
-    text: `Your LEVE code is: ${code}\n\nExpires in 10 minutes. Do not share this code.`,
-  })
+
+  const fromEmail = env.AWS_SES_FROM_EMAIL ?? 'noreply@leve.am'
+  const fromName = env.AWS_SES_FROM_NAME
+
+  await sesClient.send(
+    new SendEmailCommand({
+      Source: `${fromName} <${fromEmail}>`,
+      Destination: { ToAddresses: [email] },
+      Message: {
+        Subject: {
+          Data: `${code} — LEVE verification code`,
+          Charset: 'UTF-8',
+        },
+        Body: {
+          Html: {
+            Charset: 'UTF-8',
+            Data: `
+              <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0E0E0F;color:#F2F2F2;border-radius:12px">
+                <h1 style="font-size:28px;color:#E8621A;margin:0 0 24px">LEVE</h1>
+                <p style="font-size:15px;color:#9A9A9E;margin:0 0 12px">Your verification code:</p>
+                <div style="font-size:48px;font-weight:bold;letter-spacing:16px;color:#F2F2F2;padding:16px 0">${code}</div>
+                <p style="font-size:12px;color:#5A5A60;margin-top:32px">Expires in 10 minutes. If you didn't request this, ignore this email.</p>
+              </div>
+            `,
+          },
+          Text: {
+            Charset: 'UTF-8',
+            Data: `Your LEVE verification code: ${code}\nExpires in 10 minutes.`,
+          },
+        },
+      },
+    }),
+  )
+
+  logger.info({ email: email.replace(/(.{2}).+(@.+)/, '$1***$2') }, '[OTP] email sent via SES')
 }
