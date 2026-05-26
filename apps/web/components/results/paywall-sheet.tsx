@@ -70,6 +70,9 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
 
       if (pollAttemptsRef.current > POLL_MAX_ATTEMPTS) {
         if (pollRef.current) clearInterval(pollRef.current)
+        sessionStorage.removeItem('leve_order_id')
+        sessionStorage.removeItem('leve_order_initiated_at')
+        setPaywallState('failed')
         return
       }
 
@@ -81,10 +84,12 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
         if (data.data.status === 'completed') {
           if (pollRef.current) clearInterval(pollRef.current)
           sessionStorage.removeItem('leve_order_id')
+          sessionStorage.removeItem('leve_order_initiated_at')
           setPaywallState('success')
         } else if (data.data.status === 'failed') {
           if (pollRef.current) clearInterval(pollRef.current)
           sessionStorage.removeItem('leve_order_id')
+          sessionStorage.removeItem('leve_order_initiated_at')
           setPaywallState('failed')
         }
       } catch {
@@ -124,8 +129,9 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
           return
         }
 
-        // Save orderId for polling after redirect
+        // Save orderId + timestamp for polling after redirect
         sessionStorage.setItem('leve_order_id', data.data.orderId)
+        sessionStorage.setItem('leve_order_initiated_at', Date.now().toString())
         sessionStorage.setItem('leve_payment_provider', provider)
 
         // Show processing state then redirect to provider
@@ -146,6 +152,15 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
     [selectedPlan, jobId, isLoading],
   )
 
+  function handleClose() {
+    if (paywallState === 'processing') {
+      if (pollRef.current) clearInterval(pollRef.current)
+      sessionStorage.removeItem('leve_order_id')
+      sessionStorage.removeItem('leve_order_initiated_at')
+    }
+    onClose()
+  }
+
   const userIsVerified = typeof window !== 'undefined' ? isVerified() : false
 
   const content = (
@@ -164,7 +179,7 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
               </p>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-elevated ml-3 shrink-0"
             >
               <X className="w-4 h-4 text-text-secondary" />
