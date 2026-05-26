@@ -81,8 +81,8 @@ export async function validateImage(buffer: Buffer): Promise<ValidationResult> {
       return { valid: false, error: 'content_policy_violation' }
     }
   } catch (err) {
-    // Rekognition failure = fail open with log (do not block legitimate uploads)
-    console.error('[Rekognition] moderation check failed', err)
+    console.error({ service: 'rekognition', event: 'moderation_unavailable', err }, '[upload] blocking upload — moderation service unavailable')
+    return { valid: false, error: 'validation_failed' }
   }
 
   return { valid: true, width, height, mimeType: fileType.mime }
