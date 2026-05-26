@@ -193,11 +193,7 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
               <div className="flex items-center gap-3 mt-4 mb-1">
                 <hr className="flex-1 border-border-default" />
                 <span className="text-[11px] text-text-muted">
-                  {locale === 'hy'
-                    ? 'կամ գնել փաթեթ'
-                    : locale === 'ru'
-                    ? 'или купить пакет'
-                    : 'or buy a pack'}
+                  {t('divider_or')}
                 </span>
                 <hr className="flex-1 border-border-default" />
               </div>
@@ -233,7 +229,7 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
                   {/* Best value badge */}
                   {isBestValue && (
                     <span className="absolute top-3 right-3 text-[10px] font-semibold text-accent bg-accent-subtle border border-accent-border px-2 py-0.5 rounded-full">
-                      {locale === 'hy' ? 'Լավագույն' : locale === 'ru' ? 'Выгоднее' : 'Best value'}
+                      {t('best_value')}
                     </span>
                   )}
                   <p className="text-[15px] font-semibold text-text-primary">
@@ -289,7 +285,7 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
               <span className="text-[15px] font-semibold text-text-primary">
                 {t('pay_telcell')}
               </span>
-              <span className="text-[11px] text-text-muted">Wallet</span>
+              <span className="text-[11px] text-text-muted">{t('telcell_wallet')}</span>
             </button>
           </div>
 

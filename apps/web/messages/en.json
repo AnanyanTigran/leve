@@ -174,7 +174,10 @@
     "failed_subtitle": "Your designs are saved for 24 hours",
     "retry": "Try again",
     "choose_method": "Choose different method",
-    "download_hd": "Download HD image"
+    "download_hd": "Download HD image",
+    "divider_or": "or buy a pack",
+    "telcell_wallet": "Wallet",
+    "best_value": "Best value"
   },
   "processing": {
     "dont_close": "Please keep this page open while your image is being generated.",

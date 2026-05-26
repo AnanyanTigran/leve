@@ -174,7 +174,10 @@
     "failed_subtitle": "Ձեր դիզայնները պահպանված են 24 ժամ",
     "retry": "Կրկնել",
     "choose_method": "Ընտրել այլ եղանակ",
-    "download_hd": "Ներբեռնել HD"
+    "download_hd": "Ներբեռնել HD",
+    "divider_or": "կամ գնել փաթեթ",
+    "telcell_wallet": "Դրամապանակ",
+    "best_value": "Լավագույն արժեք"
   },
   "processing": {
     "dont_close": "Մի փակեք էջը — ձեր նկարը ստեղծվում է:",
