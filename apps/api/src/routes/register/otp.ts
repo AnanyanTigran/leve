@@ -22,7 +22,7 @@ export async function registerOtpRoutes(app: FastifyInstance) {
   // POST /api/register/otp/send
   app.post(
     '/api/register/otp/send',
-    { preHandler: [app.requireSession] },
+    { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
 
