@@ -113,6 +113,16 @@ export function UploadZone() {
   const handleContinue = useCallback(async () => {
     if (!fileState || !selectedCategory) return
 
+    const existingJobId = sessionStorage.getItem('leve_job_id')
+    const existingPreview = sessionStorage.getItem('leve_upload_preview')
+    if (existingJobId && existingPreview) {
+      sessionStorage.removeItem('leve_job_id')
+      sessionStorage.removeItem('leve_job_dispatched_at')
+      sessionStorage.removeItem('leve_job_upload_session_id')
+      sessionStorage.removeItem('leve_scene_id')
+      sessionStorage.removeItem('leve_scene_name')
+    }
+
     setIsUploading(true)
     setError(null)
 

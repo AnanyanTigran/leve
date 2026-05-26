@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { ChevronLeft } from 'lucide-react'
@@ -18,6 +18,25 @@ export default function RegisterPage() {
   const [contact, setContact] = useState('')
   const [method, setMethod] = useState<'phone' | 'email'>('phone')
   const [brandName, setBrandName] = useState('')
+
+  useEffect(() => {
+    fetch('/api/session/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.data?.isVerified) {
+          const returnTo = sessionStorage.getItem('leve_return_to')
+          if (returnTo) {
+            sessionStorage.removeItem('leve_return_to')
+            router.replace(returnTo)
+          } else if (sessionStorage.getItem('leve_job_id')) {
+            router.replace('/results')
+          } else {
+            router.replace('/')
+          }
+        }
+      })
+      .catch(() => {})
+  }, [router])
 
   function handleContinue(contactValue: string, authMethod: 'phone' | 'email') {
     setContact(contactValue)
