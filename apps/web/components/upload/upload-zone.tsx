@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle } from 'lucide-react'
 import { CATEGORY_ITEMS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -45,7 +45,6 @@ export function UploadZone() {
   const t = useTranslations('upload')
   const tCommon = useTranslations('common')
   const tLanding = useTranslations('landing')
-  const locale = useLocale()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [fileState, setFileState] = useState<FileState | null>(null)
@@ -163,12 +162,7 @@ export function UploadZone() {
     }
   }, [fileState, selectedCategory, router, t])
 
-  const categoryPrompt =
-    locale === 'hy'
-      ? 'Ի՞նչ եք լուսանկարում'
-      : locale === 'ru'
-      ? 'Что фотографируете?'
-      : "What are you photographing?"
+  const categoryPrompt = t('category_prompt')
 
   const canContinue = fileState !== null && error === null && !isUploading && selectedCategory !== null
 

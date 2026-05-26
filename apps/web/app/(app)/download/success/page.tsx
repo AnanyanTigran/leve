@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
@@ -41,7 +41,6 @@ const PLATFORM_ORDER: ExportPlatform[] = [
 export default function DownloadSuccessPage() {
   const router = useRouter()
   const t = useTranslations('download')
-  const locale = useLocale()
   const [selectedPlatform, setSelectedPlatform] = useState<ExportPlatform>('original_hd')
   const [isDownloading, setIsDownloading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -103,11 +102,7 @@ export default function DownloadSuccessPage() {
 
         if (!res.ok || !data?.data?.url) {
           console.error('download URL fetch failed', data)
-          setDownloadError(
-            locale === 'hy' ? 'Ներբեռնումը ձախողվեց' :
-            locale === 'ru' ? 'Ошибка загрузки' :
-            'Download failed — please try again'
-          )
+          setDownloadError(t('download_failed'))
           return
         }
         downloadUrl = data.data.url
@@ -122,11 +117,7 @@ export default function DownloadSuccessPage() {
 
         if (!res.ok || !data?.data?.url) {
           console.error('export URL fetch failed', data)
-          setDownloadError(
-            locale === 'hy' ? 'Ներբեռնումը ձախողվեց' :
-            locale === 'ru' ? 'Ошибка загрузки' :
-            'Download failed — please try again'
-          )
+          setDownloadError(t('download_failed'))
           return
         }
         downloadUrl = data.data.url
@@ -140,11 +131,7 @@ export default function DownloadSuccessPage() {
       document.body.removeChild(a)
     } catch (err) {
       console.error('download failed', err)
-      setDownloadError(
-        locale === 'hy' ? 'Ներբեռնումը ձախողվեց' :
-        locale === 'ru' ? 'Ошибка загрузки' :
-        'Download failed — please try again'
-      )
+      setDownloadError(t('download_failed'))
     } finally {
       setIsDownloading(false)
     }
@@ -176,13 +163,13 @@ export default function DownloadSuccessPage() {
           ) : previewTimedOut ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
               <p className="text-[13px] text-text-muted text-center">
-                {locale === 'hy' ? 'Նկարը չբեռնվեց' : locale === 'ru' ? 'Изображение не загрузилось' : 'Image could not be loaded'}
+                {t('image_not_loaded')}
               </p>
               <button
                 onClick={() => router.push('/history')}
                 className="text-[13px] text-accent font-semibold"
               >
-                {locale === 'hy' ? 'Գնալ պատմություն' : locale === 'ru' ? 'Перейти в историю' : 'Go to History'}
+                {t('go_to_history')}
               </button>
             </div>
           ) : (
@@ -209,7 +196,7 @@ export default function DownloadSuccessPage() {
         >
           <Download className="w-[18px] h-[18px]" />
           {isDownloading
-            ? (locale === 'hy' ? 'Ներբեռնվում է...' : locale === 'ru' ? 'Загружается...' : 'Downloading...')
+            ? t('downloading')
             : primaryButtonLabel}
         </button>
         {downloadError && (

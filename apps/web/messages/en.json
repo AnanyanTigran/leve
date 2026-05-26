@@ -98,7 +98,8 @@
     "tip3": "Avoid busy backgrounds",
     "tip4": "Minimum 800×800px resolution",
     "error_type": "Only JPEG, PNG and WEBP files are supported",
-    "error_size": "File too large — max 20MB"
+    "error_size": "File too large — max 20MB",
+    "category_prompt": "What are you photographing?"
   },
   "templates": {
     "title": "Choose template",
@@ -209,7 +210,11 @@
     "send_code": "Send code",
     "phone_disclaimer": "We'll never spam you · Only for session recovery",
     "skip": "Skip for now",
-    "generate_another": "Generate another"
+    "generate_another": "Generate another",
+    "download_failed": "Download failed — please try again",
+    "image_not_loaded": "Image could not be loaded",
+    "go_to_history": "Go to History",
+    "downloading": "Downloading..."
   },
   "refinement": {
     "refine_optional": "Refine (optional)",
