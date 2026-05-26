@@ -184,6 +184,16 @@
     "telcell_wallet": "Wallet",
     "best_value": "Best value"
   },
+  "payment": {
+    "confirming_title": "Confirming payment...",
+    "confirming_sub": "Please keep this screen open",
+    "confirmed_title": "Payment confirmed!",
+    "confirmed_sub": "Your image is ready",
+    "failed_title": "Payment not completed",
+    "failed_sub": "Payment was not completed",
+    "timeout_sub": "Payment timed out — try again",
+    "back_to_results": "Back to results"
+  },
   "processing": {
     "dont_close": "Please keep this page open while your image is being generated.",
     "time_estimate": "This takes about 15–20 seconds"

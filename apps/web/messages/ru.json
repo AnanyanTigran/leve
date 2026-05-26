@@ -184,6 +184,16 @@
     "telcell_wallet": "Кошелёк",
     "best_value": "Лучшая цена"
   },
+  "payment": {
+    "confirming_title": "Проверяем оплату...",
+    "confirming_sub": "Не закрывайте экран",
+    "confirmed_title": "Оплата подтверждена",
+    "confirmed_sub": "Ваше фото готово",
+    "failed_title": "Оплата не прошла",
+    "failed_sub": "Попробуйте снова",
+    "timeout_sub": "Время истекло",
+    "back_to_results": "Вернуться"
+  },
   "processing": {
     "dont_close": "Не закрывайте страницу — ваше изображение генерируется.",
     "time_estimate": "Это займёт около 15–20 секунд"

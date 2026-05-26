@@ -184,6 +184,16 @@
     "telcell_wallet": "Դրամապանակ",
     "best_value": "Լավագույն արժեք"
   },
+  "payment": {
+    "confirming_title": "Վճարումը ստուգվում է...",
+    "confirming_sub": "Մի փակեք այս էկրանը",
+    "confirmed_title": "Վճարումը հաստատված է",
+    "confirmed_sub": "Ձեր նկարը պատրաստ է",
+    "failed_title": "Վճարումը ձախողվեց",
+    "failed_sub": "Փորձեք կրկին",
+    "timeout_sub": "Ժամանակն անցավ",
+    "back_to_results": "Վերադառնալ"
+  },
   "processing": {
     "dont_close": "Մի փակեք էջը — ձեր նկարը ստեղծվում է:",
     "time_estimate": "Կարող է տեվել մոտ 15–20 վայրկյան"
