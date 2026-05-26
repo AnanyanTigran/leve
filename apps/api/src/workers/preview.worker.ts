@@ -92,6 +92,12 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
 
     await SessionService.appendGenerationHistory(sessionId, jobId)
 
+    if (!isVerified) {
+      await SessionService.incrementAnonGeneration(sessionId)
+    } else {
+      await SessionService.incrementDailyGeneration(sessionId)
+    }
+
     console.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
   } catch (err) {
     const errorCode = err instanceof Error ? err.message : 'unknown'
