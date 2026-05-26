@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
@@ -20,10 +21,15 @@ function getCurrentLocale(): LocaleId {
 
 export function LanguageSwitcher() {
   const router = useRouter()
-  const current = getCurrentLocale()
+  const [current, setCurrent] = useState<LocaleId>('hy')
+
+  useEffect(() => {
+    setCurrent(getCurrentLocale())
+  }, [])
 
   function switchLocale(locale: LocaleId) {
     document.cookie = `leve_locale=${locale};path=/;max-age=31536000;SameSite=Lax`
+    setCurrent(locale)
     router.refresh()
   }
 
