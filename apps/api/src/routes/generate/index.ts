@@ -17,9 +17,9 @@ const previewSchema = z.object({
   category: z.enum([
     'beauty_cosmetics',
     'jewelry_accessories',
-    'fashion',
-    'food',
-    'marketplace',
+    'fashion_clothing',
+    'food_cafe',
+    'marketplace_export',
     'custom',
   ]),
   intent: z.enum(['product_photo', 'lifestyle', 'marketplace']),

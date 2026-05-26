@@ -23,13 +23,16 @@ export type AIProvider = 'fal' | 'replicate'
 export type Locale = 'hy' | 'ru' | 'en'
 
 // Product categories — drives both UI and prompt engineering
-export type ProductCategory =
-  | 'beauty_cosmetics'
-  | 'jewelry_accessories'
-  | 'fashion_clothing'
-  | 'food_cafe'
-  | 'marketplace_export'
-  | 'custom'
+export const PRODUCT_CATEGORIES = [
+  'beauty_cosmetics',
+  'jewelry_accessories',
+  'fashion_clothing',
+  'food_cafe',
+  'marketplace_export',
+  'custom',
+] as const
+
+export type ProductCategory = typeof PRODUCT_CATEGORIES[number]
 
 // Platform export targets
 export type ExportPlatform =
