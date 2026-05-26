@@ -22,6 +22,7 @@ export default function SceneSelectionPage() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
   const [category, setCategory] = useState<ProductCategory | null>(null)
   const [favoriteSceneId, setFavoriteSceneId] = useState<string | null>(null)
+  const [isVerified, setIsVerified] = useState(false)
 
   // Selection state
   const [selectedScene, setSelectedScene] = useState<Scene | null>(null)
@@ -30,7 +31,6 @@ export default function SceneSelectionPage() {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
 
   // UI state
-  const [defaultSaved, setDefaultSaved] = useState(false)
   const [showOtpSheet, setShowOtpSheet] = useState(false)
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
@@ -69,6 +69,9 @@ export default function SceneSelectionPage() {
         if (data?.data?.favoriteSceneId) {
           setFavoriteSceneId(data.data.favoriteSceneId)
           sessionStorage.setItem('leve_favorite_scene', data.data.favoriteSceneId)
+        }
+        if (data?.data?.isVerified) {
+          setIsVerified(true)
         }
         // Default aspect ratio for marketplace users
         if (cat === 'marketplace_export') {
@@ -118,8 +121,6 @@ export default function SceneSelectionPage() {
       })
       setFavoriteSceneId(sceneId)
       sessionStorage.setItem('leve_favorite_scene', sceneId)
-      setDefaultSaved(true)
-      setTimeout(() => setDefaultSaved(false), 2000)
     } catch {
       // non-fatal
     }
@@ -235,19 +236,11 @@ export default function SceneSelectionPage() {
               {t('subtitle')}
             </p>
 
-            {/* Default saved toast */}
-            {defaultSaved && (
-              <div className="mb-3 px-3 py-2 bg-accent-subtle border border-accent-border rounded-[10px]">
-                <p className="text-[13px] text-accent font-medium">
-                  ★ {t('default_scene_saved')}
-                </p>
-              </div>
-            )}
-
             <SceneGrid
               category={category}
               selectedSceneId={selectedScene?.id ?? null}
               favoriteSceneId={favoriteSceneId}
+              isVerified={isVerified}
               onSceneSelect={handleSceneSelect}
               onSetDefault={handleSetDefault}
             />

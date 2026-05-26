@@ -13,8 +13,14 @@ export default getRequestConfig(async () => {
   const raw = cookieStore.get('leve_locale')?.value
   const locale: SupportedLocale = isSupported(raw) ? raw : 'en'
 
+  const messageMap = {
+    hy: () => import('../messages/hy.json'),
+    ru: () => import('../messages/ru.json'),
+    en: () => import('../messages/en.json'),
+  }
+
   return {
     locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
+    messages: (await messageMap[locale]()).default,
   }
 })
