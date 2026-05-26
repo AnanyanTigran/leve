@@ -11,6 +11,9 @@ import {
 } from '../../lib/session.types'
 import { checkAnonIpGenerationLimit } from '../../lib/rate-limit'
 
+const UPLOAD_KEY_PATTERN =
+  /^uploads\/[a-zA-Z0-9_-]{10,50}\/[0-9]{10,16}-original\.(jpeg|jpg|png|webp)$/
+
 const previewSchema = z.object({
   uploadKey: z.string().min(1),
   sceneId: z.string().min(1),
@@ -47,6 +50,10 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
 
       const { uploadKey, sceneId, category, intent, refinementChips, customText, aspectRatio, isEdit, sourceJobId } =
         parsed.data
+
+      if (!UPLOAD_KEY_PATTERN.test(uploadKey)) {
+        return reply.status(400).send({ success: false, error: 'invalid_upload_key', requestId })
+      }
 
       if (!uploadKey.startsWith(`uploads/${session.sessionId}/`)) {
         return reply.status(403).send({ success: false, error: 'invalid_upload_key', requestId })
