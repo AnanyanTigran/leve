@@ -69,7 +69,7 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
         },
       })
 
-      await SessionService.extendForPayment(session.sessionId)
+      await SessionService.extendSessionTtl(session.sessionId)
 
       const description = `LEVE ${pack.id} pack`
       const callbackUrl = `${env.CORS_ORIGIN}/payment/callback`

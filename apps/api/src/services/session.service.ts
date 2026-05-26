@@ -107,15 +107,13 @@ export class SessionService {
     return session
   }
 
-  static async extendForPayment(sessionId: string): Promise<void> {
-    const session = await SessionService.get(sessionId)
-    if (!session) return
-    await redis.set(
-      SESSION_KEY(sessionId),
-      JSON.stringify(session),
-      'EX',
-      SESSION_TTL_VERIFIED,
-    )
+  // Promotes session TTL to verified (30d) regardless of current state.
+  // Called at payment initiation so the webhook can land even if anon TTL would have expired.
+  static async extendSessionTtl(sessionId: string): Promise<void> {
+    const key = SESSION_KEY(sessionId)
+    const raw = await redis.get(key)
+    if (!raw) return
+    await redis.set(key, raw, 'EX', SESSION_TTL_VERIFIED)
   }
 
   static async addCredits(sessionId: string, credits: number): Promise<void> {
