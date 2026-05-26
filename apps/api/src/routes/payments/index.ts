@@ -193,13 +193,13 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
     // 7. Set idempotency key BEFORE granting credits
     await redis.set(idempotencyKey, '1', 'EX', IDRAM_IDEMPOTENCY_TTL)
 
-    // 8. Grant credits + create DownloadGrant
+    // 8. Grant credits + optionally create DownloadGrant
     try {
       await grantCreditsAndCreateDownloadGrant({
         sessionId: transaction.sessionId,
         transactionId: transaction.id,
-        jobId: recentJob?.id ?? 'pending',
-        hdS3Key: recentJob?.previewS3Keys?.[0] ?? '',
+        jobId: recentJob?.id,
+        hdS3Key: recentJob?.previewS3Keys?.[0],
         credits: transaction.credits,
       })
     } catch (err) {
@@ -278,13 +278,13 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
     // 7. Set idempotency key BEFORE granting
     await redis.set(idempotencyKey, '1', 'EX', TELCELL_IDEMPOTENCY_TTL)
 
-    // 8. Grant credits
+    // 8. Grant credits + optionally create DownloadGrant
     try {
       await grantCreditsAndCreateDownloadGrant({
         sessionId: transaction.sessionId,
         transactionId: transaction.id,
-        jobId: recentJob?.id ?? 'pending',
-        hdS3Key: recentJob?.previewS3Keys?.[0] ?? '',
+        jobId: recentJob?.id,
+        hdS3Key: recentJob?.previewS3Keys?.[0],
         credits: transaction.credits,
       })
     } catch (err) {
