@@ -97,9 +97,8 @@ export async function sendOtp(
       await deliverEmail(identifier, code)
     }
   } catch (err) {
-    logger.error({ identifier: '***', err }, '[OTP] delivery failed')
+    logger.error({ identifier: '***REDACTED***', err }, '[OTP] delivery failed — check provider config')
     // Still return sent:true — prevents user enumeration via delivery errors
-    // Log for ops to investigate
   }
 
   return { sent: true }
@@ -156,20 +155,30 @@ export async function verifyOtp(
 
 async function deliverSms(phone: string, code: string): Promise<void> {
   if (!env.OTP_SMS_API_KEY) {
-    // Dev mode — log code to console only
-    logger.info(`[OTP-DEV] SMS to ${phone}: ${code}`)
+    if (env.NODE_ENV === 'development') {
+      logger.info({ phone: phone.slice(0, 4) + '****' }, `[OTP-DEV] code: ${code}`)
+    } else {
+      logger.error(
+        { phone: '***REDACTED***' },
+        '[OTP] CRITICAL: OTP_SMS_API_KEY not set in non-development environment — SMS not delivered',
+      )
+      throw new Error('sms_provider_not_configured')
+    }
     return
   }
   // TODO: replace with Armenian SMS gateway (Ucom/TeamTelecom) or Twilio
-  // Twilio example (install twilio package separately when provider chosen):
-  // const client = twilio(env.OTP_SMS_API_KEY, env.OTP_SMS_API_SECRET)
-  // await client.messages.create({ body: `Your LEVE code: ${code}`, from: env.OTP_FROM_NUMBER, to: phone })
-  logger.info(`[OTP] SMS stub — integrate provider. Code for ${phone}: ${code}`)
+  logger.error({}, '[OTP] SMS provider stub — OTP_SMS_API_KEY is set but no provider is integrated')
+  throw new Error('sms_provider_not_implemented')
 }
 
 async function deliverEmail(email: string, code: string): Promise<void> {
   if (!env.SMTP_HOST) {
-    logger.info(`[OTP-DEV] Email to ${email}: ${code}`)
+    if (env.NODE_ENV === 'development') {
+      logger.info({ email: email.replace(/(.{2}).+(@.+)/, '$1***$2') }, `[OTP-DEV] code: ${code}`)
+    } else {
+      logger.error({}, '[OTP] CRITICAL: SMTP_HOST not set in non-development environment')
+      throw new Error('email_provider_not_configured')
+    }
     return
   }
   const nodemailer = await import('nodemailer')
