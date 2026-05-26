@@ -6,7 +6,7 @@ import type {
   AspectRatioOption,
 } from '@leve/types'
 
-export const DEFAULT_LOCALE = 'hy' as const
+export const DEFAULT_LOCALE = 'en' as const
 
 export const SUPPORTED_LOCALES = ['hy', 'ru', 'en'] as const
 

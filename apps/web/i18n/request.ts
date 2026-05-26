@@ -11,7 +11,7 @@ function isSupported(v: string | undefined): v is SupportedLocale {
 export default getRequestConfig(async () => {
   const cookieStore = await cookies()
   const raw = cookieStore.get('leve_locale')?.value
-  const locale: SupportedLocale = isSupported(raw) ? raw : 'hy'
+  const locale: SupportedLocale = isSupported(raw) ? raw : 'en'
 
   return {
     locale,
