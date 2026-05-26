@@ -3,16 +3,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
+import { ChevronDown, CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { SceneGrid } from '@/components/scenes/scene-grid'
 import { RefinementPanel } from '@/components/templates/refinement-panel'
 import { useGenerate } from '@/hooks/use-generate'
-import type { Scene, ProductCategory, AspectRatio } from '@leve/types'
+import { CATEGORY_ITEMS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import type { Scene, ProductCategory, AspectRatio } from '@leve/types'
 
 export default function SceneSelectionPage() {
   const router = useRouter()
   const t = useTranslations('scenes')
+  const tLanding = useTranslations('landing')
   const locale = useLocale()
 
   // Read values set by upload page
@@ -30,6 +33,7 @@ export default function SceneSelectionPage() {
   // UI state
   const [defaultSaved, setDefaultSaved] = useState(false)
   const [showOtpSheet, setShowOtpSheet] = useState(false)
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
 
   const { generate, isLoading, error, setError } = useGenerate()
@@ -52,6 +56,11 @@ export default function SceneSelectionPage() {
     setCategory(cat)
     if (favScene) {
       setFavoriteSceneId(favScene)
+    }
+
+    // If no category set, open picker immediately so the user must choose
+    if (!cat) {
+      setShowCategoryPicker(true)
     }
 
     // Also try to get favorite scene from session API
@@ -119,11 +128,15 @@ export default function SceneSelectionPage() {
 
   const handleGenerate = useCallback(async () => {
     if (!uploadKey || !selectedScene) return
+    if (!category) {
+      setShowCategoryPicker(true)
+      return
+    }
 
     const result = await generate({
       uploadKey,
       sceneId: selectedScene.id,
-      category: category ?? 'custom',
+      category,
       intent: 'product_photo',
       selectedChips,
       customText,
@@ -156,6 +169,13 @@ export default function SceneSelectionPage() {
     }
     return labels[category] ?? category
   }
+
+  const categoryPickerTitle =
+    locale === 'hy'
+      ? 'Ընտրեք կատեգորիա'
+      : locale === 'ru'
+      ? 'Выберите категорию'
+      : 'Select category'
 
   if (!uploadKey) return null // redirecting
 
@@ -196,11 +216,15 @@ export default function SceneSelectionPage() {
             <div className="flex-1 min-w-0">
               <p className="text-[13px] text-text-muted">{t('your_photo')}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                {category && (
-                  <span className="text-[12px] font-medium text-accent bg-accent-subtle px-2 py-0.5 rounded-full">
-                    {getCategoryLabel()}
-                  </span>
-                )}
+                {/* Category badge — tappable to change */}
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryPicker(true)}
+                  className="flex items-center gap-1 text-[12px] font-medium text-accent bg-accent-subtle px-2 py-0.5 rounded-full"
+                >
+                  {category ? getCategoryLabel() : (locale === 'hy' ? 'Կատեգորիա' : locale === 'ru' ? 'Категория' : 'Category')}
+                  <ChevronDown size={12} className="text-accent" />
+                </button>
                 <button
                   type="button"
                   onClick={() => router.push('/upload')}
@@ -295,6 +319,54 @@ export default function SceneSelectionPage() {
           )}
         </div>
       </div>
+
+      {/* Category picker bottom sheet */}
+      {showCategoryPicker && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          onClick={() => {
+            // Only allow closing if a category is already set
+            if (category) setShowCategoryPicker(false)
+          }}
+        >
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-bg-surface rounded-t-[20px] pb-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-border-strong rounded-full mx-auto mt-3 mb-4" />
+            <p className="text-[16px] font-semibold text-text-primary px-4 mb-3">
+              {categoryPickerTitle}
+            </p>
+            {CATEGORY_ITEMS.map((item) => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setCategory(item.id)
+                    sessionStorage.setItem('leve_category', item.id)
+                    setShowCategoryPicker(false)
+                  }}
+                  className={cn(
+                    'flex items-center gap-3 w-full px-4 py-3 text-left transition-colors min-h-[48px]',
+                    item.id === category ? 'text-accent' : 'text-text-primary',
+                  )}
+                >
+                  <Icon
+                    size={18}
+                    className={item.id === category ? 'text-accent' : 'text-text-secondary'}
+                  />
+                  <span className="text-[15px] font-medium">{tLanding(item.tKey)}</span>
+                  {item.id === category && (
+                    <CheckCircle size={16} className="text-accent ml-auto" />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* OTP required sheet — shown when anon limit reached */}
       {showOtpSheet && (
