@@ -3,9 +3,8 @@ export interface LeveSession {
   phone: string | null
   email: string | null
   identifierType: 'phone' | 'email' | null
-  isVerified: boolean       // OTP completed — gates generation
+  isVerified: boolean       // OTP completed — gates HD download and removes generation cap
   creditsRemaining: number
-  previewsUsed: number      // not used in Option A but keep for future
   generationHistory: string[] // last 50 GenerationJob IDs
   isPaid: boolean
   purchaseCount: number

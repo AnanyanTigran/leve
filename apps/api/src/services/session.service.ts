@@ -19,7 +19,6 @@ export class SessionService {
       identifierType: null,
       isVerified: false,
       creditsRemaining: 0,
-      previewsUsed: 0,
       generationHistory: [],
       isPaid: false,
       purchaseCount: 0,
