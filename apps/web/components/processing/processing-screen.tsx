@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { AppHeader } from '@/components/shared/app-header'
-import { ROUTES } from '@/lib/constants'
 
 const PHASES = [
   'Setting up the studio...',
@@ -22,15 +21,57 @@ export function ProcessingScreen() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
 
   useEffect(() => {
-    const templateId = sessionStorage.getItem('leve_template_id')
-    if (!templateId) { router.replace('/templates'); return }
-    setUploadPreview(sessionStorage.getItem('leve_upload_preview'))
-  }, [router])
+    const jobId = sessionStorage.getItem('leve_job_id')
+    const uploadPreviewData = sessionStorage.getItem('leve_upload_preview')
 
-  useEffect(() => {
+    if (!jobId) {
+      router.replace('/templates')
+      return
+    }
+
+    if (uploadPreviewData) setUploadPreview(uploadPreviewData)
+
     const raf = requestAnimationFrame(() => setProgressWidth(85))
 
-    const interval = setInterval(() => {
+    let attempts = 0
+    const MAX_ATTEMPTS = 60 // 2 minutes at 2s interval
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/generate/status/${jobId}`, {
+          credentials: 'include',
+        })
+        const data = await res.json()
+        const status = data?.data?.status
+
+        if (status === 'done') {
+          clearInterval(interval)
+          router.push('/results')
+          return
+        }
+
+        if (status === 'failed' || status === 'credit_refunded') {
+          clearInterval(interval)
+          sessionStorage.setItem('leve_generation_error', data?.data?.errorCode ?? 'generation_failed')
+          router.push('/templates')
+          return
+        }
+
+        attempts++
+        if (attempts >= MAX_ATTEMPTS) {
+          clearInterval(interval)
+          sessionStorage.setItem('leve_generation_error', 'timeout')
+          router.push('/templates')
+        }
+      } catch {
+        // network error — keep polling
+      }
+    }
+
+    const interval = setInterval(poll, 2000)
+    poll() // immediate first check
+
+    const phaseInterval = setInterval(() => {
       setPhaseVisible(false)
       setTimeout(() => {
         setPhaseIndex((i) => (i + 1) % PHASES.length)
@@ -38,14 +79,10 @@ export function ProcessingScreen() {
       }, 400)
     }, 2500)
 
-    const timeout = setTimeout(() => {
-      router.push(ROUTES.RESULTS)
-    }, 20000)
-
     return () => {
       cancelAnimationFrame(raf)
       clearInterval(interval)
-      clearTimeout(timeout)
+      clearInterval(phaseInterval)
     }
   }, [router])
 
