@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { validateIdentifier, sendOtp, verifyOtp } from '../../services/otp.service'
@@ -18,11 +18,25 @@ const verifySchema = z.object({
   code: z.string().length(6).regex(/^\d{6}$/),
 })
 
+const otpIpKeyGenerator = (request: FastifyRequest): string =>
+  (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+  request.ip ??
+  'unknown'
+
 export async function registerOtpRoutes(app: FastifyInstance) {
   // POST /api/register/otp/send
   app.post(
     '/api/register/otp/send',
-    { preHandler: [app.requireSessionOrAnon] },
+    {
+      preHandler: [app.requireSessionOrAnon],
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+          keyGenerator: otpIpKeyGenerator,
+        },
+      },
+    },
     async (request, reply) => {
       const requestId = nanoid(10)
 

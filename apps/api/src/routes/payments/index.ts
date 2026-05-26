@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
@@ -124,9 +124,22 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
     },
   )
 
+  const webhookKeyGenerator = (request: FastifyRequest): string =>
+    (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+    request.ip ??
+    'unknown'
+
   // POST /api/webhooks/idram
   // Body is form-encoded — @fastify/formbody must be registered before this route.
-  app.post('/api/webhooks/idram', async (request, reply) => {
+  app.post('/api/webhooks/idram', {
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+        keyGenerator: webhookKeyGenerator,
+      },
+    },
+  }, async (request, reply) => {
     const requestId = nanoid(10)
     const payload = request.body as Record<string, string>
 
@@ -220,7 +233,15 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
   })
 
   // POST /api/webhooks/telcell
-  app.post('/api/webhooks/telcell', async (request, reply) => {
+  app.post('/api/webhooks/telcell', {
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+        keyGenerator: webhookKeyGenerator,
+      },
+    },
+  }, async (request, reply) => {
     const requestId = nanoid(10)
     const payload = request.body as Record<string, string>
 
