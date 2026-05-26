@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Home, Plus, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function BottomNav() {
   const pathname = usePathname()
+  const t = useTranslations('nav')
   const isHome = pathname === '/'
   const isUpload =
     pathname.startsWith('/upload') ||
@@ -29,7 +31,7 @@ export function BottomNav() {
               isHome ? 'text-accent' : 'text-text-muted'
             )}
           >
-            Home
+            {t('home')}
           </span>
         </Link>
 
@@ -44,7 +46,7 @@ export function BottomNav() {
               isUpload ? 'text-accent' : 'text-text-muted'
             )}
           >
-            Upload
+            {t('upload')}
           </span>
         </Link>
 
@@ -63,7 +65,7 @@ export function BottomNav() {
               isHistory ? 'text-accent' : 'text-text-muted'
             )}
           >
-            History
+            {t('history')}
           </span>
         </Link>
       </div>

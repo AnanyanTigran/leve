@@ -219,6 +219,11 @@
     "phone_banner_sub": "Add your phone number to sync designs across devices",
     "phone_banner_btn": "Add phone number"
   },
+  "nav": {
+    "home": "Home",
+    "upload": "Upload",
+    "history": "History"
+  },
   "scenes": {
     "title": "Choose a scene",
     "subtitle": "Your product will be placed in this setting",
