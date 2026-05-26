@@ -2,7 +2,7 @@ import { Queue } from 'bullmq'
 import { redis } from './redis'
 
 export const QUEUE_NAMES = {
-  PREVIEW: 'generation:preview',
+  PREVIEW: 'generation-preview',
 } as const
 
 export const PRIORITIES = {
