@@ -78,6 +78,8 @@ export function useGenerate() {
 
         // Save jobId to sessionStorage for polling on /processing
         sessionStorage.setItem('leve_job_id', data.data.jobId)
+        sessionStorage.setItem('leve_job_dispatched_at', Date.now().toString())
+        sessionStorage.setItem('leve_job_upload_session_id', sessionStorage.getItem('leve_upload_session_id') ?? '')
         sessionStorage.setItem('leve_aspect_ratio', params.aspectRatio)
 
         return {

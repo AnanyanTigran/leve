@@ -22,13 +22,15 @@ export function ProcessingScreen() {
 
   useEffect(() => {
     const jobId = sessionStorage.getItem('leve_job_id')
-    const uploadPreviewData = sessionStorage.getItem('leve_upload_preview')
+    const dispatchedAt = parseInt(sessionStorage.getItem('leve_job_dispatched_at') ?? '0', 10)
+    const isStale = Date.now() - dispatchedAt > 5 * 60 * 1000
 
-    if (!jobId) {
+    if (!jobId || isStale) {
       router.replace('/templates')
       return
     }
 
+    const uploadPreviewData = sessionStorage.getItem('leve_upload_preview')
     if (uploadPreviewData) setUploadPreview(uploadPreviewData)
 
     const raf = requestAnimationFrame(() => setProgressWidth(85))
@@ -46,6 +48,7 @@ export function ProcessingScreen() {
 
         if (status === 'done') {
           clearInterval(interval)
+          sessionStorage.removeItem('leve_job_dispatched_at')
           router.push('/results')
           return
         }
