@@ -8,7 +8,6 @@ import { AppHeader } from '@/components/shared/app-header'
 import { isVerified } from '@/lib/session'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { BeforeAfterSlider } from '@/components/results/before-after-slider'
-import { GeneratedImageDisplay } from '@/components/results/variant-grid'
 import { TextOverlaySection } from '@/components/results/text-overlay-section'
 import { PaywallSheet } from '@/components/results/paywall-sheet'
 import { useGenerate } from '@/hooks/use-generate'
@@ -219,10 +218,6 @@ export default function ResultsPage() {
           <BeforeAfterSlider
             beforeSrc={previousImageUrl ?? uploadPreview}
             afterSrc={generatedImageUrl}
-          />
-          <GeneratedImageDisplay
-            imageUrl={generatedImageUrl}
-            onRegenerate={() => router.push('/templates')}
           />
           {!verified && (
             <div className="bg-bg-surface border border-border-default rounded-[12px] p-4 flex items-center gap-3">
