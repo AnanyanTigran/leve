@@ -171,7 +171,13 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
           sourceImageS3Key,
           requestId,
         },
-        { priority },
+        {
+          priority,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: { count: 100 },
+          removeOnFail: { count: 50 },
+        },
       )
 
       app.log.info({ requestId, jobId: job.id }, 'preview job dispatched')

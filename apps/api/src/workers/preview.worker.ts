@@ -101,18 +101,19 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     console.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
   } catch (err) {
     const errorCode = err instanceof Error ? err.message : 'unknown'
-    console.error({ requestId, jobId, errorCode }, '[preview worker] failed — refunding credit if verified')
+    const isFinalAttempt = job.attemptsMade >= (job.opts.attempts ?? 1)
 
-    // Only refund if the user was verified (anon has no credits to refund)
-    if (isVerified) {
+    console.error({ requestId, jobId, errorCode, isFinalAttempt, attemptsMade: job.attemptsMade }, '[preview worker] failed')
+
+    if (isVerified && isFinalAttempt) {
       await SessionService.refundCredit(sessionId)
     }
 
     await prisma.generationJob.update({
       where: { id: jobId },
       data: {
-        status: isVerified ? 'credit_refunded' : 'failed',
-        errorCode,
+        status: isFinalAttempt ? (isVerified ? 'credit_refunded' : 'failed') : 'queued',
+        errorCode: isFinalAttempt ? errorCode : null,
       },
     })
   }
