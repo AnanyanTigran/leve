@@ -62,6 +62,12 @@ export default function ResultsPage() {
     const poll = async () => {
       try {
         const res = await fetch(`/api/generate/status/${jobId}`, { credentials: 'include' })
+        if (res.status === 404) {
+          if (pollRef.current) clearInterval(pollRef.current)
+          sessionStorage.removeItem('leve_job_id')
+          router.replace('/')
+          return
+        }
         const data = await res.json()
         if (!res.ok || !data.success) return
 

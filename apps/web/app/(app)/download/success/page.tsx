@@ -45,8 +45,18 @@ export default function DownloadSuccessPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<ExportPlatform>('original_hd')
   const [isDownloading, setIsDownloading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewTimedOut, setPreviewTimedOut] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
-  const { checked } = useVerifiedGuard()
+  const { checked, isVerified } = useVerifiedGuard()
+
+  // Redirect to /history if job context is missing after auth confirmed
+  useEffect(() => {
+    if (!checked || !isVerified) return
+    const jobId = sessionStorage.getItem('leve_job_id')
+    if (!jobId) {
+      router.replace('/history')
+    }
+  }, [checked, isVerified, router])
 
   useEffect(() => {
     const jobId = sessionStorage.getItem('leve_job_id')
@@ -61,6 +71,14 @@ export default function DownloadSuccessPage() {
       })
       .catch(() => {})
   }, [])
+
+  // Show error if preview hasn't resolved after 10s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!previewUrl) setPreviewTimedOut(true)
+    }, 10000)
+    return () => clearTimeout(timer)
+  }, [previewUrl])
 
   const primaryButtonLabel = selectedPlatform === 'original_hd'
     ? t('download_btn')
@@ -155,6 +173,18 @@ export default function DownloadSuccessPage() {
               alt="Your generated image"
               className="w-full h-full object-contain"
             />
+          ) : previewTimedOut ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
+              <p className="text-[13px] text-text-muted text-center">
+                {locale === 'hy' ? 'Նկարը չբեռնվեց' : locale === 'ru' ? 'Изображение не загрузилось' : 'Image could not be loaded'}
+              </p>
+              <button
+                onClick={() => router.push('/history')}
+                className="text-[13px] text-accent font-semibold"
+              >
+                {locale === 'hy' ? 'Գնալ պատմություն' : locale === 'ru' ? 'Перейти в историю' : 'Go to History'}
+              </button>
+            </div>
           ) : (
             <div className="absolute inset-0 animate-pulse bg-bg-elevated" />
           )}

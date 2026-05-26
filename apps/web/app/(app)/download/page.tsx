@@ -7,12 +7,21 @@ export default function DownloadPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const jobId = sessionStorage.getItem('leve_job_id')
-    if (jobId) {
-      router.replace('/download/success')
-    } else {
-      router.replace('/results')
-    }
+    fetch('/api/session/me', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data?.data?.isVerified) {
+          router.replace('/')
+          return
+        }
+        const jobId = sessionStorage.getItem('leve_job_id')
+        if (jobId) {
+          router.replace('/download/success')
+        } else {
+          router.replace('/history')
+        }
+      })
+      .catch(() => router.replace('/'))
   }, [router])
 
   return (
