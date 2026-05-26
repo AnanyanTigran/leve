@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Phone, ImageIcon } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
+import { SCENES } from '@/lib/constants'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 
@@ -21,6 +22,7 @@ interface HistoryJob {
 export default function HistoryPage() {
   const router = useRouter()
   const t = useTranslations('history')
+  const locale = useLocale()
   const { checked, isVerified } = useVerifiedGuard()
   const [hasActiveSession, setHasActiveSession] = useState(false)
   const [jobs, setJobs] = useState<HistoryJob[]>([])
@@ -148,7 +150,12 @@ export default function HistoryPage() {
                 )}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
                   <p className="text-[11px] text-white font-medium truncate">
-                    {job.templateId.replace(/_/g, ' ')}
+                    {(() => {
+                      const scene = SCENES.find((s) => s.id === job.templateId)
+                      return scene
+                        ? (locale === 'hy' ? scene.nameHY : locale === 'ru' ? scene.nameRU : scene.name)
+                        : job.templateId.replace(/_/g, ' ')
+                    })()}
                   </p>
                 </div>
               </button>
