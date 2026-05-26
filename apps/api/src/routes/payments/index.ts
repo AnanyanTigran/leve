@@ -28,7 +28,7 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
   // POST /api/payments/intent
   app.post(
     '/api/payments/intent',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session
