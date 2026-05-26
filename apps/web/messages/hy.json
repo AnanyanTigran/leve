@@ -241,6 +241,21 @@
     "change_photo": "Փոխել",
     "scene_tip": "Ընտրեք տեսարան՝ արդյունքը տեսնելու համար",
     "set_as_default": "Սահմանել որպես կանխադրված",
-    "default_scene_saved": "Կանխադրված տեսարանը պահված է"
+    "default_scene_saved": "Կանխադրված տեսարանը պահված է",
+    "cat_beauty": "Գեղեցկություն",
+    "cat_jewelry": "Զարդեր",
+    "cat_fashion": "Նորաձևություն",
+    "cat_food": "Սնունդ",
+    "cat_marketplace": "Մարկետփլեյс",
+    "cat_custom": "Այլ",
+    "category_picker_title": "Ընտրեք կատեգորիա",
+    "category_badge_empty": "Կատեգորիա",
+    "insufficient_credits": "Բավարար կրեդիտ չկա",
+    "error_timeout": "Ժամանակն անցավ — խնդրում ենք կրկին փորձել",
+    "error_failed": "Սխալ տեղի ունեցավ — խնդրում ենք կրկին փորձել",
+    "otp_limit_title": "Ձեր 2 անվճար փորձն ավարտվեց",
+    "otp_limit_sub": "Գրանցվեք անվճար՝ 2 անվճար HD ներբեռնում ստանալու համար",
+    "otp_limit_cta": "Գրանցվել անվճար",
+    "otp_limit_back": "Հետ"
   }
 }

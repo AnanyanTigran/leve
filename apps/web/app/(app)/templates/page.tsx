@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { ChevronDown, CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { SceneGrid } from '@/components/scenes/scene-grid'
@@ -16,7 +16,6 @@ export default function SceneSelectionPage() {
   const router = useRouter()
   const t = useTranslations('scenes')
   const tLanding = useTranslations('landing')
-  const locale = useLocale()
 
   // Read values set by upload page
   const [uploadKey, setUploadKey] = useState<string | null>(null)
@@ -159,23 +158,16 @@ export default function SceneSelectionPage() {
 
   const getCategoryLabel = () => {
     if (!category) return ''
-    const labels: Record<string, string> = {
-      beauty_cosmetics: locale === 'hy' ? 'Գեղեցկություն' : locale === 'ru' ? 'Красота' : 'Beauty',
-      jewelry_accessories: locale === 'hy' ? 'Զարդեր' : locale === 'ru' ? 'Украшения' : 'Jewelry',
-      fashion_clothing: locale === 'hy' ? 'Նորաձևություն' : locale === 'ru' ? 'Мода' : 'Fashion',
-      food_cafe: locale === 'hy' ? 'Սնունդ' : locale === 'ru' ? 'Еда' : 'Food',
-      marketplace_export: locale === 'hy' ? 'Մարկետփլեյս' : locale === 'ru' ? 'Маркетплейс' : 'Marketplace',
-      custom: locale === 'hy' ? 'Այլ' : locale === 'ru' ? 'Другое' : 'Custom',
+    const map: Record<string, string> = {
+      beauty_cosmetics: t('cat_beauty'),
+      jewelry_accessories: t('cat_jewelry'),
+      fashion_clothing: t('cat_fashion'),
+      food_cafe: t('cat_food'),
+      marketplace_export: t('cat_marketplace'),
+      custom: t('cat_custom'),
     }
-    return labels[category] ?? category
+    return map[category] ?? category
   }
-
-  const categoryPickerTitle =
-    locale === 'hy'
-      ? 'Ընտրեք կատեգորիա'
-      : locale === 'ru'
-      ? 'Выберите категорию'
-      : 'Select category'
 
   if (!uploadKey) return null // redirecting
 
@@ -190,9 +182,7 @@ export default function SceneSelectionPage() {
       {generationError && (
         <div className="mx-4 mt-3 px-4 py-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px]">
           <p className="text-[13px] text-[#DC2626] font-medium">
-            {generationError === 'timeout'
-              ? 'Generation timed out — please try again'
-              : 'Generation failed — please try again'}
+            {generationError === 'timeout' ? t('error_timeout') : t('error_failed')}
           </p>
         </div>
       )}
@@ -222,7 +212,7 @@ export default function SceneSelectionPage() {
                   onClick={() => setShowCategoryPicker(true)}
                   className="flex items-center gap-1 text-[12px] font-medium text-accent bg-accent-subtle px-2 py-0.5 rounded-full"
                 >
-                  {category ? getCategoryLabel() : (locale === 'hy' ? 'Կատեգորիա' : locale === 'ru' ? 'Категория' : 'Category')}
+                  {category ? getCategoryLabel() : t('category_badge_empty')}
                   <ChevronDown size={12} className="text-accent" />
                 </button>
                 <button
@@ -285,11 +275,7 @@ export default function SceneSelectionPage() {
           {/* Insufficient credits warning */}
           {error === 'insufficient_credits' && (
             <p className="text-[13px] text-[#EF4444] text-center mb-3">
-              {locale === 'hy'
-                ? 'Բավարար կրեդիտ չկա'
-                : locale === 'ru'
-                ? 'Недостаточно кредитов'
-                : 'Insufficient credits — buy a pack to continue'}
+              {t('insufficient_credits')}
             </p>
           )}
 
@@ -335,7 +321,7 @@ export default function SceneSelectionPage() {
           >
             <div className="w-10 h-1 bg-border-strong rounded-full mx-auto mt-3 mb-4" />
             <p className="text-[16px] font-semibold text-text-primary px-4 mb-3">
-              {categoryPickerTitle}
+              {t('category_picker_title')}
             </p>
             {CATEGORY_ITEMS.map((item) => {
               const Icon = item.icon
@@ -380,18 +366,10 @@ export default function SceneSelectionPage() {
           >
             <div className="w-10 h-1 bg-border-strong rounded-full mx-auto mb-6" />
             <h3 className="text-[20px] font-semibold text-text-primary text-center">
-              {locale === 'hy'
-                ? 'Ձեր 2 անվճար փորձն ավարտվեց'
-                : locale === 'ru'
-                ? 'Ваши 2 бесплатных попытки использованы'
-                : 'Your 2 free generations used'}
+              {t('otp_limit_title')}
             </h3>
             <p className="text-[14px] text-text-muted text-center mt-2 mb-6">
-              {locale === 'hy'
-                ? 'Գրանցվեք անվճար՝ 2 անվճար HD ներբեռնում ստանալու համար'
-                : locale === 'ru'
-                ? 'Зарегистрируйтесь бесплатно и получите 2 HD-изображения'
-                : 'Register free to get 2 HD studio images'}
+              {t('otp_limit_sub')}
             </p>
             <button
               className="btn-primary btn-full h-14 text-[16px]"
@@ -400,17 +378,13 @@ export default function SceneSelectionPage() {
                 router.push('/register')
               }}
             >
-              {locale === 'hy'
-                ? 'Գրանցվել անվճար'
-                : locale === 'ru'
-                ? 'Зарегистрироваться бесплатно'
-                : 'Register free — get 2 HD images'}
+              {t('otp_limit_cta')}
             </button>
             <button
               className="btn-secondary w-full mt-3 h-12"
               onClick={() => setShowOtpSheet(false)}
             >
-              {locale === 'hy' ? 'Հետ' : locale === 'ru' ? 'Назад' : 'Back'}
+              {t('otp_limit_back')}
             </button>
           </div>
         </div>

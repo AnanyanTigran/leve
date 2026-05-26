@@ -241,6 +241,21 @@
     "change_photo": "Изменить",
     "scene_tip": "Выберите сцену, чтобы увидеть результат",
     "set_as_default": "Сделать сценой по умолчанию",
-    "default_scene_saved": "Сцена по умолчанию сохранена"
+    "default_scene_saved": "Сцена по умолчанию сохранена",
+    "cat_beauty": "Красота",
+    "cat_jewelry": "Украшения",
+    "cat_fashion": "Мода",
+    "cat_food": "Еда",
+    "cat_marketplace": "Маркетплейс",
+    "cat_custom": "Другое",
+    "category_picker_title": "Выберите категорию",
+    "category_badge_empty": "Категория",
+    "insufficient_credits": "Недостаточно кредитов",
+    "error_timeout": "Время генерации истекло — попробуйте снова",
+    "error_failed": "Ошибка генерации — попробуйте снова",
+    "otp_limit_title": "Ваши 2 бесплатных попытки использованы",
+    "otp_limit_sub": "Зарегистрируйтесь бесплатно и получите 2 HD-изображения",
+    "otp_limit_cta": "Зарегистрироваться бесплатно",
+    "otp_limit_back": "Назад"
   }
 }

@@ -241,6 +241,21 @@
     "change_photo": "Change photo",
     "scene_tip": "Select a scene to see how your product looks",
     "set_as_default": "Set as my default scene",
-    "default_scene_saved": "Default scene saved"
+    "default_scene_saved": "Default scene saved",
+    "cat_beauty": "Beauty",
+    "cat_jewelry": "Jewelry",
+    "cat_fashion": "Fashion",
+    "cat_food": "Food",
+    "cat_marketplace": "Marketplace",
+    "cat_custom": "Custom",
+    "category_picker_title": "Select category",
+    "category_badge_empty": "Category",
+    "insufficient_credits": "No credits remaining — buy a pack to continue",
+    "error_timeout": "Generation timed out — please try again",
+    "error_failed": "Generation failed — please try again",
+    "otp_limit_title": "Your 2 free generations used",
+    "otp_limit_sub": "Register free to get 2 HD studio images",
+    "otp_limit_cta": "Register free — get 2 HD images",
+    "otp_limit_back": "Back"
   }
 }
