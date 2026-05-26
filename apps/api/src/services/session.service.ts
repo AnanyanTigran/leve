@@ -116,45 +116,49 @@ export class SessionService {
   }
 
   static async addCredits(sessionId: string, credits: number): Promise<void> {
-    // Atomic — used ONLY by webhook handler after payment confirmed
     const key = SESSION_KEY(sessionId)
-    const raw = await redis.get(key)
-    if (!raw) throw new Error('session_not_found')
-    const session: LeveSession = JSON.parse(raw)
-    session.creditsRemaining += credits
-    session.isPaid = true
-    session.purchaseCount += 1
-    await redis.set(key, JSON.stringify(session), 'EX', SESSION_TTL_VERIFIED)
+    const luaScript = `
+      local raw = redis.call('GET', KEYS[1])
+      if not raw then error('session_not_found') end
+      local session = cjson.decode(raw)
+      session.creditsRemaining = session.creditsRemaining + tonumber(ARGV[1])
+      session.isPaid = true
+      session.purchaseCount = session.purchaseCount + 1
+      redis.call('SET', KEYS[1], cjson.encode(session), 'EX', 2592000)
+      return session.creditsRemaining
+    `
+    await redis.eval(luaScript, 1, key, String(credits))
   }
 
   static async deductCredit(sessionId: string): Promise<boolean> {
     const key = SESSION_KEY(sessionId)
-    const raw = await redis.get(key)
-    if (!raw) return false
-    const session: LeveSession = JSON.parse(raw)
-    if (session.creditsRemaining <= 0) return false
-    session.creditsRemaining -= 1
-    await redis.set(
-      key,
-      JSON.stringify(session),
-      'EX',
-      session.isVerified ? SESSION_TTL_VERIFIED : SESSION_TTL_ANON,
-    )
-    return true
+    const luaScript = `
+      local raw = redis.call('GET', KEYS[1])
+      if not raw then return 0 end
+      local session = cjson.decode(raw)
+      if session.creditsRemaining <= 0 then return 0 end
+      session.creditsRemaining = session.creditsRemaining - 1
+      local ttl = redis.call('TTL', KEYS[1])
+      if ttl < 0 then ttl = 172800 end
+      redis.call('SET', KEYS[1], cjson.encode(session), 'EX', ttl)
+      return 1
+    `
+    const result = await redis.eval(luaScript, 1, key) as number
+    return result === 1
   }
 
   static async refundCredit(sessionId: string): Promise<void> {
     const key = SESSION_KEY(sessionId)
-    const raw = await redis.get(key)
-    if (!raw) return
-    const session: LeveSession = JSON.parse(raw)
-    session.creditsRemaining += 1
-    await redis.set(
-      key,
-      JSON.stringify(session),
-      'EX',
-      session.isVerified ? SESSION_TTL_VERIFIED : SESSION_TTL_ANON,
-    )
+    const luaScript = `
+      local raw = redis.call('GET', KEYS[1])
+      if not raw then return end
+      local session = cjson.decode(raw)
+      session.creditsRemaining = session.creditsRemaining + 1
+      local ttl = redis.call('TTL', KEYS[1])
+      if ttl < 0 then ttl = 172800 end
+      redis.call('SET', KEYS[1], cjson.encode(session), 'EX', ttl)
+    `
+    await redis.eval(luaScript, 1, key)
   }
 
   static async appendGenerationHistory(sessionId: string, jobId: string): Promise<void> {
