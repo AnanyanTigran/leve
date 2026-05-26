@@ -7,6 +7,8 @@ import { SessionService } from '../services/session.service'
 import { runGeneration } from '../providers/model-router'
 import { QUEUE_NAMES, PreviewJobData } from '../lib/queues'
 import { applyTextOverlayToS3Image } from '../lib/text-overlay'
+import { applyWatermark } from '../lib/watermark'
+import { uploadToS3 } from '../lib/s3'
 
 const PREVIEW_CONCURRENCY = 8
 
@@ -76,18 +78,33 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       return
     }
 
+    // For anonymous sessions: watermark the output before serving as preview.
+    // The clean original (output.s3Key) is always preserved as hdS3Key for future HD purchase.
+    let workingKey = output.s3Key
+
+    if (!isVerified) {
+      try {
+        const watermarkedBuffer = await applyWatermark(output.outputBuffer)
+        const watermarkedKey = output.s3Key.replace('-output.jpg', '-wm.jpg')
+        await uploadToS3(watermarkedKey, watermarkedBuffer, 'image/jpeg')
+        workingKey = watermarkedKey
+      } catch (err) {
+        logger.error({ requestId, jobId, err }, '[preview worker] watermark failed — serving without watermark')
+      }
+    }
+
     // Apply text overlay if the route stored one on the job record
     const jobRecord = await prisma.generationJob.findUnique({
       where: { id: jobId },
       select: { overlayText: true, overlayPosition: true },
     })
 
-    let finalS3Key = output.s3Key
+    let finalS3Key = workingKey
 
     if (jobRecord?.overlayText) {
       try {
         finalS3Key = await applyTextOverlayToS3Image({
-          sourceS3Key: output.s3Key,
+          sourceS3Key: workingKey,
           sessionId,
           jobId,
           text: jobRecord.overlayText,
@@ -104,6 +121,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       data: {
         status: 'done',
         previewS3Keys: [finalS3Key],
+        hdS3Key: output.s3Key,
         provider: output.provider,
         durationMs: output.durationMs,
         qualityGatePassed,
