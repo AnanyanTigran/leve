@@ -1,0 +1,11 @@
+User-agent: *
+Disallow: /processing
+Disallow: /results
+Disallow: /download
+Disallow: /register
+Disallow: /api/
+
+Allow: /
+Allow: /templates
+
+Sitemap: https://leve-rho.vercel.app/sitemap.xml
