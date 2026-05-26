@@ -14,18 +14,20 @@ type PlanId = 'starter' | 'creator' | 'pro_monthly'
 interface PaywallSheetProps {
   isOpen: boolean
   onClose: () => void
-  onAutoOpen?: () => void
   jobId?: string
+  initialState?: 'pricing' | 'processing'
 }
 
 const POLL_INTERVAL_MS = 3000
 const POLL_MAX_ATTEMPTS = 40 // 2 minutes at 3s intervals
 
-export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallSheetProps) {
+export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSheetProps) {
   const router = useRouter()
   const t = useTranslations('paywall')
   const locale = useLocale()
-  const [paywallState, setPaywallState] = useState<PaywallState>('pricing')
+  const [paywallState, setPaywallState] = useState<PaywallState>(
+    initialState ?? 'pricing'
+  )
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('creator')
   const [isDesktop, setIsDesktop] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -56,13 +58,12 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
 
-  // On mount: check if user returned from a payment redirect and start polling
+  // Start polling when the parent mounts the sheet in processing state (user returned from payment)
   useEffect(() => {
+    if (initialState !== 'processing') return
     const orderId = sessionStorage.getItem('leve_order_id')
     if (!orderId) return
 
-    setPaywallState('processing')
-    onAutoOpen?.()
     pollAttemptsRef.current = 0
 
     const poll = async () => {
@@ -101,8 +102,7 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
     pollRef.current = setInterval(poll, POLL_INTERVAL_MS)
 
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [initialState])
 
   const handlePayment = useCallback(
     async (provider: 'idram' | 'telcell') => {

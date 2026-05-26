@@ -21,7 +21,9 @@ export default function ResultsPage() {
   const tPaywall = useTranslations('paywall')
   const { generate } = useGenerate()
 
+  const [guarded, setGuarded] = useState(false)
   const [paywallOpen, setPaywallOpen] = useState(false)
+  const [paywallInitialState, setPaywallInitialState] = useState<'pricing' | 'processing'>('pricing')
   const [shareCopied, setShareCopied] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<JobStatus>(null)
@@ -40,9 +42,10 @@ export default function ResultsPage() {
   const editStateRef = useRef({ isEditing: false, previousImageUrl: null as string | null })
 
   useEffect(() => {
-    const storedPreview = sessionStorage.getItem('leve_upload_preview')
-    if (!storedPreview) { router.replace('/'); return }
+    const id = sessionStorage.getItem('leve_job_id')
+    if (!id) { router.replace('/'); return }
 
+    const storedPreview = sessionStorage.getItem('leve_upload_preview')
     const uploadSessionId = sessionStorage.getItem('leve_upload_session_id')
     const jobUploadSessionId = sessionStorage.getItem('leve_job_upload_session_id')
     const pairingValid = uploadSessionId === jobUploadSessionId
@@ -51,10 +54,29 @@ export default function ResultsPage() {
     // If mismatched (user uploaded a new image without regenerating), hide the
     // stale upload preview so the before side is empty rather than misleading.
     setUploadPreview(pairingValid ? storedPreview : null)
-
-    const id = sessionStorage.getItem('leve_job_id')
-    if (id) setJobId(id)
+    setJobId(id)
+    setGuarded(true)
   }, [router])
+
+  // Detect return from payment redirect and open paywall in processing state
+  useEffect(() => {
+    const orderId = sessionStorage.getItem('leve_order_id')
+    if (!orderId) return
+
+    const initiatedAt = parseInt(
+      sessionStorage.getItem('leve_order_initiated_at') ?? '0',
+      10,
+    )
+    const isRecent = Date.now() - initiatedAt < 15 * 60 * 1000
+
+    if (isRecent) {
+      setPaywallOpen(true)
+      setPaywallInitialState('processing')
+    } else {
+      sessionStorage.removeItem('leve_order_id')
+      sessionStorage.removeItem('leve_order_initiated_at')
+    }
+  }, [])
 
   useEffect(() => {
     if (!jobId || jobStatus === 'done' || jobStatus === 'failed') return
@@ -195,6 +217,14 @@ export default function ResultsPage() {
     // polling effect will restart since jobId changed and jobStatus is null
   }
 
+  if (!guarded) {
+    return (
+      <div className="flex items-center justify-center h-[100dvh] bg-bg-base">
+        <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
   if (jobStatus === 'failed' && !editStateRef.current.isEditing) {
     return (
       <div className="flex flex-col h-[100dvh] items-center justify-center bg-bg-base gap-4 px-6">
@@ -301,7 +331,11 @@ export default function ResultsPage() {
       </main>
 
       {!paywallOpen && <BottomNav />}
-      <PaywallSheet isOpen={paywallOpen} onClose={() => setPaywallOpen(false)} onAutoOpen={() => setPaywallOpen(true)} />
+      <PaywallSheet
+        isOpen={paywallOpen}
+        onClose={() => { setPaywallOpen(false); setPaywallInitialState('pricing') }}
+        initialState={paywallInitialState}
+      />
     </div>
   )
 }
