@@ -143,7 +143,13 @@
     "your_result": "Your result",
     "generation_failed": "Generation failed",
     "generation_failed_sub": "Something went wrong. Please try again.",
-    "try_again": "Try again"
+    "try_again": "Try again",
+    "edit_heading": "Edit this image",
+    "edit_placeholder": "Make the background white",
+    "edit_submit": "Regenerate",
+    "edit_regenerating": "Regenerating...",
+    "edit_error": "Edit failed — please try again",
+    "edit_no_credits": "Buy images to edit"
   },
   "paywall": {
     "title": "Unlock HD Download",

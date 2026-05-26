@@ -143,7 +143,13 @@
     "your_result": "Ձեր արդյունքը",
     "generation_failed": "Սխալ առաջացավ",
     "generation_failed_sub": "Ինչ-որ բան չստացվեց։ Խնդրում ենք նորից փորձել։",
-    "try_again": "Նորից փորձել"
+    "try_again": "Նորից փորձել",
+    "edit_heading": "Խմբագրել պատկերը",
+    "edit_placeholder": "Դարձնել ֆոնը սպիտակ",
+    "edit_submit": "Վերստեղծել",
+    "edit_regenerating": "Վերստեղծվում է...",
+    "edit_error": "Խնդիր առաջացավ — կրկնեք",
+    "edit_no_credits": "Գնեք նկարներ խմբագրելու համար"
   },
   "paywall": {
     "title": "Ակտիվացնել HD ներբեռնումը",
