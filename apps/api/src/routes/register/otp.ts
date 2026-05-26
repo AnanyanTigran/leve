@@ -107,7 +107,7 @@ export async function registerOtpRoutes(app: FastifyInstance) {
       reply.setCookie(env.SESSION_COOKIE_NAME, request.session.sessionId, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60 * 24 * 30,
       })

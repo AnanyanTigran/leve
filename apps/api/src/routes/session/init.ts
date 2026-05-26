@@ -35,7 +35,7 @@ export async function registerSessionInit(app: FastifyInstance) {
       reply.setCookie(env.SESSION_COOKIE_NAME, session.sessionId, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         path: '/',
         maxAge: 60 * 60 * 48, // 48h default, extended on verify
       })

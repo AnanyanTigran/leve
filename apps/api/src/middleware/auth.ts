@@ -63,7 +63,7 @@ export async function registerAuthMiddleware(app: FastifyInstance) {
     reply.setCookie(env.SESSION_COOKIE_NAME, sessionId, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 48,
     })
