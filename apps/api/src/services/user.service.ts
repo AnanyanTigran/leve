@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma'
+import { logger } from '../lib/logger'
 import { FREE_CREDITS_ON_VERIFY } from '../lib/session.types'
 
 export interface UserRecord {
@@ -89,7 +90,7 @@ export class UserService {
       },
     }).catch((err) => {
       // Non-fatal — Redis is source of truth for real-time credits
-      console.error('[UserService] recordGeneration DB sync failed', err)
+      logger.error({ err }, '[UserService] recordGeneration DB sync failed')
     })
   }
 

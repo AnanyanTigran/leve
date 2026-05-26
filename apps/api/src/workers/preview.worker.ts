@@ -2,6 +2,7 @@ import { Worker, Job } from 'bullmq'
 import sharp from 'sharp'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
+import { logger } from '../lib/logger'
 import { SessionService } from '../services/session.service'
 import { runGeneration } from '../providers/model-router'
 import { QUEUE_NAMES, PreviewJobData } from '../lib/queues'
@@ -22,7 +23,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     requestId,
   } = job.data
 
-  console.info({ requestId, jobId, isEdit }, '[preview worker] job start')
+  logger.info({ requestId, jobId, isEdit }, '[preview worker] job start')
 
   // Mark processing in DB
   await prisma.generationJob.update({
@@ -64,7 +65,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     const qualityGatePassed = width >= minExpected && height >= minExpected
 
     if (!qualityGatePassed) {
-      console.error({ requestId, jobId, width, height, minExpected }, '[preview worker] quality gate failed — refunding credit')
+      logger.error({ requestId, jobId, width, height, minExpected }, '[preview worker] quality gate failed — refunding credit')
       if (isVerified) {
         await SessionService.refundCredit(sessionId)
       }
@@ -94,7 +95,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
         })
       } catch (err) {
         // Non-fatal — serve image without overlay rather than failing the job
-        console.error({ requestId, jobId, err }, '[preview worker] text overlay failed — serving without overlay')
+        logger.error({ requestId, jobId, err }, '[preview worker] text overlay failed — serving without overlay')
       }
     }
 
@@ -117,12 +118,12 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       await SessionService.incrementDailyGeneration(sessionId)
     }
 
-    console.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
+    logger.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
   } catch (err) {
     const errorCode = err instanceof Error ? err.message : 'unknown'
     const isFinalAttempt = job.attemptsMade >= (job.opts.attempts ?? 1)
 
-    console.error({ requestId, jobId, errorCode, isFinalAttempt, attemptsMade: job.attemptsMade }, '[preview worker] failed')
+    logger.error({ requestId, jobId, errorCode, isFinalAttempt, attemptsMade: job.attemptsMade }, '[preview worker] failed')
 
     if (isVerified && isFinalAttempt) {
       await SessionService.refundCredit(sessionId)
@@ -146,7 +147,7 @@ export function startPreviewWorker() {
   )
 
   worker.on('failed', (job, err) => {
-    console.error({ jobId: job?.id, err }, '[preview worker] bullmq job failed')
+    logger.error({ jobId: job?.id, err }, '[preview worker] bullmq job failed')
   })
 
   return worker

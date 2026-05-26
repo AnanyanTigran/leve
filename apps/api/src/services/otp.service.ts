@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js'
 import { prisma } from '../lib/prisma'
 import { redis } from '../lib/redis'
+import { logger } from '../lib/logger'
 import { validateEnv } from '../config/env'
 
 const env = validateEnv()
@@ -96,7 +97,7 @@ export async function sendOtp(
       await deliverEmail(identifier, code)
     }
   } catch (err) {
-    console.error('[OTP] delivery failed', { identifier: '***', err })
+    logger.error({ identifier: '***', err }, '[OTP] delivery failed')
     // Still return sent:true — prevents user enumeration via delivery errors
     // Log for ops to investigate
   }
@@ -156,19 +157,19 @@ export async function verifyOtp(
 async function deliverSms(phone: string, code: string): Promise<void> {
   if (!env.OTP_SMS_API_KEY) {
     // Dev mode — log code to console only
-    console.info(`[OTP-DEV] SMS to ${phone}: ${code}`)
+    logger.info(`[OTP-DEV] SMS to ${phone}: ${code}`)
     return
   }
   // TODO: replace with Armenian SMS gateway (Ucom/TeamTelecom) or Twilio
   // Twilio example (install twilio package separately when provider chosen):
   // const client = twilio(env.OTP_SMS_API_KEY, env.OTP_SMS_API_SECRET)
   // await client.messages.create({ body: `Your LEVE code: ${code}`, from: env.OTP_FROM_NUMBER, to: phone })
-  console.info(`[OTP] SMS stub — integrate provider. Code for ${phone}: ${code}`)
+  logger.info(`[OTP] SMS stub — integrate provider. Code for ${phone}: ${code}`)
 }
 
 async function deliverEmail(email: string, code: string): Promise<void> {
   if (!env.SMTP_HOST) {
-    console.info(`[OTP-DEV] Email to ${email}: ${code}`)
+    logger.info(`[OTP-DEV] Email to ${email}: ${code}`)
     return
   }
   const nodemailer = await import('nodemailer')

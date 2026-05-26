@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid'
 import { redis } from '../lib/redis'
+import { logger } from '../lib/logger'
 import {
   LeveSession,
   SESSION_TTL_ANON,
@@ -227,7 +228,7 @@ export class SessionService {
       const identifier = session.phone ?? session.email!
       const identifierType = session.phone ? 'phone' : 'email'
       await UserService.saveBrandName(identifier, identifierType, brandName)
-        .catch((err) => console.error('[SessionService] saveBrandName DB sync failed', err))
+        .catch((err) => logger.error({ err }, '[SessionService] saveBrandName DB sync failed'))
     }
   }
 
@@ -246,7 +247,7 @@ export class SessionService {
       const identifier = session.phone ?? session.email!
       const identifierType = session.phone ? 'phone' : 'email'
       await UserService.saveFavoriteScene(identifier, identifierType, sceneId)
-        .catch((err) => console.error('[SessionService] saveFavoriteScene DB sync failed', err))
+        .catch((err) => logger.error({ err }, '[SessionService] saveFavoriteScene DB sync failed'))
     }
   }
 }
