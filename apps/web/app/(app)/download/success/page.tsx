@@ -44,10 +44,26 @@ export default function DownloadSuccessPage() {
   const locale = useLocale()
   const [selectedPlatform, setSelectedPlatform] = useState<ExportPlatform>('original_hd')
   const [isDownloading, setIsDownloading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [downloadError, setDownloadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isVerified()) router.replace('/register')
   }, [router])
+
+  useEffect(() => {
+    const jobId = sessionStorage.getItem('leve_job_id')
+    if (!jobId) return
+
+    fetch(`/api/download/preview-url?jobId=${jobId}`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.data?.previewUrls?.[0]) {
+          setPreviewUrl(data.data.previewUrls[0])
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const primaryButtonLabel = selectedPlatform === 'original_hd'
     ? t('download_btn')
@@ -58,6 +74,7 @@ export default function DownloadSuccessPage() {
     if (!jobId) return
 
     setIsDownloading(true)
+    setDownloadError(null)
 
     try {
       let downloadUrl: string
@@ -71,6 +88,11 @@ export default function DownloadSuccessPage() {
 
         if (!res.ok || !data?.data?.url) {
           console.error('download URL fetch failed', data)
+          setDownloadError(
+            locale === 'hy' ? 'Ներբեռնումը ձախողվեց' :
+            locale === 'ru' ? 'Ошибка загрузки' :
+            'Download failed — please try again'
+          )
           return
         }
         downloadUrl = data.data.url
@@ -85,6 +107,11 @@ export default function DownloadSuccessPage() {
 
         if (!res.ok || !data?.data?.url) {
           console.error('export URL fetch failed', data)
+          setDownloadError(
+            locale === 'hy' ? 'Ներբեռնումը ձախողվեց' :
+            locale === 'ru' ? 'Ошибка загрузки' :
+            'Download failed — please try again'
+          )
           return
         }
         downloadUrl = data.data.url
@@ -98,6 +125,11 @@ export default function DownloadSuccessPage() {
       document.body.removeChild(a)
     } catch (err) {
       console.error('download failed', err)
+      setDownloadError(
+        locale === 'hy' ? 'Ներբեռնումը ձախողվեց' :
+        locale === 'ru' ? 'Ошибка загрузки' :
+        'Download failed — please try again'
+      )
     } finally {
       setIsDownloading(false)
     }
@@ -106,12 +138,22 @@ export default function DownloadSuccessPage() {
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <main className="page-funnel flex-1 overflow-y-auto py-8">
-        {/* Generated image placeholder */}
+        {/* Generated image */}
         <div
-          className="w-full rounded-[16px] overflow-hidden border border-border-default relative max-h-[50vh] lg:max-h-[480px]"
-          style={{ background: 'linear-gradient(135deg, #fdf0eb, #f5d5c5)', minHeight: '240px' }}
+          className="w-full rounded-[16px] overflow-hidden border border-border-default relative bg-bg-elevated"
+          style={{ minHeight: '240px', maxHeight: '50vh' }}
         >
-          <span className="absolute top-3 right-3 bg-[#D64C1A] text-white text-[11px] font-semibold px-2 py-1 rounded-md">
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previewUrl}
+              alt="Your generated image"
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <div className="absolute inset-0 animate-pulse bg-bg-elevated" />
+          )}
+          <span className="absolute top-3 right-3 bg-accent text-white text-[11px] font-semibold px-2 py-1 rounded-md">
             HD
           </span>
         </div>
@@ -135,6 +177,9 @@ export default function DownloadSuccessPage() {
             ? (locale === 'hy' ? 'Ներբեռնվում է...' : locale === 'ru' ? 'Загружается...' : 'Downloading...')
             : primaryButtonLabel}
         </button>
+        {downloadError && (
+          <p className="text-[13px] text-[#DC2626] text-center mt-2">{downloadError}</p>
+        )}
 
         {/* Platform picker */}
         <div className="mt-8">
