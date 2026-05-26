@@ -2,8 +2,11 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle } from 'lucide-react'
+import { CATEGORY_ITEMS } from '@/lib/constants'
+import { cn } from '@/lib/utils'
+import type { ProductCategory } from '@leve/types'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -41,12 +44,24 @@ export function UploadZone() {
   const router = useRouter()
   const t = useTranslations('upload')
   const tCommon = useTranslations('common')
+  const tLanding = useTranslations('landing')
+  const locale = useLocale()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [fileState, setFileState] = useState<FileState | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(() => {
+    if (typeof window === 'undefined') return null
+    return sessionStorage.getItem('leve_category') as ProductCategory | null
+  })
+
+  const handleCategorySelect = useCallback((cat: ProductCategory) => {
+    setSelectedCategory(cat)
+    sessionStorage.setItem('leve_category', cat)
+  }, [])
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ACCEPTED_TYPES.includes(file.type)) return t('error_type')
@@ -96,7 +111,7 @@ export function UploadZone() {
   }, [fileState])
 
   const handleContinue = useCallback(async () => {
-    if (!fileState) return
+    if (!fileState || !selectedCategory) return
 
     setIsUploading(true)
     setError(null)
@@ -128,7 +143,7 @@ export function UploadZone() {
       sessionStorage.setItem('leve_upload_preview', dataUrl)
       sessionStorage.setItem('leve_upload_session_id', Date.now().toString())
       sessionStorage.setItem('leve_upload_name', fileState.file.name)
-      // leve_category is set by the landing page — no need to overwrite here
+      // leve_category is already written by handleCategorySelect
 
       router.push('/templates')
     } catch {
@@ -136,9 +151,16 @@ export function UploadZone() {
     } finally {
       setIsUploading(false)
     }
-  }, [fileState, router, t])
+  }, [fileState, selectedCategory, router, t])
 
-  const isValid = fileState !== null && error === null && !isUploading
+  const categoryPrompt =
+    locale === 'hy'
+      ? 'Ի՞նչ եք լուսանկարում'
+      : locale === 'ru'
+      ? 'Что фотографируете?'
+      : "What are you photographing?"
+
+  const canContinue = fileState !== null && error === null && !isUploading && selectedCategory !== null
 
   return (
     <div className="flex flex-col flex-1">
@@ -243,6 +265,32 @@ export function UploadZone() {
           ))}
         </div>
 
+        {/* Category picker */}
+        <div className="flex flex-col gap-2">
+          <p className="text-[13px] text-text-muted font-medium">{categoryPrompt}</p>
+          <div className="flex gap-2 flex-wrap">
+            {CATEGORY_ITEMS.map((item) => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleCategorySelect(item.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[36px]',
+                    selectedCategory === item.id
+                      ? 'bg-accent text-white border-accent'
+                      : 'bg-bg-elevated text-text-secondary border-border-default hover:border-border-hover',
+                  )}
+                >
+                  <Icon size={14} />
+                  {tLanding(item.tKey)}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {error && (
           <div className="flex items-center gap-2 px-1">
             <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0" />
@@ -263,8 +311,11 @@ export function UploadZone() {
           <button
             type="button"
             onClick={handleContinue}
-            disabled={!isValid}
-            className="btn-primary btn-full"
+            disabled={!canContinue}
+            className={cn(
+              'btn-primary btn-full',
+              !canContinue && 'opacity-50 cursor-not-allowed',
+            )}
           >
             {isUploading ? (
               <div className="flex items-center justify-center gap-2">

@@ -2,21 +2,12 @@
 
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Gem, Shirt, Coffee, Package, Wand2, ChevronRight, CheckCircle } from 'lucide-react'
+import { ChevronRight, CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
-import type { LucideIcon } from 'lucide-react'
-
-const CATEGORY_ITEMS: { id: ProductCategory; icon: LucideIcon; tKey: string }[] = [
-  { id: 'beauty_cosmetics', icon: Sparkles, tKey: 'category_beauty' },
-  { id: 'jewelry_accessories', icon: Gem, tKey: 'category_jewelry' },
-  { id: 'fashion_clothing', icon: Shirt, tKey: 'category_fashion' },
-  { id: 'food_cafe', icon: Coffee, tKey: 'category_food' },
-  { id: 'marketplace_export', icon: Package, tKey: 'category_marketplace' },
-  { id: 'custom', icon: Wand2, tKey: 'category_custom' },
-]
+import { CATEGORY_ITEMS } from '@/lib/constants'
 
 const SHOWCASE_CARDS = [
   { category: 'Jewelry', template: 'Jewelry Luxury', leftBg: '#E8E8E8', rightBg: 'linear-gradient(135deg, #f0ebe4, #e2d5c8)' },

@@ -5,6 +5,17 @@ import type {
   CategorySceneMap,
   AspectRatioOption,
 } from '@leve/types'
+import { Sparkles, Gem, Shirt, Coffee, Package, Wand2 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+
+export const CATEGORY_ITEMS: { id: ProductCategory; icon: LucideIcon; tKey: string }[] = [
+  { id: 'beauty_cosmetics',   icon: Sparkles, tKey: 'category_beauty' },
+  { id: 'jewelry_accessories', icon: Gem,     tKey: 'category_jewelry' },
+  { id: 'fashion_clothing',   icon: Shirt,    tKey: 'category_fashion' },
+  { id: 'food_cafe',          icon: Coffee,   tKey: 'category_food' },
+  { id: 'marketplace_export', icon: Package,  tKey: 'category_marketplace' },
+  { id: 'custom',             icon: Wand2,    tKey: 'category_custom' },
+]
 
 export const DEFAULT_LOCALE = 'en' as const
 
