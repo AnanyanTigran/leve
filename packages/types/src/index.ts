@@ -5,14 +5,13 @@ export type Intent = 'sell_product' | 'story_sale' | 'marketplace_upload'
 export type TemplateCategory = 'beauty' | 'retail' | 'marketplace'
 
 export type JobStatus =
-  | 'pending'
+  | 'queued'
   | 'processing'
-  | 'preview_ready'
-  | 'hd_processing'
-  | 'hd_ready'
+  | 'done'
   | 'failed'
+  | 'credit_refunded'
 
-export type CreditPack = 'trial' | 'volume' | 'pro'
+export type CreditPack = 'starter' | 'creator' | 'pro_monthly'
 
 export type PaymentProvider = 'idram' | 'telcell' | 'arca'
 
@@ -63,19 +62,6 @@ export type RegistrationStatus =
   | 'pending_otp'
   | 'verified'
 
-export interface LeveSession {
-  sessionId: string
-  authMethod?: AuthMethod
-  contact?: string       // phone or email
-  registrationStatus: RegistrationStatus
-  freeCreditsRemaining: number  // starts at 3 after verification
-  paidCreditsRemaining: number
-  purchaseCount: number
-  generationHistory: string[]
-  selectedCategory?: ProductCategory
-  selectedTemplateId?: string
-  lastActiveAt: number
-}
 
 export interface GenerationPrompt {
   templateId: string
@@ -191,12 +177,6 @@ export interface Session {
   lastActiveAt: string
 }
 
-export interface CreditPackDefinition {
-  id: CreditPack
-  amountAMD: number
-  downloads: number
-  label: Record<Locale, string>
-}
 
 export interface PaymentRecord {
   id: string
@@ -280,25 +260,3 @@ export interface AspectRatioOption {
   height: number
 }
 
-// --- Credit packs (static config, shared) ---
-
-export const CREDIT_PACKS: CreditPackDefinition[] = [
-  {
-    id: 'trial',
-    amountAMD: 1000,
-    downloads: 5,
-    label: { hy: 'Փորձնական', ru: 'Пробный', en: 'Trial' },
-  },
-  {
-    id: 'volume',
-    amountAMD: 3500,
-    downloads: 15,
-    label: { hy: 'Ծավալային', ru: 'Объёмный', en: 'Volume' },
-  },
-  {
-    id: 'pro',
-    amountAMD: 10000,
-    downloads: -1, // unlimited
-    label: { hy: 'Պրոֆ', ru: 'Профи', en: 'Pro' },
-  },
-]
