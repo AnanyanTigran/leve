@@ -13,7 +13,8 @@
     "build": "npm run build --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/web",
     "lint:fix": "npm run lint:fix --workspace=apps/web",
-    "typecheck": "npm run typecheck --workspace=apps/web"
+    "typecheck": "npm run typecheck --workspace=apps/web",
+    "setup:s3-lifecycle": "tsx apps/api/scripts/setup-s3-lifecycle.ts"
   },
   "devDependencies": {
     "@types/sharp": "^0.31.1",
