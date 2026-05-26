@@ -8,11 +8,24 @@ import { AppHeader } from '@/components/shared/app-header'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 
+interface HistoryJob {
+  id: string
+  templateId: string
+  category: string
+  status: string
+  previewS3Keys: string[]
+  hdS3Key: string | null
+  createdAt: string
+}
+
 export default function HistoryPage() {
   const router = useRouter()
   const t = useTranslations('history')
-  const { checked } = useVerifiedGuard()
+  const { checked, isVerified } = useVerifiedGuard()
   const [hasActiveSession, setHasActiveSession] = useState(false)
+  const [jobs, setJobs] = useState<HistoryJob[]>([])
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true)
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({})
 
   useEffect(() => {
     setHasActiveSession(
@@ -20,6 +33,37 @@ export default function HistoryPage() {
       !!sessionStorage.getItem('leve_job_id')
     )
   }, [])
+
+  useEffect(() => {
+    if (!isVerified) return
+
+    fetch('/api/session/history', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.data?.jobs) setJobs(data.data.jobs)
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingJobs(false))
+  }, [isVerified])
+
+  useEffect(() => {
+    if (jobs.length === 0) return
+
+    Promise.all(
+      jobs.map((job) =>
+        fetch(`/api/download/preview-url?jobId=${job.id}`, { credentials: 'include' })
+          .then((r) => r.json())
+          .then((data) => ({ jobId: job.id, url: data?.data?.previewUrls?.[0] ?? null }))
+          .catch(() => ({ jobId: job.id, url: null }))
+      )
+    ).then((results) => {
+      const urlMap: Record<string, string> = {}
+      results.forEach(({ jobId, url }) => {
+        if (url) urlMap[jobId] = url
+      })
+      setPreviewUrls(urlMap)
+    })
+  }, [jobs])
 
   if (!checked) {
     return (
@@ -69,14 +113,48 @@ export default function HistoryPage() {
           </button>
         </div>
 
-        {/* Empty state */}
-        <div className="flex flex-col items-center justify-center min-h-[400px] pb-20 gap-4">
-          <ImageIcon className="w-12 h-12 text-border-strong" />
-          <p className="text-[16px] font-semibold text-text-primary">{t('empty_title')}</p>
-          <p className="text-[14px] text-text-muted text-center">
-            {t('empty_subtitle')}
-          </p>
-        </div>
+        {/* Job grid */}
+        {isLoadingJobs ? (
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="aspect-square rounded-[12px] bg-bg-elevated animate-pulse" />
+            ))}
+          </div>
+        ) : jobs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[300px] gap-4">
+            <ImageIcon className="w-12 h-12 text-border-strong" />
+            <p className="text-[16px] font-semibold text-text-primary">{t('empty_title')}</p>
+            <p className="text-[14px] text-text-muted text-center">{t('empty_subtitle')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            {jobs.map((job) => (
+              <button
+                key={job.id}
+                onClick={() => {
+                  sessionStorage.setItem('leve_job_id', job.id)
+                  router.push('/results')
+                }}
+                className="relative aspect-square rounded-[12px] overflow-hidden bg-bg-elevated"
+              >
+                {previewUrls[job.id] ? (
+                  <img
+                    src={previewUrls[job.id]}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 animate-pulse bg-bg-elevated" />
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                  <p className="text-[11px] text-white font-medium truncate">
+                    {job.templateId.replace(/_/g, ' ')}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </main>
 
       <div className="sticky bottom-0 bg-bg-base border-t border-border-default py-3 safe-bottom">
