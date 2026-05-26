@@ -77,7 +77,12 @@
     "phone_invalid": "Введите корректный номер",
     "email_invalid": "Введите корректный email",
     "use_email_instead": "Использовать email",
-    "use_phone_instead": "Использовать телефон"
+    "use_phone_instead": "Использовать телефон",
+    "brand_step_title": "Название вашего бренда",
+    "brand_step_sub": "Будет добавляться на все фото. Можно пропустить.",
+    "brand_step_placeholder": "например: Bella Beauty",
+    "brand_step_save": "Сохранить и продолжить",
+    "brand_step_skip": "Пропустить"
   },
   "upload": {
     "title": "Загрузить фото",

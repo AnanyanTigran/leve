@@ -77,7 +77,12 @@
     "phone_invalid": "Please enter a valid phone number",
     "email_invalid": "Please enter a valid email",
     "use_email_instead": "Use email instead",
-    "use_phone_instead": "Use phone instead"
+    "use_phone_instead": "Use phone instead",
+    "brand_step_title": "Your brand name",
+    "brand_step_sub": "Added to all your images. You can skip this.",
+    "brand_step_placeholder": "e.g. Bella Beauty",
+    "brand_step_save": "Save and continue",
+    "brand_step_skip": "Skip for now"
   },
   "upload": {
     "title": "Upload photo",

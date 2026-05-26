@@ -77,7 +77,12 @@
     "phone_invalid": "Մուտքագրե՛ք վավեր հեռախոսահամար",
     "email_invalid": "Մուտքագրե՛ք վավեր email",
     "use_email_instead": "Օգտագործել էլ. հասցե",
-    "use_phone_instead": "Օգտագործել հեռախոսահամար"
+    "use_phone_instead": "Օգտագործել հեռախոսահամար",
+    "brand_step_title": "Ձեր բրենդի անունը",
+    "brand_step_sub": "Կկիրառվի բոլոր նկարների վրա։ Կարող եք բաց թողնել։",
+    "brand_step_placeholder": "օրինակ՝ Bella Beauty",
+    "brand_step_save": "Պահել և շարունակել",
+    "brand_step_skip": "Բաց թողնել"
   },
   "upload": {
     "title": "Վերբեռնել լուսանկար",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations, useLocale } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { ChevronLeft } from 'lucide-react'
 import { RegistrationForm } from '@/components/auth/registration-form'
 import { OtpForm } from '@/components/auth/otp-form'
@@ -13,7 +13,6 @@ type Step = 'contact' | 'otp' | 'brand_name'
 export default function RegisterPage() {
   const router = useRouter()
   const t = useTranslations('register')
-  const locale = useLocale()
   const [step, setStep] = useState<Step>('contact')
   const [contact, setContact] = useState('')
   const [method, setMethod] = useState<'phone' | 'email'>('phone')
@@ -149,18 +148,10 @@ export default function RegisterPage() {
           <div>
             <div className="mb-8">
               <h1 className="text-[26px] font-display font-semibold text-text-primary leading-tight">
-                {locale === 'hy'
-                  ? 'Ձեր բրենդի անունը'
-                  : locale === 'ru'
-                  ? 'Название вашего бренда'
-                  : 'Your brand name'}
+                {t('brand_step_title')}
               </h1>
               <p className="text-[14px] text-text-secondary mt-2 leading-relaxed">
-                {locale === 'hy'
-                  ? 'Կկիրառվի բոլոր նկարների վրա։ Կարող եք բաց թողնել։'
-                  : locale === 'ru'
-                  ? 'Будет добавляться на все фото. Можно пропустить.'
-                  : 'Added to all your images. You can skip this.'}
+                {t('brand_step_sub')}
               </p>
             </div>
 
@@ -168,11 +159,7 @@ export default function RegisterPage() {
               type="text"
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
-              placeholder={
-                locale === 'hy' ? 'օրինակ՝ Bella Beauty'
-                : locale === 'ru' ? 'например: Bella Beauty'
-                : 'e.g. Bella Beauty'
-              }
+              placeholder={t('brand_step_placeholder')}
               maxLength={60}
               className="w-full bg-bg-surface border border-border-default rounded-[12px] px-4 py-3.5 text-[16px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
             />
@@ -181,18 +168,14 @@ export default function RegisterPage() {
               className="btn-primary btn-full mt-5 h-14 text-[16px]"
               onClick={handleBrandNameSave}
             >
-              {locale === 'hy' ? 'Պահել և շարունակել'
-               : locale === 'ru' ? 'Сохранить и продолжить'
-               : 'Save and continue'}
+              {t('brand_step_save')}
             </button>
 
             <button
               className="w-full mt-3 text-[14px] text-text-muted hover:text-text-secondary transition-colors py-3"
               onClick={handleBrandNameSkip}
             >
-              {locale === 'hy' ? 'Բաց թողնել'
-               : locale === 'ru' ? 'Пропустить'
-               : 'Skip for now'}
+              {t('brand_step_skip')}
             </button>
           </div>
         )}
