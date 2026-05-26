@@ -9,7 +9,7 @@ import { CREDIT_PACKAGES } from '@/lib/constants'
 import { isVerified } from '@/lib/session'
 
 type PaywallState = 'pricing' | 'processing' | 'success' | 'failed'
-type PlanId = 'starter' | 'creator' | 'monthly'
+type PlanId = 'starter' | 'creator' | 'pro_monthly'
 
 interface PaywallSheetProps {
   isOpen: boolean
@@ -207,7 +207,7 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
           <div className="flex flex-col gap-3">
             {CREDIT_PACKAGES.filter(
               // TODO: read purchaseCount from session and show monthly only when >= 3
-              (pkg) => pkg.id !== 'monthly'
+              (pkg) => pkg.id !== 'pro_monthly'
             ).map((pkg) => {
               const isSelected = selectedPlan === pkg.id
               const isBestValue = pkg.id === 'creator'

@@ -514,7 +514,7 @@ export const CREDIT_PACKAGES = [
     isMonthly: false,
   },
   {
-    id: 'monthly',
+    id: 'pro_monthly',
     labelHY: 'Ամսական',
     labelRU: 'Ежемесячный',
     label: 'Monthly',
