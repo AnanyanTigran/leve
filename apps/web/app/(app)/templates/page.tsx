@@ -30,6 +30,7 @@ export default function SceneSelectionPage() {
   // UI state
   const [defaultSaved, setDefaultSaved] = useState(false)
   const [showOtpSheet, setShowOtpSheet] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
   const { generate, isLoading, error, setError } = useGenerate()
 
@@ -75,6 +76,15 @@ export default function SceneSelectionPage() {
   useEffect(() => {
     const savedRatio = sessionStorage.getItem('leve_aspect_ratio') as AspectRatio | null
     if (savedRatio) setAspectRatio(savedRatio)
+  }, [])
+
+  // Surface generation errors set by processing page on failure/timeout
+  useEffect(() => {
+    const genError = sessionStorage.getItem('leve_generation_error')
+    if (genError) {
+      sessionStorage.removeItem('leve_generation_error')
+      setGenerationError(genError)
+    }
   }, [])
 
   // Handle OTP-required error
@@ -156,6 +166,16 @@ export default function SceneSelectionPage() {
         showBack
         title={t('title')}
       />
+
+      {generationError && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px]">
+          <p className="text-[13px] text-[#DC2626] font-medium">
+            {generationError === 'timeout'
+              ? 'Generation timed out — please try again'
+              : 'Generation failed — please try again'}
+          </p>
+        </div>
+      )}
 
       <main className="flex-1 overflow-y-auto">
         <div className="page-content py-4 flex flex-col gap-5 pb-32">
