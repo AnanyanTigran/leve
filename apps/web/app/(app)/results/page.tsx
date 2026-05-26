@@ -34,16 +34,24 @@ export default function ResultsPage() {
   const [editError, setEditError] = useState(false)
   const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null)
   const [canEdit, setCanEdit] = useState<boolean | null>(null)
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
 
   // Refs so the polling closure reads current edit state without being in its dep array
   const editStateRef = useRef({ isEditing: false, previousImageUrl: null as string | null })
 
-  const uploadPreview =
-    typeof window !== 'undefined' ? sessionStorage.getItem('leve_upload_preview') : null
-
   useEffect(() => {
-    const hasUpload = sessionStorage.getItem('leve_upload_preview')
-    if (!hasUpload) { router.replace('/'); return }
+    const storedPreview = sessionStorage.getItem('leve_upload_preview')
+    if (!storedPreview) { router.replace('/'); return }
+
+    const uploadSessionId = sessionStorage.getItem('leve_upload_session_id')
+    const jobUploadSessionId = sessionStorage.getItem('leve_job_upload_session_id')
+    const pairingValid = uploadSessionId === jobUploadSessionId
+
+    // Only show before/after when the upload and job are from the same flow.
+    // If mismatched (user uploaded a new image without regenerating), hide the
+    // stale upload preview so the before side is empty rather than misleading.
+    setUploadPreview(pairingValid ? storedPreview : null)
+
     const id = sessionStorage.getItem('leve_job_id')
     if (id) setJobId(id)
   }, [router])

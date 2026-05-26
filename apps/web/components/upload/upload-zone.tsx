@@ -126,6 +126,7 @@ export function UploadZone() {
 
       sessionStorage.setItem('leve_upload_key', uploadKey)
       sessionStorage.setItem('leve_upload_preview', dataUrl)
+      sessionStorage.setItem('leve_upload_session_id', Date.now().toString())
       sessionStorage.setItem('leve_upload_name', fileState.file.name)
       // leve_category is set by the landing page — no need to overwrite here
 
