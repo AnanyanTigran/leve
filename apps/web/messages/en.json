@@ -139,7 +139,11 @@
     "overlay_price": "Price",
     "overlay_sale": "Sale",
     "overlay_new": "New in",
-    "overlay_custom": "Custom"
+    "overlay_custom": "Custom",
+    "your_result": "Your result",
+    "generation_failed": "Generation failed",
+    "generation_failed_sub": "Something went wrong. Please try again.",
+    "try_again": "Try again"
   },
   "paywall": {
     "title": "Unlock HD Download",

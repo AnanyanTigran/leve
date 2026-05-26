@@ -165,7 +165,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
   // Returns signed URLs for watermarked previews. No payment required.
   app.get(
     '/api/download/preview-url',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session

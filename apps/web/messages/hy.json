@@ -139,7 +139,11 @@
     "overlay_price": "Գին",
     "overlay_sale": "Զեղչ",
     "overlay_new": "Նորույթ",
-    "overlay_custom": "Ձեր տեքստը"
+    "overlay_custom": "Ձեր տեքստը",
+    "your_result": "Ձեր արդյունքը",
+    "generation_failed": "Սխալ առաջացավ",
+    "generation_failed_sub": "Ինչ-որ բան չստացվեց։ Խնդրում ենք նորից փորձել։",
+    "try_again": "Նորից փորձել"
   },
   "paywall": {
     "title": "Ակտիվացնել HD ներբեռնումը",

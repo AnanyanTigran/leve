@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Phone } from 'lucide-react'
@@ -8,37 +8,69 @@ import { AppHeader } from '@/components/shared/app-header'
 import { isVerified } from '@/lib/session'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { BeforeAfterSlider } from '@/components/results/before-after-slider'
-import { VariantGrid } from '@/components/results/variant-grid'
+import { GeneratedImageDisplay } from '@/components/results/variant-grid'
 import { TextOverlaySection } from '@/components/results/text-overlay-section'
 import { PaywallSheet } from '@/components/results/paywall-sheet'
 
-const VARIANT_GRADIENTS: Record<number, string> = {
-  1: 'linear-gradient(135deg, #fdf0eb, #f5d5c5)',
-  2: 'linear-gradient(135deg, #f5e6d3, #e8c9a8)',
-  3: 'linear-gradient(135deg, #fef9f0, #fdecd5)',
-  4: 'linear-gradient(135deg, #f8e8d8, #f0cdb0)',
-}
+type JobStatus = 'queued' | 'processing' | 'done' | 'failed' | null
 
 export default function ResultsPage() {
   const router = useRouter()
   const t = useTranslations('results')
   const tPaywall = useTranslations('paywall')
-  const [selectedVariant, setSelectedVariant] = useState(1)
   const [paywallOpen, setPaywallOpen] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [jobStatus, setJobStatus] = useState<JobStatus>(null)
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const uploadPreview =
+    typeof window !== 'undefined' ? sessionStorage.getItem('leve_upload_preview') : null
 
   useEffect(() => {
     const hasUpload = sessionStorage.getItem('leve_upload_preview')
-    if (!hasUpload) router.replace('/')
+    if (!hasUpload) { router.replace('/'); return }
+    const id = sessionStorage.getItem('leve_job_id')
+    if (id) setJobId(id)
   }, [router])
 
+  useEffect(() => {
+    if (!jobId || jobStatus === 'done' || jobStatus === 'failed') return
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/generate/status/${jobId}`, { credentials: 'include' })
+        const data = await res.json()
+        if (!res.ok || !data.success) return
+
+        setJobStatus(data.data.status)
+
+        if (data.data.status === 'done') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          const urlRes = await fetch(`/api/download/preview-url?jobId=${jobId}`, {
+            credentials: 'include',
+          })
+          const urlData = await urlRes.json()
+          if (urlData.success && urlData.data.previewUrls?.[0]) {
+            setGeneratedImageUrl(urlData.data.previewUrls[0])
+          }
+        }
+
+        if (data.data.status === 'failed') {
+          if (pollRef.current) clearInterval(pollRef.current)
+        }
+      } catch {
+        // network error — keep polling
+      }
+    }
+
+    poll()
+    pollRef.current = setInterval(poll, 2000)
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  }, [jobId, jobStatus])
+
   const verified = typeof window !== 'undefined' ? isVerified() : false
-
-  const uploadPreview = typeof window !== 'undefined'
-    ? sessionStorage.getItem('leve_upload_preview')
-    : null
-
-  const afterGradient = VARIANT_GRADIENTS[selectedVariant] ?? VARIANT_GRADIENTS[1]
 
   async function handleShare() {
     if (navigator.share) {
@@ -62,6 +94,20 @@ export default function ResultsPage() {
     }
   }
 
+  if (jobStatus === 'failed') {
+    return (
+      <div className="flex flex-col h-[100dvh] items-center justify-center bg-bg-base gap-4 px-6">
+        <p className="text-text-primary text-[18px] font-semibold text-center">
+          {t('generation_failed')}
+        </p>
+        <p className="text-text-secondary text-[14px] text-center">{t('generation_failed_sub')}</p>
+        <button onClick={() => router.push('/templates')} className="btn-primary">
+          {t('try_again')}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
       <AppHeader
@@ -82,11 +128,10 @@ export default function ResultsPage() {
 
       <main className="page-content flex-1 overflow-y-auto pb-24">
         <div className="py-4 flex flex-col gap-4">
-          <BeforeAfterSlider beforeSrc={uploadPreview} afterGradient={afterGradient} />
-          <VariantGrid
-            selectedId={selectedVariant}
-            onSelect={setSelectedVariant}
-            onRegenerate={() => router.push('/processing')}
+          <BeforeAfterSlider beforeSrc={uploadPreview} afterSrc={generatedImageUrl} />
+          <GeneratedImageDisplay
+            imageUrl={generatedImageUrl}
+            onRegenerate={() => router.push('/templates')}
           />
           {!verified && (
             <div className="bg-bg-surface border border-border-default rounded-[12px] p-4 flex items-center gap-3">

@@ -202,7 +202,7 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
         sessionId: transaction.sessionId,
         transactionId: transaction.id,
         jobId: recentJob?.id ?? 'pending',
-        hdS3Key: '',
+        hdS3Key: recentJob?.previewS3Keys?.[0] ?? '',
         credits: transaction.credits,
       })
     } catch (err) {
@@ -287,7 +287,7 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
         sessionId: transaction.sessionId,
         transactionId: transaction.id,
         jobId: recentJob?.id ?? 'pending',
-        hdS3Key: '',
+        hdS3Key: recentJob?.previewS3Keys?.[0] ?? '',
         credits: transaction.credits,
       })
     } catch (err) {

@@ -32,7 +32,7 @@ export async function grantCreditsAndCreateDownloadGrant(
         sessionId,
         jobId,
         transactionId,
-        hdS3Key: '',
+        hdS3Key: input.hdS3Key,
       },
     })
   }

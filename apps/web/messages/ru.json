@@ -139,7 +139,11 @@
     "overlay_price": "Цена",
     "overlay_sale": "Скидка",
     "overlay_new": "Новинка",
-    "overlay_custom": "Свой текст"
+    "overlay_custom": "Свой текст",
+    "your_result": "Ваш результат",
+    "generation_failed": "Ошибка генерации",
+    "generation_failed_sub": "Что-то пошло не так. Пожалуйста, попробуйте снова.",
+    "try_again": "Попробовать снова"
   },
   "paywall": {
     "title": "Разблокировать HD загрузку",

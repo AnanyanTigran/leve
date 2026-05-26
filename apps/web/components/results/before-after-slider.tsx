@@ -6,13 +6,13 @@ import { useTranslations } from 'next-intl'
 
 interface BeforeAfterSliderProps {
   beforeSrc?: string | null
-  afterGradient?: string
+  afterSrc?: string | null
   className?: string
 }
 
 export function BeforeAfterSlider({
   beforeSrc,
-  afterGradient = 'linear-gradient(135deg, #fdf0eb, #f5d5c5)',
+  afterSrc,
   className,
 }: BeforeAfterSliderProps) {
   const t = useTranslations('results')
@@ -68,9 +68,15 @@ export function BeforeAfterSlider({
 
       {/* After layer — clipped from the left to reveal the before side */}
       <div
-        className="absolute inset-0"
-        style={{ background: afterGradient, clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+        className="absolute inset-0 bg-bg-elevated"
+        style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
       >
+        {afterSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={afterSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-bg-elevated to-bg-surface" />
+        )}
         <span className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none" style={{ background: '#D64C1A' }}>
           {t('after')}
         </span>
