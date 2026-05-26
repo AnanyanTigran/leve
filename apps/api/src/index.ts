@@ -95,7 +95,10 @@ async function bootstrap() {
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
   app.log.info(`API running on port ${env.PORT}`)
 
-  startPreviewWorker()
+  const worker = startPreviewWorker()
+  worker.on('error', (err) => {
+    app.log.error({ err }, '[worker] startup error')
+  })
 }
 
 bootstrap().catch((err) => {
