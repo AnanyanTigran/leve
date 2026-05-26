@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { isVerified } from '@/lib/session'
+import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 import { PLATFORM_SPECS } from '@leve/types'
 import type { ExportPlatform } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
@@ -46,10 +46,7 @@ export default function DownloadSuccessPage() {
   const [isDownloading, setIsDownloading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!isVerified()) router.replace('/register')
-  }, [router])
+  const { checked } = useVerifiedGuard()
 
   useEffect(() => {
     const jobId = sessionStorage.getItem('leve_job_id')
@@ -133,6 +130,14 @@ export default function DownloadSuccessPage() {
     } finally {
       setIsDownloading(false)
     }
+  }
+
+  if (!checked) {
+    return (
+      <div className="flex items-center justify-center h-[100dvh] bg-bg-base">
+        <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      </div>
+    )
   }
 
   return (

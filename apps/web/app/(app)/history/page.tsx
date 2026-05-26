@@ -1,24 +1,33 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Phone, ImageIcon } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { BottomNav } from '@/components/shared/bottom-nav'
-import { isVerified } from '@/lib/session'
+import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 
 export default function HistoryPage() {
   const router = useRouter()
   const t = useTranslations('history')
+  const { checked } = useVerifiedGuard()
+  const [hasActiveSession, setHasActiveSession] = useState(false)
 
   useEffect(() => {
-    if (!isVerified()) router.replace('/register')
-  }, [router])
+    setHasActiveSession(
+      !!sessionStorage.getItem('leve_upload_preview') &&
+      !!sessionStorage.getItem('leve_job_id')
+    )
+  }, [])
 
-  const hasActiveSession = typeof window !== 'undefined' &&
-    !!sessionStorage.getItem('leve_upload_preview') &&
-    !!sessionStorage.getItem('leve_template_id')
+  if (!checked) {
+    return (
+      <div className="flex items-center justify-center h-[100dvh] bg-bg-base">
+        <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
