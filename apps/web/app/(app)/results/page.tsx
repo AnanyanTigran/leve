@@ -163,7 +163,7 @@ export default function ResultsPage() {
       </main>
 
       {!paywallOpen && <BottomNav />}
-      <PaywallSheet isOpen={paywallOpen} onClose={() => setPaywallOpen(false)} />
+      <PaywallSheet isOpen={paywallOpen} onClose={() => setPaywallOpen(false)} onAutoOpen={() => setPaywallOpen(true)} />
     </div>
   )
 }

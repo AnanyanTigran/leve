@@ -100,27 +100,24 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
   // GET /api/payments/status/:orderId
   app.get(
     '/api/payments/status/:orderId',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
       const { orderId } = request.params as { orderId: string }
       const session = request.session
 
-      const transaction = await prisma.transaction.findUnique({ where: { orderId } })
+      const transaction = await prisma.transaction.findUnique({
+        where: { orderId },
+        select: { status: true, sessionId: true, credits: true },
+      })
 
       if (!transaction || transaction.sessionId !== session.sessionId) {
         return reply.status(404).send({ success: false, error: 'not_found', requestId })
       }
 
-      const updatedSession = await SessionService.get(session.sessionId)
-
       return reply.send({
         success: true,
-        data: {
-          status: transaction.status,
-          creditsRemaining: updatedSession?.creditsRemaining ?? 0,
-          hdGenerationReady: transaction.status === 'completed',
-        },
+        data: { status: transaction.status, credits: transaction.credits },
         requestId,
       })
     },

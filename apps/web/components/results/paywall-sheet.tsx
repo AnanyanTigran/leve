@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { CheckCircle, XCircle, X } from 'lucide-react'
@@ -14,10 +14,14 @@ type PlanId = 'starter' | 'creator' | 'monthly'
 interface PaywallSheetProps {
   isOpen: boolean
   onClose: () => void
+  onAutoOpen?: () => void
   jobId?: string
 }
 
-export function PaywallSheet({ isOpen, onClose, jobId }: PaywallSheetProps) {
+const POLL_INTERVAL_MS = 3000
+const POLL_MAX_ATTEMPTS = 40 // 2 minutes at 3s intervals
+
+export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallSheetProps) {
   const router = useRouter()
   const t = useTranslations('paywall')
   const locale = useLocale()
@@ -25,6 +29,8 @@ export function PaywallSheet({ isOpen, onClose, jobId }: PaywallSheetProps) {
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('creator')
   const [isDesktop, setIsDesktop] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollAttemptsRef = useRef(0)
 
   useEffect(() => {
     const check = () => setIsDesktop(window.innerWidth >= 1024)
@@ -49,6 +55,49 @@ export function PaywallSheet({ isOpen, onClose, jobId }: PaywallSheetProps) {
     document.body.style.overflow = isOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [isOpen])
+
+  // On mount: check if user returned from a payment redirect and start polling
+  useEffect(() => {
+    const orderId = sessionStorage.getItem('leve_order_id')
+    if (!orderId) return
+
+    setPaywallState('processing')
+    onAutoOpen?.()
+    pollAttemptsRef.current = 0
+
+    const poll = async () => {
+      pollAttemptsRef.current += 1
+
+      if (pollAttemptsRef.current > POLL_MAX_ATTEMPTS) {
+        if (pollRef.current) clearInterval(pollRef.current)
+        return
+      }
+
+      try {
+        const res = await fetch(`/api/payments/status/${orderId}`, { credentials: 'include' })
+        const data = await res.json()
+        if (!res.ok || !data.success) return
+
+        if (data.data.status === 'completed') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          sessionStorage.removeItem('leve_order_id')
+          setPaywallState('success')
+        } else if (data.data.status === 'failed') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          sessionStorage.removeItem('leve_order_id')
+          setPaywallState('failed')
+        }
+      } catch {
+        // network error — keep polling
+      }
+    }
+
+    poll()
+    pollRef.current = setInterval(poll, POLL_INTERVAL_MS)
+
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handlePayment = useCallback(
     async (provider: 'idram' | 'telcell') => {
