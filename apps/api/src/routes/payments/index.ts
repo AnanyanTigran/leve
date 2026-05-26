@@ -18,6 +18,7 @@ const env = validateEnv()
 const intentSchema = z.object({
   packId: z.enum(['starter', 'creator', 'pro_monthly']),
   jobId: z.string().min(1),
+  provider: z.enum(['idram', 'telcell']).default('idram'),
 })
 
 const IDRAM_IDEMPOTENCY_TTL = 60 * 60 * 24 * 7
@@ -38,7 +39,7 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
-      const { packId, jobId } = parsed.data
+      const { packId, jobId, provider } = parsed.data
 
       const generationJob = await prisma.generationJob.findUnique({ where: { id: jobId } })
       if (!generationJob || generationJob.sessionId !== session.sessionId) {
@@ -56,7 +57,7 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
       const transaction = await prisma.transaction.create({
         data: {
           sessionId: session.sessionId,
-          provider: 'idram',
+          provider,
           orderId,
           pack: packId,
           amountAMD: pack.amountAMD,

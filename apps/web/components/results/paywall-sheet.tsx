@@ -112,6 +112,7 @@ export function PaywallSheet({ isOpen, onClose, onAutoOpen, jobId }: PaywallShee
           body: JSON.stringify({
             packId: selectedPlan,
             jobId: jobId ?? sessionStorage.getItem('leve_job_id') ?? '',
+            provider,
           }),
         })
 
