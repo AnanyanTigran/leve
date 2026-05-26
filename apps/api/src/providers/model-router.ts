@@ -33,6 +33,7 @@ export interface GenerationInput {
 
 export interface GenerationOutput {
   s3Key: string      // single output image stored in S3
+  outputBuffer: Buffer // raw image bytes — used by worker for quality gate without extra S3 round trip
   provider: string
   durationMs: number
 }
@@ -88,6 +89,7 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
 
   return {
     s3Key,
+    outputBuffer: imageBuffer,
     provider: 'fal_kontext_pro',
     durationMs: Date.now() - start,
   }

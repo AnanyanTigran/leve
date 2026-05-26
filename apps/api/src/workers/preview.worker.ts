@@ -1,4 +1,5 @@
 import { Worker, Job } from 'bullmq'
+import sharp from 'sharp'
 import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
 import { SessionService } from '../services/session.service'
@@ -56,6 +57,24 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       sourceImageS3Key,
     })
 
+    // Quality gate: output dimensions must be at least half of requested size
+    const outputMeta = await sharp(output.outputBuffer).metadata()
+    const { width = 0, height = 0 } = outputMeta
+    const minExpected = isVerified ? 1024 : 512
+    const qualityGatePassed = width >= minExpected && height >= minExpected
+
+    if (!qualityGatePassed) {
+      console.error({ requestId, jobId, width, height, minExpected }, '[preview worker] quality gate failed — refunding credit')
+      if (isVerified) {
+        await SessionService.refundCredit(sessionId)
+      }
+      await prisma.generationJob.update({
+        where: { id: jobId },
+        data: { status: isVerified ? 'credit_refunded' : 'failed', errorCode: 'quality_gate_failed', qualityGatePassed: false },
+      })
+      return
+    }
+
     // Apply text overlay if the route stored one on the job record
     const jobRecord = await prisma.generationJob.findUnique({
       where: { id: jobId },
@@ -86,7 +105,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
         previewS3Keys: [finalS3Key],
         provider: output.provider,
         durationMs: output.durationMs,
-        qualityGatePassed: true,
+        qualityGatePassed,
       },
     })
 
