@@ -81,6 +81,21 @@ export default function ResultsPage() {
   useEffect(() => {
     if (!jobId || jobStatus === 'done' || jobStatus === 'failed') return
 
+    // When returning from a payment redirect the job is already done — skip
+    // status polling and go straight to fetching the preview URL.
+    if (paywallInitialState === 'processing') {
+      fetch(`/api/download/preview-url?jobId=${jobId}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(urlData => {
+          if (urlData.success && urlData.data.previewUrls?.[0]) {
+            setGeneratedImageUrl(urlData.data.previewUrls[0])
+          }
+        })
+        .catch(() => {})
+        .finally(() => setJobStatus('done'))
+      return
+    }
+
     const poll = async () => {
       try {
         const res = await fetch(`/api/generate/status/${jobId}`, { credentials: 'include' })
@@ -130,7 +145,7 @@ export default function ResultsPage() {
     poll()
     pollRef.current = setInterval(poll, 2000)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [jobId, jobStatus])
+  }, [jobId, jobStatus, paywallInitialState])
 
   // Check whether the user can still run edits (credits or anon budget remaining)
   useEffect(() => {
