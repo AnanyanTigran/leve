@@ -19,7 +19,9 @@ export default function RegisterPage() {
   const [brandName, setBrandName] = useState('')
 
   useEffect(() => {
-    fetch('/api/session/me', { credentials: 'include' })
+    const controller = new AbortController()
+
+    fetch('/api/session/me', { credentials: 'include', signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.isVerified) {
@@ -34,7 +36,13 @@ export default function RegisterPage() {
           }
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          // non-fatal — let user proceed with registration
+        }
+      })
+
+    return () => controller.abort()
   }, [router])
 
   function handleContinue(contactValue: string, authMethod: 'phone' | 'email') {
@@ -140,7 +148,18 @@ export default function RegisterPage() {
           <OtpForm
             contact={contact}
             onVerify={handleVerify}
-            onResend={() => {}}
+            onResend={async () => {
+              try {
+                await fetch('/api/register/otp/send', {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ identifier: contact, identifierType: method }),
+                })
+              } catch {
+                // non-fatal — OtpForm already reset the countdown
+              }
+            }}
           />
         )}
 

@@ -9,7 +9,9 @@ export function useVerifiedGuard() {
   const [isVerified, setIsVerified] = useState(false)
 
   useEffect(() => {
-    fetch('/api/session/me', { credentials: 'include' })
+    const controller = new AbortController()
+
+    fetch('/api/session/me', { credentials: 'include', signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.isVerified) {
@@ -18,8 +20,12 @@ export function useVerifiedGuard() {
           router.replace('/register')
         }
       })
-      .catch(() => router.replace('/register'))
+      .catch((err) => {
+        if (err.name !== 'AbortError') router.replace('/register')
+      })
       .finally(() => setChecked(true))
+
+    return () => controller.abort()
   }, [router])
 
   return { checked, isVerified }

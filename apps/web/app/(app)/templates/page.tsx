@@ -43,9 +43,20 @@ export default function SceneSelectionPage() {
     const preview = sessionStorage.getItem('leve_upload_preview')
     const cat = sessionStorage.getItem('leve_category') as ProductCategory | null
     const favScene = sessionStorage.getItem('leve_favorite_scene')
+    const uploadedAt = parseInt(sessionStorage.getItem('leve_upload_session_id') ?? '0', 10)
 
     if (!key || !preview) {
       // No upload — send back to upload
+      router.replace('/upload')
+      return
+    }
+
+    // Treat sessionStorage data older than 2h as stale — a new upload is required
+    if (uploadedAt && Date.now() - uploadedAt > 2 * 60 * 60 * 1000) {
+      sessionStorage.removeItem('leve_upload_key')
+      sessionStorage.removeItem('leve_upload_preview')
+      sessionStorage.removeItem('leve_category')
+      sessionStorage.removeItem('leve_upload_session_id')
       router.replace('/upload')
       return
     }

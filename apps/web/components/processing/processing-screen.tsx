@@ -5,16 +5,12 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { AppHeader } from '@/components/shared/app-header'
 
-const PHASES = [
-  'Setting up the studio...',
-  'Adjusting the lighting...',
-  'Applying the style...',
-  'Final touches...',
-]
+const PHASE_KEYS = ['phase_1', 'phase_2', 'phase_3', 'phase_4'] as const
 
 export function ProcessingScreen() {
   const router = useRouter()
   const t = useTranslations('processing')
+  const PHASES = PHASE_KEYS.map((k) => t(k))
   const [phaseIndex, setPhaseIndex] = useState(0)
   const [phaseVisible, setPhaseVisible] = useState(true)
   const [progressWidth, setProgressWidth] = useState(0)

@@ -66,6 +66,7 @@
     "verify": "Verify",
     "resend": "Resend code",
     "otp_resend_countdown": "Resend in {seconds}s",
+    "otp_incomplete": "Please enter all 6 digits.",
     "otp_invalid": "Invalid code. Please try again.",
     "signin_hint": "Already have an account?",
     "signin_link": "Sign in",
@@ -197,7 +198,11 @@
   },
   "processing": {
     "dont_close": "Please keep this page open while your image is being generated.",
-    "time_estimate": "This takes about 15–20 seconds"
+    "time_estimate": "This takes about 15–20 seconds",
+    "phase_1": "Setting up the studio...",
+    "phase_2": "Adjusting the lighting...",
+    "phase_3": "Applying the style...",
+    "phase_4": "Final touches..."
   },
   "download": {
     "ready": "Your image is ready",

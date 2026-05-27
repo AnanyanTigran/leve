@@ -17,6 +17,7 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
   const t = useTranslations('register')
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [error, setError] = useState(false)
+  const [incomplete, setIncomplete] = useState(false)
   const [countdown, setCountdown] = useState(RESEND_SECONDS)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -43,6 +44,7 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
     next[index] = char
     setDigits(next)
     setError(false)
+    setIncomplete(false)
 
     if (char && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus()
@@ -57,7 +59,11 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
 
   function handleVerify() {
     const code = digits.join('')
-    if (code.length < OTP_LENGTH) return
+    if (code.length < OTP_LENGTH) {
+      setIncomplete(true)
+      return
+    }
+    setIncomplete(false)
     onVerify()
   }
 
@@ -69,8 +75,6 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
     inputRefs.current[0]?.focus()
     onResend()
   }
-
-  const isFilled = digits.every((d) => d !== '')
 
   return (
     <div className="bg-bg-surface border border-border-default rounded-[16px] p-6 flex flex-col gap-5">
@@ -114,14 +118,16 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
         )}
       </p>
 
-      {error && (
+      {incomplete && (
+        <p className="text-[13px] text-[#DC2626] text-center">{t('otp_incomplete')}</p>
+      )}
+      {error && !incomplete && (
         <p className="text-[13px] text-[#DC2626] text-center">{t('otp_invalid')}</p>
       )}
 
       <button
         type="button"
         onClick={handleVerify}
-        disabled={!isFilled}
         className="btn-primary btn-full"
       >
         {t('verify')}

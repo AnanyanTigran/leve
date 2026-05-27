@@ -42,9 +42,25 @@ export function BeforeAfterSlider({
   )
   const onTouchEnd = useCallback(() => setIsDragging(false), [])
 
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      setSliderPosition((p) => Math.max(5, p - 5))
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      setSliderPosition((p) => Math.min(95, p + 5))
+    }
+  }
+
   return (
     <div
       ref={containerRef}
+      role="slider"
+      tabIndex={0}
+      aria-label={`${t('before')} / ${t('after')}`}
+      aria-valuenow={Math.round(sliderPosition)}
+      aria-valuemin={5}
+      aria-valuemax={95}
       className={`relative w-full aspect-square max-h-[420px] lg:max-h-[480px] overflow-hidden rounded-[12px] border border-border-default select-none cursor-col-resize ${className ?? ''}`}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
@@ -53,6 +69,7 @@ export function BeforeAfterSlider({
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onKeyDown={onKeyDown}
       style={{ cursor: isDragging ? 'grabbing' : 'col-resize' }}
     >
       {/* Before layer */}

@@ -79,6 +79,16 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
 
       try {
         const res = await fetch(`/api/payments/status/${orderId}`, { credentials: 'include' })
+
+        // Fatal errors — stop polling immediately, don't keep retrying
+        if (res.status === 404 || res.status === 401 || res.status === 403) {
+          if (pollRef.current) clearInterval(pollRef.current)
+          sessionStorage.removeItem('leve_order_id')
+          sessionStorage.removeItem('leve_order_initiated_at')
+          setPaywallState('failed')
+          return
+        }
+
         const data = await res.json()
         if (!res.ok || !data.success) return
 
