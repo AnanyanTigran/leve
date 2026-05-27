@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import helmet from '@fastify/helmet'
 import multipart from '@fastify/multipart'
 import rateLimit from '@fastify/rate-limit'
 import cookie from '@fastify/cookie'
@@ -35,6 +36,13 @@ async function bootstrap() {
   await app.register(cors, {
     origin: env.CORS_ORIGIN,
     credentials: true,
+  })
+
+  await app.register(helmet, {
+    // CSP is managed at the CDN/Next.js layer; disable here to avoid conflicts
+    contentSecurityPolicy: false,
+    // Sensible defaults: X-Frame-Options DENY, X-Content-Type-Options nosniff,
+    // Strict-Transport-Security, X-DNS-Prefetch-Control, etc.
   })
 
   await app.register(multipart, {
