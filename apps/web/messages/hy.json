@@ -279,6 +279,8 @@
     "otp_limit_title": "Ձեր 2 անվճար փորձն ավարտվեց",
     "otp_limit_sub": "Գրանցվեք անվճար՝ 2 անվճար HD ներբեռնում ստանալու համար",
     "otp_limit_cta": "Գրանցվել անվճար",
-    "otp_limit_back": "Հետ"
+    "otp_limit_back": "Հետ",
+    "saved_favorite": "Պահել որպես կանխադրված",
+    "remove_favorite": "Հեռացնել կանխադրվածը"
   }
 }

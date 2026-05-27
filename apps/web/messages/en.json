@@ -279,6 +279,8 @@
     "otp_limit_title": "Your 2 free generations used",
     "otp_limit_sub": "Register free to get 2 HD studio images",
     "otp_limit_cta": "Register free — get 2 HD images",
-    "otp_limit_back": "Back"
+    "otp_limit_back": "Back",
+    "saved_favorite": "Save as default scene",
+    "remove_favorite": "Remove default scene"
   }
 }
