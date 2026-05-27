@@ -82,7 +82,16 @@ export async function registerOtpRoutes(app: FastifyInstance) {
   // POST /api/register/otp/verify
   app.post(
     '/api/register/otp/verify',
-    { preHandler: [app.requireSession] },
+    {
+      preHandler: [app.requireSession],
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '15 minutes',
+          keyGenerator: otpIpKeyGenerator,
+        },
+      },
+    },
     async (request, reply) => {
       const requestId = nanoid(10)
 

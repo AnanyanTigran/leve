@@ -204,10 +204,8 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
       app.log.error({ requestId }, 'idram webhook: no completed generation job found for session')
     }
 
-    // 7. Set idempotency key BEFORE granting credits
-    await redis.set(idempotencyKey, '1', 'EX', IDRAM_IDEMPOTENCY_TTL)
-
-    // 8. Grant credits + optionally create DownloadGrant
+    // 7. Grant credits + optionally create DownloadGrant
+    // Idempotency key is set AFTER success so a failed grant can be retried by the provider.
     try {
       await grantCreditsAndCreateDownloadGrant({
         sessionId: transaction.sessionId,
@@ -219,10 +217,14 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
     } catch (err) {
       app.log.error(
         { requestId, transactionId: transaction.id, err },
-        'CRITICAL: idram webhook credit grant failed after idempotency key set',
+        'CRITICAL: idram webhook credit grant failed — provider may retry',
       )
-      return reply.send('OK')
+      // Return 500 so Idram retries the webhook delivery
+      return reply.status(500).send('INTERNAL ERROR')
     }
+
+    // 8. Set idempotency key only after successful grant
+    await redis.set(idempotencyKey, '1', 'EX', IDRAM_IDEMPOTENCY_TTL)
 
     app.log.info(
       { requestId, billNo, credits: transaction.credits, sessionId: transaction.sessionId },
@@ -297,10 +299,8 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     })
 
-    // 7. Set idempotency key BEFORE granting
-    await redis.set(idempotencyKey, '1', 'EX', TELCELL_IDEMPOTENCY_TTL)
-
-    // 8. Grant credits + optionally create DownloadGrant
+    // 7. Grant credits + optionally create DownloadGrant
+    // Idempotency key is set AFTER success so a failed grant can be retried by the provider.
     try {
       await grantCreditsAndCreateDownloadGrant({
         sessionId: transaction.sessionId,
@@ -312,10 +312,14 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
     } catch (err) {
       app.log.error(
         { requestId, transactionId: transaction.id, err },
-        'CRITICAL: telcell webhook credit grant failed after idempotency key set',
+        'CRITICAL: telcell webhook credit grant failed — provider may retry',
       )
-      return reply.status(200).send('OK')
+      // Return 500 so Telcell retries the webhook delivery
+      return reply.status(500).send('INTERNAL ERROR')
     }
+
+    // 8. Set idempotency key only after successful grant
+    await redis.set(idempotencyKey, '1', 'EX', TELCELL_IDEMPOTENCY_TTL)
 
     app.log.info(
       { requestId, orderId, credits: transaction.credits },

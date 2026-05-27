@@ -129,19 +129,19 @@ export async function verifyOtp(
     return { verified: false, error: 'invalid_or_expired' }
   }
 
-  // Increment attempts first — prevent timing-based enumeration
-  await prisma.otpRecord.update({
-    where: { id: record.id },
-    data: { attempts: { increment: 1 } },
-  })
-
-  if (record.attempts + 1 >= OTP_MAX_ATTEMPTS) {
+  // Check limit before incrementing so all OTP_MAX_ATTEMPTS guesses are usable
+  if (record.attempts >= OTP_MAX_ATTEMPTS) {
     await prisma.otpRecord.update({
       where: { id: record.id },
       data: { exhausted: true },
     })
     return { verified: false, error: 'max_attempts_exceeded' }
   }
+
+  await prisma.otpRecord.update({
+    where: { id: record.id },
+    data: { attempts: { increment: 1 } },
+  })
 
   const match = await bcrypt.compare(submittedCode, record.codeHash)
   if (!match) {
