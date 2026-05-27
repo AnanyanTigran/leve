@@ -16,7 +16,7 @@ export default function PaymentCallbackPage() {
   useEffect(() => {
     const orderId = sessionStorage.getItem('leve_order_id')
     if (!orderId) {
-      router.replace('/results')
+      router.replace('/')
       return
     }
 

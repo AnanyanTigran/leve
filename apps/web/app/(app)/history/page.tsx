@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
-import { Phone, ImageIcon } from 'lucide-react'
+import { ImageIcon } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { SCENES } from '@/lib/constants'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -95,25 +95,6 @@ export default function HistoryPage() {
             </button>
           </div>
         )}
-
-        {/* Phone capture banner */}
-        <div className="mt-4 rounded-[12px] overflow-hidden border border-accent-border bg-accent-subtle p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
-              <Phone className="w-4 h-4 text-accent" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-semibold text-text-primary">{t('phone_banner_title')}</p>
-              <p className="text-[12px] text-text-secondary mt-0.5">{t('phone_banner_sub')}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => router.push('/register')}
-            className="mt-3 w-full h-10 rounded-[8px] border border-accent text-accent text-[13px] font-semibold hover:bg-accent hover:text-white transition-colors"
-          >
-            {t('phone_banner_btn')}
-          </button>
-        </div>
 
         {/* Job grid */}
         {isLoadingJobs ? (

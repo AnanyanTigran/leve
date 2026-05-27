@@ -11,6 +11,7 @@ interface SceneGridProps {
   category: ProductCategory | null
   selectedSceneId: string | null
   favoriteSceneId?: string | null
+  isVerified: boolean
   onSceneSelect: (scene: Scene) => void
   onSetDefault?: (sceneId: string) => void
 }
@@ -19,6 +20,7 @@ export function SceneGrid({
   category,
   selectedSceneId,
   favoriteSceneId,
+  isVerified,
   onSceneSelect,
   onSetDefault,
 }: SceneGridProps) {
@@ -51,7 +53,10 @@ export function SceneGrid({
             key={scene.id}
             scene={scene}
             isSelected={selectedSceneId === scene.id}
+            isFavorite={favoriteSceneId === scene.id}
+            isVerified={isVerified}
             onSelect={onSceneSelect}
+            onSetFavorite={isVerified ? onSetDefault : undefined}
             size="md"
           />
         ))}
@@ -75,17 +80,6 @@ export function SceneGrid({
               {t('show_all')} ({allScenes.length})
             </>
           )}
-        </button>
-      )}
-
-      {/* Set as default — shown when a scene is selected and it differs from current default */}
-      {selectedSceneId && onSetDefault && selectedSceneId !== favoriteSceneId && (
-        <button
-          type="button"
-          onClick={() => onSetDefault(selectedSceneId)}
-          className="text-[12px] text-accent text-center hover:underline transition-colors"
-        >
-          ★ {t('set_as_default')}
         </button>
       )}
     </div>
