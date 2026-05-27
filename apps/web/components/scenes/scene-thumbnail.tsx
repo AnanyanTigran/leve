@@ -102,7 +102,7 @@ export function SceneThumbnail({
         )}
 
         {/* Favorite scene bottom edge indicator */}
-        {isFavorite && !isSelected && (
+        {isFavorite && !!onSetFavorite && !isSelected && (
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent" />
         )}
       </div>
@@ -114,7 +114,7 @@ export function SceneThumbnail({
           size === 'sm' ? 'text-[11px]' : 'text-[12px]',
         )}>
           {name}
-          {isFavorite && (
+          {isFavorite && !!onSetFavorite && (
             <span className="ml-1 text-accent text-[10px] font-semibold">★</span>
           )}
         </p>
