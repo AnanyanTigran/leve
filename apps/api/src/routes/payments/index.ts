@@ -19,6 +19,7 @@ const intentSchema = z.object({
   packId: z.enum(['starter', 'creator', 'pro_monthly']),
   jobId: z.string().min(1),
   provider: z.enum(['idram', 'telcell']).default('idram'),
+  clientKey: z.string().max(64).optional(),
 })
 
 const IDRAM_IDEMPOTENCY_TTL = 60 * 60 * 24 * 7
@@ -39,7 +40,33 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
-      const { packId, jobId, provider } = parsed.data
+      const { packId, jobId, provider, clientKey } = parsed.data
+
+      // Idempotency: return existing transaction for the same client key (network retry safety)
+      if (clientKey) {
+        const idempotencyKey = `payment:intent:${session.sessionId}:${clientKey}`
+        const existingId = await redis.get(idempotencyKey)
+        if (existingId) {
+          const existing = await prisma.transaction.findUnique({ where: { id: existingId } })
+          if (existing) {
+            app.log.info({ requestId, clientKey }, 'payment intent: returning existing transaction')
+            const description = `LEVE ${existing.pack} pack`
+            const callbackUrl = `${env.CORS_ORIGIN}/payment/callback`
+            return reply.send({
+              success: true,
+              data: {
+                orderId: existing.orderId,
+                transactionId: existing.id,
+                idramUrl: buildIdramRedirectUrl(existing.orderId, existing.amountAMD, description, callbackUrl),
+                telcellUrl: buildTelcellRedirectUrl(existing.orderId, existing.amountAMD, description),
+                amountAMD: existing.amountAMD,
+                credits: existing.credits,
+              },
+              requestId,
+            })
+          }
+        }
+      }
 
       const generationJob = await prisma.generationJob.findUnique({ where: { id: jobId } })
       if (!generationJob || generationJob.sessionId !== session.sessionId) {
@@ -71,6 +98,11 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
       })
 
       await SessionService.extendSessionTtl(session.sessionId)
+
+      if (clientKey) {
+        const idempotencyKey = `payment:intent:${session.sessionId}:${clientKey}`
+        await redis.set(idempotencyKey, transaction.id, 'EX', 600) // 10 min
+      }
 
       const description = `LEVE ${pack.id} pack`
       const callbackUrl = `${env.CORS_ORIGIN}/payment/callback`
