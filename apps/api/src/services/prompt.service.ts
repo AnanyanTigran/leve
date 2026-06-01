@@ -186,6 +186,10 @@ const CHIP_PROMPTS: Record<string, string> = {
   mood_warm:       'warm cozy and inviting throughout',
   mood_fresh:      'fresh clean bright and energetic',
   mood_bold:       'bold saturated and graphically striking',
+  // Distinct from mood_luxury — leans toward magazine-cover composition with
+  // negative space and high contrast, rather than the warm aspirational feel
+  // of mood_luxury. Distinct from light_dramatic, which only changes lighting.
+  mood_editorial:  'editorial magazine-cover composition with high contrast and negative space',
 
   // Brand color accent — wrapped as "Tint the background and surrounding props
   // with subtle [phrase] tones." Lets users align outputs with a brand palette
@@ -243,7 +247,7 @@ const CHIP_GROUPS: Record<string, 'lighting' | 'angle' | 'mood' | 'accent' | 'ca
   angle_low: 'angle', angle_closeup: 'angle',
 
   mood_minimal: 'mood', mood_luxury: 'mood', mood_warm: 'mood',
-  mood_fresh: 'mood', mood_bold: 'mood',
+  mood_fresh: 'mood', mood_bold: 'mood', mood_editorial: 'mood',
 
   accent_cream: 'accent', accent_sage: 'accent', accent_pink: 'accent',
   accent_blue: 'accent', accent_charcoal: 'accent', accent_apricot: 'accent',

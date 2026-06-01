@@ -474,6 +474,7 @@ export const MOOD_CHIPS: RefinementChip[] = [
   { id: 'mood_warm',     group: 'mood', label: 'Warm',     labelHY: 'Ջերմ',      labelRU: 'Тёплый' },
   { id: 'mood_fresh',    group: 'mood', label: 'Fresh',    labelHY: 'Թարմ',      labelRU: 'Свежий' },
   { id: 'mood_bold',     group: 'mood', label: 'Bold',     labelHY: 'Համարձակ',  labelRU: 'Смелый' },
+  { id: 'mood_editorial',group: 'mood', label: 'Editorial',labelHY: 'Խմբագրական',labelRU: 'Эдиториал' },
 ]
 
 // Brand color accent — six swatches that tint the background and surrounding
