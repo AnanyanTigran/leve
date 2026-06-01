@@ -8,7 +8,7 @@ import { AppHeader } from '@/components/shared/app-header'
 import { SceneGrid } from '@/components/scenes/scene-grid'
 import { RefinementPanel } from '@/components/templates/refinement-panel'
 import { useGenerate } from '@/hooks/use-generate'
-import { CATEGORY_ITEMS } from '@/lib/constants'
+import { CATEGORY_ITEMS, CATEGORY_SCENE_MAP, getSceneById } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Scene, ProductCategory, AspectRatio } from '@leve/types'
 
@@ -121,6 +121,18 @@ export default function SceneSelectionPage() {
     setSelectedScene(scene)
     sessionStorage.setItem('leve_scene_id', scene.id)
   }, [])
+
+  // When a category is set (and the user has not yet picked a scene this
+  // session), pre-select the first recommended scene for that category so the
+  // user can tap Generate immediately. Respects an existing favorite scene if
+  // one is configured.
+  useEffect(() => {
+    if (!category || selectedScene) return
+    const seedSceneId = favoriteSceneId ?? CATEGORY_SCENE_MAP[category]?.[0]
+    if (!seedSceneId) return
+    const seedScene = getSceneById(seedSceneId)
+    if (seedScene) setSelectedScene(seedScene)
+  }, [category, favoriteSceneId, selectedScene])
 
   const handleSetDefault = useCallback(async (sceneId: string) => {
     try {
