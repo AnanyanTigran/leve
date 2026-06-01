@@ -231,7 +231,8 @@
     "style": "Style",
     "custom_prompt": "Additional Instructions",
     "custom_placeholder": "e.g. warm lighting, flowers in background, on a wooden shelf",
-    "custom_hint": "Write in any language — Armenian, Russian, or English"
+    "custom_hint": "Write in any language — Armenian, Russian, or English",
+    "accent": "Accent color"
   },
   "history": {
     "generate_first": "Generate your first image",

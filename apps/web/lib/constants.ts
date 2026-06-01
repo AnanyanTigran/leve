@@ -476,6 +476,18 @@ export const MOOD_CHIPS: RefinementChip[] = [
   { id: 'mood_bold',     group: 'mood', label: 'Bold',     labelHY: 'Համարձակ',  labelRU: 'Смелый' },
 ]
 
+// Brand color accent — six swatches that tint the background and surrounding
+// props without overriding the chosen scene. Server-side prompts wrap the
+// chip ID into a sentence; see CHIP_PROMPTS in prompt.service.ts.
+export const ACCENT_CHIPS: RefinementChip[] = [
+  { id: 'accent_cream',    group: 'accent', label: 'Cream',    labelHY: 'Կրեմ',         labelRU: 'Кремовый',  swatch: '#F4E8D4' },
+  { id: 'accent_sage',     group: 'accent', label: 'Sage',     labelHY: 'Մարգագետին',   labelRU: 'Шалфей',    swatch: '#A8B89C' },
+  { id: 'accent_pink',     group: 'accent', label: 'Pink',     labelHY: 'Վարդագույն',   labelRU: 'Розовый',   swatch: '#E8B8B0' },
+  { id: 'accent_blue',     group: 'accent', label: 'Sky',      labelHY: 'Երկնագույն',   labelRU: 'Голубой',   swatch: '#A8C8D8' },
+  { id: 'accent_charcoal', group: 'accent', label: 'Charcoal', labelHY: 'Մուգ մոխրագույն', labelRU: 'Угольный', swatch: '#3A3A3A' },
+  { id: 'accent_apricot',  group: 'accent', label: 'Apricot',  labelHY: 'Ծիրանագույն',  labelRU: 'Абрикосовый', swatch: '#E8A878' },
+]
+
 // ─── Category-Specific Chips ───────────────────────────────────────────────────
 
 export const CATEGORY_CHIPS: Record<ProductCategory, RefinementChip[]> = {

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   LIGHTING_CHIPS,
   MOOD_CHIPS,
+  ACCENT_CHIPS,
   CATEGORY_CHIPS,
   ASPECT_RATIO_OPTIONS,
 } from '@/lib/constants'
@@ -42,7 +43,7 @@ export function RefinementPanel({
   // prompt.service.ts remain available for custom callers and flat-lay scenes.
   function toggleChip(chip: RefinementChip) {
     const sameGroup = selectedChips.filter((id) => {
-      const all = [...LIGHTING_CHIPS, ...MOOD_CHIPS, ...categoryChips]
+      const all = [...LIGHTING_CHIPS, ...MOOD_CHIPS, ...ACCENT_CHIPS, ...categoryChips]
       const found = all.find((c) => c.id === id)
       return found?.group !== chip.group
     })
@@ -149,6 +150,47 @@ export function RefinementPanel({
 
           {/* Mood */}
           {renderChipRow(MOOD_CHIPS, t('mood'))}
+
+          {/* Brand color accent — swatches instead of pill chips */}
+          <div>
+            <p className="text-[12px] text-text-muted mb-2 font-medium uppercase tracking-wide">
+              {t('accent')}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {ACCENT_CHIPS.map((chip) => {
+                const isSelected = selectedChips.includes(chip.id)
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => toggleChip(chip)}
+                    aria-label={getChipLabel(chip)}
+                    aria-pressed={isSelected}
+                    title={getChipLabel(chip)}
+                    className={cn(
+                      'h-9 min-w-[48px] flex items-center gap-2 rounded-full border pl-1.5 pr-3 transition-all',
+                      isSelected
+                        ? 'border-accent bg-accent-subtle'
+                        : 'border-border-default hover:border-border-strong',
+                    )}
+                  >
+                    <span
+                      className="w-6 h-6 rounded-full border border-border-default shrink-0"
+                      style={{ backgroundColor: chip.swatch }}
+                    />
+                    <span
+                      className={cn(
+                        'text-[13px] font-medium',
+                        isSelected ? 'text-accent' : 'text-text-secondary',
+                      )}
+                    >
+                      {getChipLabel(chip)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           {/* Category-specific */}
           {categoryChips.length > 0 && renderChipRow(categoryChips, t('style'))}

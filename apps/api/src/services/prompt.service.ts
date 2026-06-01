@@ -187,6 +187,16 @@ const CHIP_PROMPTS: Record<string, string> = {
   mood_fresh:      'fresh clean bright and energetic',
   mood_bold:       'bold saturated and graphically striking',
 
+  // Brand color accent — wrapped as "Tint the background and surrounding props
+  // with subtle [phrase] tones." Lets users align outputs with a brand palette
+  // without overriding the chosen scene.
+  accent_cream:    'warm cream and ivory',
+  accent_sage:     'soft sage green',
+  accent_pink:     'dusty pink',
+  accent_blue:     'soft sky blue',
+  accent_charcoal: 'deep charcoal gray',
+  accent_apricot:  'warm apricot peach',
+
   // Beauty — full imperative sentences.
   // Each chip describes a distinct prop action that Kontext should apply
   // around the preserved product.
@@ -225,7 +235,7 @@ const CHIP_PROMPTS: Record<string, string> = {
 // Chip ID → group. Server-side mapping so we do not need to ship the FE
 // RefinementChip type into the API. ID prefixes already encode the group;
 // the explicit map is kept for clarity and to catch typos at lookup time.
-const CHIP_GROUPS: Record<string, 'lighting' | 'angle' | 'mood' | 'category'> = {
+const CHIP_GROUPS: Record<string, 'lighting' | 'angle' | 'mood' | 'accent' | 'category'> = {
   light_natural: 'lighting', light_studio: 'lighting', light_dramatic: 'lighting',
   light_golden: 'lighting', light_cool: 'lighting',
 
@@ -234,6 +244,9 @@ const CHIP_GROUPS: Record<string, 'lighting' | 'angle' | 'mood' | 'category'> = 
 
   mood_minimal: 'mood', mood_luxury: 'mood', mood_warm: 'mood',
   mood_fresh: 'mood', mood_bold: 'mood',
+
+  accent_cream: 'accent', accent_sage: 'accent', accent_pink: 'accent',
+  accent_blue: 'accent', accent_charcoal: 'accent', accent_apricot: 'accent',
 
   beauty_flowers: 'category', beauty_water: 'category', beauty_ingredients: 'category',
   beauty_dewy: 'category', beauty_matte: 'category',
@@ -349,6 +362,7 @@ const GROUP_WRAPPERS = {
   lighting: (phrase: string) => `Light the scene with ${phrase}.`,
   angle:    (phrase: string) => `Frame the shot ${phrase}.`,
   mood:     (phrase: string) => `The overall atmosphere is ${phrase}.`,
+  accent:   (phrase: string) => `Tint the background and surrounding props with subtle ${phrase} tones.`,
 }
 
 // Assembly order (matches BFL canonical "actions first, preservation last"):
@@ -366,8 +380,8 @@ export function compilePrompt(input: CompilePromptInput): string {
     SCENE_PROMPTS['soft_shadow_studio'] // safe fallback
 
   // Bucket chip IDs by group so we can emit one wrapping sentence per group.
-  const byGroup: Record<'lighting' | 'angle' | 'mood' | 'category', string[]> = {
-    lighting: [], angle: [], mood: [], category: [],
+  const byGroup: Record<'lighting' | 'angle' | 'mood' | 'accent' | 'category', string[]> = {
+    lighting: [], angle: [], mood: [], accent: [], category: [],
   }
   for (const chipId of input.selectedChipIds) {
     const phrase = CHIP_PROMPTS[chipId]
@@ -385,6 +399,9 @@ export function compilePrompt(input: CompilePromptInput): string {
   const angleSentence = byGroup.angle.length > 0
     ? GROUP_WRAPPERS.angle(byGroup.angle.join(' and '))
     : ''
+  const accentSentence = byGroup.accent.length > 0
+    ? GROUP_WRAPPERS.accent(byGroup.accent.join(' and '))
+    : ''
   // Category chips are already full sentences — concatenate as-is.
   const categorySentence = byGroup.category.length > 0
     ? byGroup.category.join(' ')
@@ -399,6 +416,7 @@ export function compilePrompt(input: CompilePromptInput): string {
     scenePrompt,
     lightingSentence,
     moodSentence,
+    accentSentence,
     angleSentence,
     categorySentence,
     customSentence,

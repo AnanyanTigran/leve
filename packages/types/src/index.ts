@@ -240,10 +240,13 @@ export interface Scene {
 
 export interface RefinementChip {
   id: string
-  group: 'lighting' | 'angle' | 'mood' | 'category_specific'
+  group: 'lighting' | 'angle' | 'mood' | 'accent' | 'category_specific'
   label: string
   labelHY: string
   labelRU: string
+  // For 'accent' chips: hex color used to render the swatch in the picker.
+  // Ignored for other groups.
+  swatch?: string
 }
 
 // Category → default scene IDs to show (ordered best-first)
