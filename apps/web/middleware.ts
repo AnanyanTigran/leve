@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 
 // Cookie-based locale: no URL routing, passthrough only.
 // Adds security headers on every non-asset response.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function middleware(_request: NextRequest) {
   const response = NextResponse.next()
 

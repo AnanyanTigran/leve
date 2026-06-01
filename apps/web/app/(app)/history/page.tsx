@@ -121,6 +121,7 @@ export default function HistoryPage() {
                 className="relative aspect-square rounded-[12px] overflow-hidden bg-bg-elevated"
               >
                 {previewUrls[job.id] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={previewUrls[job.id]}
                     alt=""

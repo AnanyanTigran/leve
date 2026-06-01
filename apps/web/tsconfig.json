@@ -14,7 +14,7 @@
         "../../packages/types/src/index.ts"
       ]
     },
-    "allowJs": true
+    "allowJs": false
   },
   "include": [
     "next-env.d.ts",

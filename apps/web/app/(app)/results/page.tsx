@@ -145,7 +145,7 @@ export default function ResultsPage() {
     poll()
     pollRef.current = setInterval(poll, 2000)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [jobId, jobStatus, paywallInitialState])
+  }, [jobId, jobStatus, paywallInitialState, router])
 
   // Check whether the user can still run edits (credits or anon budget remaining)
   useEffect(() => {

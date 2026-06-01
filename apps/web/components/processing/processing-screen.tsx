@@ -73,7 +73,7 @@ export function ProcessingScreen() {
     const phaseInterval = setInterval(() => {
       setPhaseVisible(false)
       setTimeout(() => {
-        setPhaseIndex((i) => (i + 1) % PHASES.length)
+        setPhaseIndex((i) => (i + 1) % PHASE_KEYS.length)
         setPhaseVisible(true)
       }, 400)
     }, 2500)
