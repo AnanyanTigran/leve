@@ -300,6 +300,7 @@
     "quality_low_contrast_title": "Լուսանկարը ցածր կոնտրաստ ունի",
     "quality_low_contrast_sub": "Մանրամասները կարող են փափուկ լինել — ստեղծե՞լ",
     "last_setup_label": "Վերջին անգամ ընտրեցիք՝ {scene}",
-    "last_setup_cta": "Կրկնել"
+    "last_setup_cta": "Կրկնել",
+    "pricing_note": "Ստեղծումը անվճար է — HD ներբեռնում 200 ֏-ից"
   }
 }

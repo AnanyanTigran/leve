@@ -432,6 +432,11 @@ export default function SceneSelectionPage() {
               {t('scene_tip')}
             </p>
           )}
+          {selectedScene && (
+            <p className="text-center text-[12px] text-text-muted mt-2">
+              {t('pricing_note')}
+            </p>
+          )}
         </div>
       </div>
 

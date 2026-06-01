@@ -300,6 +300,7 @@
     "quality_low_contrast_title": "Низкий контраст на фото",
     "quality_low_contrast_sub": "Детали могут быть размытыми — продолжить?",
     "last_setup_label": "В прошлый раз вы выбрали: {scene}",
-    "last_setup_cta": "Повторить"
+    "last_setup_cta": "Повторить",
+    "pricing_note": "Генерация бесплатна — HD от 200 ֏"
   }
 }
