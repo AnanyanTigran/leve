@@ -27,7 +27,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
   // Requires DownloadGrant — proof that payment was completed.
   app.get(
     '/api/download/url',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireVerified], config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session
@@ -100,7 +100,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
   // Resizes HD output for a specific platform. Requires DownloadGrant.
   app.post(
     '/api/download/export',
-    { preHandler: [app.requireVerified] },
+    { preHandler: [app.requireVerified], config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session

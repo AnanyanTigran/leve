@@ -11,7 +11,7 @@ const env = validateEnv()
 
 export async function registerSessionInit(app: FastifyInstance) {
   // Called by FE on first load if no cookie present
-  app.post('/api/session/init', async (request, reply) => {
+  app.post('/api/session/init', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const requestId = nanoid(10)
     try {
       const existing = request.cookies?.[env.SESSION_COOKIE_NAME]
