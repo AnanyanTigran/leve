@@ -31,6 +31,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('creator')
   const [isDesktop, setIsDesktop] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showMonthly, setShowMonthly] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollAttemptsRef = useRef(0)
 
@@ -40,6 +41,18 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const controller = new AbortController()
+    fetch('/api/session/me', { credentials: 'include', signal: controller.signal })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.data?.showSubscriptionOffer) setShowMonthly(true)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [isOpen])
 
   // Reset state when sheet closes
   useEffect(() => {
@@ -228,8 +241,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
           {/* Pack options */}
           <div className="flex flex-col gap-3">
             {CREDIT_PACKAGES.filter(
-              // TODO: read purchaseCount from session and show monthly only when >= 3
-              (pkg) => pkg.id !== 'pro_monthly'
+              (pkg) => pkg.id !== 'pro_monthly' || showMonthly
             ).map((pkg) => {
               const isSelected = selectedPlan === pkg.id
               const isBestValue = pkg.id === 'creator'

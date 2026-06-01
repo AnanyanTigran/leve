@@ -1,12 +1,36 @@
 import * as fal from '@fal-ai/serverless-client'
 import { validateEnv } from '../config/env'
 import { uploadToS3, buildS3Key } from '../lib/s3'
-import { downloadFromS3 } from '../lib/cloudfront'
 import axios from 'axios'
 
 const env = validateEnv()
 
 fal.config({ credentials: env.FAL_API_KEY })
+
+// In-memory circuit breaker for fal.ai — opens after 3 consecutive failures,
+// resets after 30 seconds to allow recovery probes.
+const CB_THRESHOLD = 3
+const CB_RESET_MS = 30_000
+const circuitBreaker = {
+  failures: 0,
+  openedAt: 0,
+  isOpen(): boolean {
+    if (this.failures < CB_THRESHOLD) return false
+    if (Date.now() - this.openedAt > CB_RESET_MS) {
+      // Half-open: allow one probe through
+      this.failures = 0
+      return false
+    }
+    return true
+  },
+  recordFailure() {
+    this.failures++
+    if (this.failures >= CB_THRESHOLD) this.openedAt = Date.now()
+  },
+  recordSuccess() {
+    this.failures = 0
+  },
+}
 
 // Aspect ratio → pixel dimensions (long edge = 2048px for verified users)
 export const ASPECT_RATIO_SIZES: Record<string, { width: number; height: number }> = {
@@ -59,6 +83,10 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
   // Enforce product preservation in every prompt — never allow Kontext to alter the product
   const safePrompt = buildSafePrompt(input.compiledPrompt, input.isEdit ?? false)
 
+  if (circuitBreaker.isOpen()) {
+    throw new Error('kontext_circuit_open')
+  }
+
   let falResult: { images: { url: string }[] }
 
   try {
@@ -74,7 +102,9 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
       }) as Promise<{ images: { url: string }[] }>,
       timeout(30000, 'kontext_timeout'),
     ])
+    circuitBreaker.recordSuccess()
   } catch (err) {
+    circuitBreaker.recordFailure()
     const message = err instanceof Error ? err.message : 'kontext_failed'
     throw new Error(message)
   }
