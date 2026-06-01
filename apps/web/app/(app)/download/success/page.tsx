@@ -101,7 +101,6 @@ export default function DownloadSuccessPage() {
         const data = await res.json()
 
         if (!res.ok || !data?.data?.url) {
-          console.error('download URL fetch failed', data)
           setDownloadError(t('download_failed'))
           return
         }
@@ -116,7 +115,6 @@ export default function DownloadSuccessPage() {
         const data = await res.json()
 
         if (!res.ok || !data?.data?.url) {
-          console.error('export URL fetch failed', data)
           setDownloadError(t('download_failed'))
           return
         }
@@ -129,8 +127,7 @@ export default function DownloadSuccessPage() {
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-    } catch (err) {
-      console.error('download failed', err)
+    } catch {
       setDownloadError(t('download_failed'))
     } finally {
       setIsDownloading(false)
