@@ -222,9 +222,9 @@ export function LandingContent() {
         <div className="max-w-[960px] mx-auto flex flex-col items-center gap-4 md:flex-row md:justify-between">
           <span className="text-xs font-ui text-text-muted">{t('footer_copyright')}</span>
           <div className="flex items-center gap-6">
-            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_terms')}</a>
-            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_privacy')}</a>
-            <a href="#" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_contact')}</a>
+            <a href="/terms" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_terms')}</a>
+            <a href="/privacy" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_privacy')}</a>
+            <a href="mailto:hello@leve.am" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_contact')}</a>
           </div>
         </div>
       </footer>
