@@ -6,7 +6,6 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   LIGHTING_CHIPS,
-  ANGLE_CHIPS,
   MOOD_CHIPS,
   CATEGORY_CHIPS,
   ASPECT_RATIO_OPTIONS,
@@ -36,10 +35,14 @@ export function RefinementPanel({
 
   const categoryChips = CATEGORY_CHIPS[category] ?? []
 
-  // Chips are grouped — only one per group can be selected at a time
+  // Chips are grouped — only one per group can be selected at a time.
+  // NOTE: the Angle group is intentionally not surfaced in the UI. Kontext
+  // (image-to-image) inherits camera angle from the source photo, so chip-driven
+  // angle changes silently distort the product. Server-side chip prompts in
+  // prompt.service.ts remain available for custom callers and flat-lay scenes.
   function toggleChip(chip: RefinementChip) {
     const sameGroup = selectedChips.filter((id) => {
-      const all = [...LIGHTING_CHIPS, ...ANGLE_CHIPS, ...MOOD_CHIPS, ...categoryChips]
+      const all = [...LIGHTING_CHIPS, ...MOOD_CHIPS, ...categoryChips]
       const found = all.find((c) => c.id === id)
       return found?.group !== chip.group
     })
@@ -143,9 +146,6 @@ export function RefinementPanel({
 
           {/* Lighting */}
           {renderChipRow(LIGHTING_CHIPS, t('lighting'))}
-
-          {/* Angle */}
-          {renderChipRow(ANGLE_CHIPS, t('angle'))}
 
           {/* Mood */}
           {renderChipRow(MOOD_CHIPS, t('mood'))}
