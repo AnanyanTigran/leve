@@ -96,7 +96,16 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
           image_url: sourcePresignedUrl,
           prompt: safePrompt,
           image_size: imageSize,
-          num_inference_steps: 28,
+          // 40 steps moves us closer to BFL's canonical 50-step recommendation
+          // for [pro] without busting the 8s preview target. At 32 the model
+          // visibly under-resolved fine product detail (jewelry, label text);
+          // 50+ is diminishing returns at significant runtime cost.
+          num_inference_steps: 40,
+          // 3.5 is the BFL-documented default and community-validated sweet
+          // spot. 4.0 was over-constraining edits and producing over-contrasty
+          // artifacts. Preservation strength is now carried by the prompt's
+          // trailing constraint (see prompt.service.ts PRODUCT_PRESERVATION_SUFFIX),
+          // not by elevated guidance.
           guidance_scale: 3.5,
         },
       }) as Promise<{ images: { url: string }[] }>,
@@ -127,12 +136,23 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Preservation trails the user prompt — constraint-at-end is the BFL-documented
+// Kontext pattern: actions first, then preservation rules.
+//
+// For the initial-generation path, compilePrompt() in prompt.service.ts already
+// appends the preservation + quality suffix. Re-appending here would duplicate
+// the constraint and waste the 512-token budget, so we no-op in that case.
+//
+// For the iterative-edit path, the prompt is raw user text that never flowed
+// through compilePrompt, so we add the preservation constraint here as the
+// canonical safety net. Phrasing matches the prompt.service.ts suffix so the
+// two code paths produce semantically equivalent prompts.
 function buildSafePrompt(userPrompt: string, isEdit: boolean): string {
-  const productPreservation = isEdit
-    ? 'Make ONLY the described change. Preserve the product completely — same shape, colors, labels, texture.'
-    : 'Change ONLY the background and lighting environment. The product must remain completely identical — same shape, colors, labels, text, texture, proportions. No promotional text. No fake badges.'
+  if (!isEdit) return userPrompt
 
-  return `${productPreservation} ${userPrompt}`
+  return `${userPrompt} Apply only the change described above. ` +
+    'Keep the product itself identical to the source image — preserve its exact shape, colors, materials, labels, printed text, logos, and proportions. ' +
+    'Maintain the exact same product position, scale, orientation, and camera angle as in the source.'
 }
 
 async function getS3PresignedUrl(s3Key: string): Promise<string> {
