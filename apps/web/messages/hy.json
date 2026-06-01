@@ -298,6 +298,8 @@
     "quality_too_bright_title": "Լուսանկարը գերլուսավորված է",
     "quality_too_bright_sub": "Լույս հատվածները կարող են լվացված լինել — ստեղծե՞լ",
     "quality_low_contrast_title": "Լուսանկարը ցածր կոնտրաստ ունի",
-    "quality_low_contrast_sub": "Մանրամասները կարող են փափուկ լինել — ստեղծե՞լ"
+    "quality_low_contrast_sub": "Մանրամասները կարող են փափուկ լինել — ստեղծե՞լ",
+    "last_setup_label": "Վերջին անգամ ընտրեցիք՝ {scene}",
+    "last_setup_cta": "Կրկնել"
   }
 }

@@ -119,6 +119,20 @@ export default function ResultsPage() {
           if (urlData.success && urlData.data.previewUrls?.[0]) {
             setGeneratedImageUrl(urlData.data.previewUrls[0])
           }
+          // Snapshot the last successful selection so the templates page can
+          // offer a "Use my last setup" quick action on the next upload.
+          // Skipped for iterative edits — the iterative prompt isn't useful
+          // to replay against a different upload.
+          if (!editStateRef.current.isEditing) {
+            const sceneId = sessionStorage.getItem('leve_scene_id')
+            const chips = sessionStorage.getItem('leve_selected_chips')
+            const ratio = sessionStorage.getItem('leve_aspect_ratio')
+            const custom = sessionStorage.getItem('leve_custom_text')
+            if (sceneId) sessionStorage.setItem('leve_last_scene_id', sceneId)
+            if (chips)   sessionStorage.setItem('leve_last_chips', chips)
+            if (ratio)   sessionStorage.setItem('leve_last_aspect_ratio', ratio)
+            if (custom !== null) sessionStorage.setItem('leve_last_custom_text', custom)
+          }
           if (editStateRef.current.isEditing) {
             setEditPrompt('')
             setIsEditing(false)

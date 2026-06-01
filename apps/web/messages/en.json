@@ -298,6 +298,8 @@
     "quality_too_bright_title": "Your photo looks overexposed",
     "quality_too_bright_sub": "Highlights may be washed out — generate anyway?",
     "quality_low_contrast_title": "Your photo looks low-contrast",
-    "quality_low_contrast_sub": "Details may be soft — generate anyway?"
+    "quality_low_contrast_sub": "Details may be soft — generate anyway?",
+    "last_setup_label": "Last time you picked {scene}",
+    "last_setup_cta": "Use again"
   }
 }

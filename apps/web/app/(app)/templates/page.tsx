@@ -35,6 +35,7 @@ export default function SceneSelectionPage() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [uploadQuality, setUploadQuality] = useState<string | null>(null)
+  const [lastSetupSceneName, setLastSetupSceneName] = useState<string | null>(null)
 
   const { generate, isLoading, error, setError } = useGenerate()
 
@@ -76,6 +77,15 @@ export default function SceneSelectionPage() {
     if (quality) {
       setUploadQuality(quality)
       sessionStorage.removeItem('leve_upload_quality')
+    }
+
+    // Surface a "Use my last setup" affordance for returning users — only
+    // when the last setup actually differs from what we are about to
+    // auto-select (otherwise the button is redundant).
+    const lastSceneId = sessionStorage.getItem('leve_last_scene_id')
+    if (lastSceneId) {
+      const lastScene = getSceneById(lastSceneId)
+      if (lastScene) setLastSetupSceneName(lastScene.name)
     }
 
     // If no category set, open picker immediately so the user must choose
@@ -163,6 +173,35 @@ export default function SceneSelectionPage() {
     if (seedScene) setSelectedScene(seedScene)
   }, [category, favoriteSceneId, selectedScene])
 
+  // Restore scene + chips + custom text + aspect ratio from the user's
+  // last successful generation. Dismisses the affordance afterward.
+  const handleApplyLastSetup = useCallback(() => {
+    const lastSceneId = sessionStorage.getItem('leve_last_scene_id')
+    if (lastSceneId) {
+      const scene = getSceneById(lastSceneId)
+      if (scene) {
+        setSelectedScene(scene)
+        sessionStorage.setItem('leve_scene_id', scene.id)
+      }
+    }
+    const lastChips = sessionStorage.getItem('leve_last_chips')
+    if (lastChips) {
+      try {
+        const parsed = JSON.parse(lastChips)
+        if (Array.isArray(parsed)) {
+          setSelectedChips(parsed.filter((c): c is string => typeof c === 'string'))
+        }
+      } catch {
+        // ignore malformed sessionStorage entry
+      }
+    }
+    const lastCustom = sessionStorage.getItem('leve_last_custom_text')
+    if (lastCustom !== null) setCustomText(lastCustom)
+    const lastRatio = sessionStorage.getItem('leve_last_aspect_ratio') as AspectRatio | null
+    if (lastRatio) setAspectRatio(lastRatio)
+    setLastSetupSceneName(null)
+  }, [])
+
   const handleSetDefault = useCallback(async (sceneId: string) => {
     try {
       await fetch('/api/session/favorite-scene', {
@@ -243,6 +282,24 @@ export default function SceneSelectionPage() {
           </p>
         </div>
       )}
+
+      {lastSetupSceneName &&
+        isVerified &&
+        !generationError &&
+        selectedScene?.name !== lastSetupSceneName && (
+          <button
+            type="button"
+            onClick={handleApplyLastSetup}
+            className="mx-4 mt-3 px-4 py-2.5 bg-bg-surface border border-border-default hover:border-border-strong rounded-[10px] flex items-center justify-between gap-3 transition-colors text-left"
+          >
+            <span className="text-[13px] text-text-secondary truncate">
+              {t('last_setup_label', { scene: lastSetupSceneName })}
+            </span>
+            <span className="text-[13px] text-accent font-semibold shrink-0">
+              {t('last_setup_cta')}
+            </span>
+          </button>
+        )}
 
       {uploadQuality && !generationError && (
         <div className="mx-4 mt-3 px-4 py-3 bg-accent-subtle border border-accent-border rounded-[10px] flex items-start gap-3">
