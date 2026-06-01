@@ -21,6 +21,10 @@ interface RefinementPanelProps {
   selectedAspectRatio: AspectRatio
 }
 
+// i18n keys for the quick-fill chips above the custom text textarea.
+// Each corresponds to a refinement.quick_<key> entry in the message files.
+const QUICK_FILL_KEYS = ['shadow', 'minimal', 'warm', 'macro', 'props_off'] as const
+
 export function RefinementPanel({
   category,
   onChipsChange,
@@ -200,6 +204,32 @@ export function RefinementPanel({
             <p className="text-[12px] text-text-muted mb-2 font-medium uppercase tracking-wide">
               {t('custom_prompt')}
             </p>
+
+            {/* Quick-fill chips — lowers blank-page anxiety. Tapping a chip
+                appends its phrase to the current text, separated by a comma. */}
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {QUICK_FILL_KEYS.map((key) => {
+                const phrase = t(`quick_${key}`)
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      const next = customText
+                        ? `${customText.trim().replace(/,$/, '')}, ${phrase}`
+                        : phrase
+                      const clipped = next.slice(0, 300)
+                      setCustomText(clipped)
+                      onCustomTextChange(clipped)
+                    }}
+                    className="text-[12px] font-medium text-text-secondary border border-border-default hover:border-border-strong rounded-full px-2.5 py-1 transition-colors"
+                  >
+                    + {phrase}
+                  </button>
+                )
+              })}
+            </div>
+
             <textarea
               value={customText}
               onChange={(e) => {

@@ -232,7 +232,12 @@
     "custom_prompt": "Additional Instructions",
     "custom_placeholder": "e.g. warm lighting, flowers in background, on a wooden shelf",
     "custom_hint": "Write in any language — Armenian, Russian, or English",
-    "accent": "Accent color"
+    "accent": "Accent color",
+    "quick_shadow": "with soft shadow",
+    "quick_minimal": "minimal style",
+    "quick_warm": "warm tones",
+    "quick_macro": "macro close-up",
+    "quick_props_off": "no extra props"
   },
   "history": {
     "generate_first": "Generate your first image",
