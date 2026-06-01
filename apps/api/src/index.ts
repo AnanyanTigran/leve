@@ -5,6 +5,7 @@ import multipart from '@fastify/multipart'
 import rateLimit from '@fastify/rate-limit'
 import cookie from '@fastify/cookie'
 import { validateEnv } from './config/env'
+import { initSentry, Sentry } from './lib/sentry'
 import { registerAuthMiddleware } from './middleware/auth'
 import { redis } from './lib/redis'
 import { prisma } from './lib/prisma'
@@ -17,9 +18,11 @@ import { registerGenerateRoutes } from './routes/generate/index'
 import { registerPaymentRoutes } from './routes/payments/index'
 import { registerDownloadRoutes } from './routes/download/index'
 import { startPreviewWorker } from './workers/preview.worker'
+import { startStaleTransactionsWorker, scheduleStaleTransactionsCleanup } from './workers/stale-transactions.worker'
 import formbody from '@fastify/formbody'
 
 const env = validateEnv()
+initSentry(env.SENTRY_DSN)
 
 const app = Fastify({
   logger: {
@@ -103,13 +106,20 @@ async function bootstrap() {
   await app.listen({ port: env.PORT, host: '0.0.0.0' })
   app.log.info(`API running on port ${env.PORT}`)
 
-  const worker = startPreviewWorker()
-  worker.on('error', (err) => {
-    app.log.error({ err }, '[worker] startup error')
+  const previewWorker = startPreviewWorker()
+  previewWorker.on('error', (err) => {
+    app.log.error({ err }, '[worker] preview startup error')
   })
+
+  const staleWorker = startStaleTransactionsWorker()
+  staleWorker.on('error', (err) => {
+    app.log.error({ err }, '[worker] stale-transactions startup error')
+  })
+  await scheduleStaleTransactionsCleanup()
 }
 
 bootstrap().catch((err) => {
+  Sentry.captureException(err)
   console.error(err)
   process.exit(1)
 })

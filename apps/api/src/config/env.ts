@@ -37,6 +37,8 @@ const envSchema = z.object({
   // Amazon Translate — uses existing AWS credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
   // IAM policy must include: { "Action": ["translate:TranslateText"], "Resource": "*" }
   AWS_TRANSLATE_ENABLED: z.enum(['true', 'false']).default('false'),
+
+  SENTRY_DSN: z.string().url().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>

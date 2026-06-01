@@ -1,6 +1,8 @@
 import { prisma } from '../lib/prisma'
 import { SessionService } from './session.service'
 import { UserService } from './user.service'
+import { logger } from '../lib/logger'
+import { Sentry } from '../lib/sentry'
 
 export interface GrantCreditsInput {
   sessionId: string
@@ -30,7 +32,8 @@ export async function grantCreditsAndCreateDownloadGrant(
     const identifierType = session.phone ? 'phone' : 'email'
     if (identifier) {
       await UserService.addCredits(identifier, identifierType, credits, 0).catch((err) => {
-        console.error('[creditService] DB credits sync failed — Redis is source of truth', err)
+        logger.error({ err }, '[creditService] DB credits sync failed — Redis is source of truth')
+        Sentry.captureException(err)
       })
     }
   }
@@ -52,7 +55,8 @@ export async function grantCreditsAndCreateDownloadGrant(
         hdS3Key: input.hdS3Key,
       },
     }).catch((err) => {
-      console.error('[creditService] DownloadGrant creation failed — credits already granted', err)
+      logger.error({ err }, '[creditService] DownloadGrant creation failed — credits already granted')
+      Sentry.captureException(err)
     })
   }
 }
