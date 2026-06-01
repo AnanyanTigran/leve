@@ -27,16 +27,18 @@ export async function probeImageQuality(buffer: Buffer): Promise<QualityWarning 
   // sharp returns per-channel stats; collapse to an approximate luminance via
   // the standard ITU-R BT.601 weights when we have at least 3 channels, else
   // fall back to channel 0.
-  const ch = stats.channels
+  const [r, g, b] = stats.channels
+  if (!r) return null
+
   const mean =
-    ch.length >= 3
-      ? 0.299 * ch[0].mean + 0.587 * ch[1].mean + 0.114 * ch[2].mean
-      : ch[0]?.mean ?? 128
+    g && b
+      ? 0.299 * r.mean + 0.587 * g.mean + 0.114 * b.mean
+      : r.mean
 
   const stdev =
-    ch.length >= 3
-      ? 0.299 * ch[0].stdev + 0.587 * ch[1].stdev + 0.114 * ch[2].stdev
-      : ch[0]?.stdev ?? 0
+    g && b
+      ? 0.299 * r.stdev + 0.587 * g.stdev + 0.114 * b.stdev
+      : r.stdev
 
   if (mean < DARK_MEAN) return 'too_dark'
   if (mean > BRIGHT_MEAN) return 'too_bright'
