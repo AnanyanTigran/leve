@@ -48,6 +48,7 @@ model Transaction {
   @@index([sessionId])
   @@index([orderId])
   @@index([status])
+  @@index([status, createdAt])
 }
 
 model GenerationJob {
