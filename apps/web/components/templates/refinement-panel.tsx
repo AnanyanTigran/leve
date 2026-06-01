@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,11 @@ interface RefinementPanelProps {
   onCustomTextChange: (text: string) => void
   onAspectRatioChange: (ratio: AspectRatio) => void
   selectedAspectRatio: AspectRatio
+  // Initial values used to seed the panel's internal state (e.g. when the
+  // parent restores prior selection after a generation failure). Only consumed
+  // when they change to a non-empty value.
+  initialChipIds?: string[]
+  initialCustomText?: string
 }
 
 // i18n keys for the quick-fill chips above the custom text textarea.
@@ -31,12 +36,33 @@ export function RefinementPanel({
   onCustomTextChange,
   onAspectRatioChange,
   selectedAspectRatio,
+  initialChipIds,
+  initialCustomText,
 }: RefinementPanelProps) {
   const locale = useLocale()
   const t = useTranslations('refinement')
-  const [selectedChips, setSelectedChips] = useState<string[]>([])
-  const [customText, setCustomText] = useState('')
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [selectedChips, setSelectedChips] = useState<string[]>(initialChipIds ?? [])
+  const [customText, setCustomText] = useState(initialCustomText ?? '')
+  // Auto-expand the panel when restoring a non-empty selection so the user
+  // can see what was restored.
+  const [isExpanded, setIsExpanded] = useState<boolean>(
+    (initialChipIds?.length ?? 0) > 0 || (initialCustomText?.length ?? 0) > 0,
+  )
+
+  // Re-seed local state when the parent supplies a fresh restored value.
+  // Cheap guard avoids resetting user-typed text on every render.
+  useEffect(() => {
+    if (initialChipIds && initialChipIds.length > 0) {
+      setSelectedChips(initialChipIds)
+      setIsExpanded(true)
+    }
+  }, [initialChipIds])
+  useEffect(() => {
+    if (initialCustomText && initialCustomText.length > 0) {
+      setCustomText(initialCustomText)
+      setIsExpanded(true)
+    }
+  }, [initialCustomText])
 
   const categoryChips = CATEGORY_CHIPS[category] ?? []
 

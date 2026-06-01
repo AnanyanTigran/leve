@@ -100,13 +100,32 @@ export default function SceneSelectionPage() {
     if (savedRatio) setAspectRatio(savedRatio)
   }, [])
 
-  // Surface generation errors set by processing page on failure/timeout
+  // Surface generation errors set by processing page on failure/timeout.
+  // On failure we also restore the user's prior scene + chip + custom-text
+  // selection so they can re-try with one tap instead of re-building the
+  // entire request from scratch.
   useEffect(() => {
     const genError = sessionStorage.getItem('leve_generation_error')
-    if (genError) {
-      sessionStorage.removeItem('leve_generation_error')
-      setGenerationError(genError)
+    if (!genError) return
+    sessionStorage.removeItem('leve_generation_error')
+    setGenerationError(genError)
+
+    const savedSceneId = sessionStorage.getItem('leve_scene_id')
+    if (savedSceneId) {
+      const scene = getSceneById(savedSceneId)
+      if (scene) setSelectedScene(scene)
     }
+    const savedChips = sessionStorage.getItem('leve_selected_chips')
+    if (savedChips) {
+      try {
+        const parsed = JSON.parse(savedChips)
+        if (Array.isArray(parsed)) setSelectedChips(parsed.filter((c): c is string => typeof c === 'string'))
+      } catch {
+        // ignore malformed sessionStorage entry
+      }
+    }
+    const savedCustom = sessionStorage.getItem('leve_custom_text')
+    if (savedCustom) setCustomText(savedCustom)
   }, [])
 
   // Handle OTP-required error
@@ -172,6 +191,10 @@ export default function SceneSelectionPage() {
     sessionStorage.setItem('leve_scene_id', selectedScene.id)
     sessionStorage.setItem('leve_scene_name', selectedScene.name)
     sessionStorage.setItem('leve_aspect_ratio', aspectRatio)
+    // Persist chips + custom text so we can restore selection if generation
+    // fails and the user bounces back to this page.
+    sessionStorage.setItem('leve_selected_chips', JSON.stringify(selectedChips))
+    sessionStorage.setItem('leve_custom_text', customText)
 
     if (result.softCapReached) {
       sessionStorage.setItem('leve_soft_cap_reached', '1')
@@ -278,6 +301,8 @@ export default function SceneSelectionPage() {
                 onCustomTextChange={setCustomText}
                 onAspectRatioChange={setAspectRatio}
                 selectedAspectRatio={aspectRatio}
+                initialChipIds={selectedChips}
+                initialCustomText={customText}
               />
             </div>
           )}
