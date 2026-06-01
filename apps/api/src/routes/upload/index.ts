@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { nanoid } from 'nanoid'
 import { validateImage } from '../../services/image-validation.service'
+import { probeImageQuality } from '../../services/image-quality.service'
 import { uploadToS3, buildS3Key } from '../../lib/s3'
 import { checkRateLimit, uploadRateLimitKey } from '../../lib/rate-limit'
 
@@ -86,7 +87,12 @@ export async function registerUploadRoute(app: FastifyInstance) {
         return reply.status(500).send({ success: false, error: 'upload_error', requestId })
       }
 
-      app.log.info({ requestId, s3Key, sessionId: session.sessionId }, 'upload complete')
+      // Best-effort quality probe — never blocks. The FE shows a soft
+      // warning ("looks a bit dark — generate anyway?") so users avoid
+      // spending a credit on a low-quality source photo.
+      const qualityWarning = await probeImageQuality(fileBuffer)
+
+      app.log.info({ requestId, s3Key, sessionId: session.sessionId, qualityWarning }, 'upload complete')
 
       return reply.send({
         success: true,
@@ -94,6 +100,7 @@ export async function registerUploadRoute(app: FastifyInstance) {
           uploadKey: s3Key,
           width: validation.width,
           height: validation.height,
+          qualityWarning, // 'too_dark' | 'too_bright' | 'low_contrast' | null
         },
         requestId,
       })

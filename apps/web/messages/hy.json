@@ -292,6 +292,12 @@
     "otp_limit_cta": "Գրանցվել անվճար",
     "otp_limit_back": "Հետ",
     "saved_favorite": "Պահել որպես կանխադրված",
-    "remove_favorite": "Հեռացնել կանխադրվածը"
+    "remove_favorite": "Հեռացնել կանխադրվածը",
+    "quality_too_dark_title": "Լուսանկարը մի փոքր մութ է",
+    "quality_too_dark_sub": "Արդյունքը կարող է անհավասար լինել — ստեղծե՞լ",
+    "quality_too_bright_title": "Լուսանկարը գերլուսավորված է",
+    "quality_too_bright_sub": "Լույս հատվածները կարող են լվացված լինել — ստեղծե՞լ",
+    "quality_low_contrast_title": "Լուսանկարը ցածր կոնտրաստ ունի",
+    "quality_low_contrast_sub": "Մանրամասները կարող են փափուկ լինել — ստեղծե՞լ"
   }
 }

@@ -34,6 +34,7 @@ export default function SceneSelectionPage() {
   const [showOtpSheet, setShowOtpSheet] = useState(false)
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
   const [generationError, setGenerationError] = useState<string | null>(null)
+  const [uploadQuality, setUploadQuality] = useState<string | null>(null)
 
   const { generate, isLoading, error, setError } = useGenerate()
 
@@ -66,6 +67,15 @@ export default function SceneSelectionPage() {
     setCategory(cat)
     if (favScene) {
       setFavoriteSceneId(favScene)
+    }
+
+    // Surface the upload quality probe result (set by the upload route) as a
+    // soft warning so the user knows results may be uneven before they spend
+    // a generation. Shown once per upload session and never blocks.
+    const quality = sessionStorage.getItem('leve_upload_quality')
+    if (quality) {
+      setUploadQuality(quality)
+      sessionStorage.removeItem('leve_upload_quality')
     }
 
     // If no category set, open picker immediately so the user must choose
@@ -231,6 +241,27 @@ export default function SceneSelectionPage() {
           <p className="text-[13px] text-[#DC2626] font-medium">
             {generationError === 'timeout' ? t('error_timeout') : t('error_failed')}
           </p>
+        </div>
+      )}
+
+      {uploadQuality && !generationError && (
+        <div className="mx-4 mt-3 px-4 py-3 bg-accent-subtle border border-accent-border rounded-[10px] flex items-start gap-3">
+          <div className="flex-1">
+            <p className="text-[13px] text-text-primary font-medium">
+              {t(`quality_${uploadQuality}_title`)}
+            </p>
+            <p className="text-[12px] text-text-muted mt-0.5">
+              {t(`quality_${uploadQuality}_sub`)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUploadQuality(null)}
+            className="text-[12px] text-text-secondary hover:text-text-primary shrink-0"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
 

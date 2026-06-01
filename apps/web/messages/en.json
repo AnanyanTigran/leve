@@ -292,6 +292,12 @@
     "otp_limit_cta": "Register free — get 2 HD images",
     "otp_limit_back": "Back",
     "saved_favorite": "Save as default scene",
-    "remove_favorite": "Remove default scene"
+    "remove_favorite": "Remove default scene",
+    "quality_too_dark_title": "Your photo looks a bit dark",
+    "quality_too_dark_sub": "Results may be uneven — generate anyway?",
+    "quality_too_bright_title": "Your photo looks overexposed",
+    "quality_too_bright_sub": "Highlights may be washed out — generate anyway?",
+    "quality_low_contrast_title": "Your photo looks low-contrast",
+    "quality_low_contrast_sub": "Details may be soft — generate anyway?"
   }
 }

@@ -147,12 +147,19 @@ export function UploadZone() {
       }
 
       const uploadKey: string = json.data.uploadKey
+      const qualityWarning: string | null = json.data.qualityWarning ?? null
 
       sessionStorage.setItem('leve_upload_key', uploadKey)
       sessionStorage.setItem('leve_upload_preview', dataUrl)
       sessionStorage.setItem('leve_upload_session_id', Date.now().toString())
       sessionStorage.setItem('leve_upload_name', fileState.file.name)
       // leve_category is already written by handleCategorySelect
+
+      if (qualityWarning) {
+        sessionStorage.setItem('leve_upload_quality', qualityWarning)
+      } else {
+        sessionStorage.removeItem('leve_upload_quality')
+      }
 
       router.push('/templates')
     } catch {
