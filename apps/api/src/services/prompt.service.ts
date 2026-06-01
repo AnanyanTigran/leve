@@ -124,6 +124,32 @@ const SCENE_PROMPTS: Record<string, string> = {
 
   editorial_dark:
     'Place the product in a moody dark editorial scene with deep shadows and a single dramatic key light from the side. Use a high-contrast luxury brand aesthetic.',
+
+  // ─── Additions (2026-06) ───────────────────────────────────────────────────
+  // Backed by competitor research (Pebblely top templates, Photoroom
+  // best-converting backgrounds) and cultural anchoring for the Armenian SME
+  // audience. See audit deliverable 3 for rationale.
+
+  // Solid vibrant color backdrop — Pebblely's most-used template type.
+  colored_pop:
+    'Replace the background with a vibrant solid bright color such as deep coral, sage green, or sky blue. Light the product with crisp even studio softbox lighting for a bold modern aesthetic.',
+
+  // Armenian apricot — national symbolic color (Pantone 1235 family).
+  // Flatters skincare, jewelry, and warm-toned product palettes.
+  apricot_warm:
+    'Replace the background with a warm seamless apricot-peach gradient that fades slightly darker near the bottom. Light with soft diffused warm studio lighting.',
+
+  // Armenian copper jezve coffee context — culturally specific cafe scene.
+  coffee_jezve:
+    'Place the product on a small wooden cafe table beside a small Armenian copper coffee jezve and a tiny cup of black coffee, with a warm cafe interior softly blurred behind. Light the scene with warm ambient indoor lighting.',
+
+  // Wildberries-compliant packshot: neutral white, 15% padding, 70% fill.
+  wb_white_strict:
+    'Replace the background with a clean neutral white seamless backdrop. Light with even shadowless commercial softbox lighting. Leave approximately 15 percent empty padding around the product. Compose the product to fill approximately 70 percent of the frame, perfectly centered.',
+
+  // Best-converting lifestyle framing without a full model — "in hand".
+  handheld_lifestyle:
+    'Place the product as if gently held in a person’s hand, with only the hand visible and the rest of the frame softly blurred. Light with soft natural daylight from the side. Use a shallow depth of field for a candid lifestyle feel.',
 }
 
 // ─── Chip Prompt Fragments ─────────────────────────────────────────────────────
