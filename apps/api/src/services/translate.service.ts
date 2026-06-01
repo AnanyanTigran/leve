@@ -31,6 +31,7 @@ export async function translateToEnglish(text: string): Promise<string> {
   }
 
   // Pure ASCII is almost certainly already English — skip the API call
+  // eslint-disable-next-line no-control-regex
   if (/^[\x00-\x7F]*$/.test(text)) {
     return text
   }
