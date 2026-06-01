@@ -72,7 +72,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
             signedUrlIssuedAt: new Date(),
           },
         })
-        .then((updated) => {
+        .then((updated: { downloadCount: number }) => {
           if (updated.downloadCount > MAX_DOWNLOAD_COUNT_ALERT) {
             app.log.warn(
               {
@@ -84,7 +84,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
             )
           }
         })
-        .catch((err) => app.log.error({ err }, 'download count update failed'))
+        .catch((err: unknown) => app.log.error({ err }, 'download count update failed'))
 
       app.log.info({ requestId, jobId, sessionId: session.sessionId }, 'signed url issued')
 
@@ -192,7 +192,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       // Previews get 48h expiry — shorter than HD downloads
       let signedUrls: string[]
       try {
-        signedUrls = job.previewS3Keys.map((key) =>
+        signedUrls = job.previewS3Keys.map((key: string) =>
           buildCloudfrontSignedUrl(key, 60 * 60 * 48),
         )
       } catch (err) {

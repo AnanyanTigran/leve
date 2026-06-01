@@ -31,7 +31,7 @@ export async function grantCreditsAndCreateDownloadGrant(
     const identifier = session.phone ?? session.email
     const identifierType = session.phone ? 'phone' : 'email'
     if (identifier) {
-      await UserService.addCredits(identifier, identifierType, credits, 0).catch((err) => {
+      await UserService.addCredits(identifier, identifierType, credits, 0).catch((err: unknown) => {
         logger.error({ err }, '[creditService] DB credits sync failed — Redis is source of truth')
         Sentry.captureException(err)
       })
@@ -54,7 +54,7 @@ export async function grantCreditsAndCreateDownloadGrant(
         transactionId,
         hdS3Key: input.hdS3Key,
       },
-    }).catch((err) => {
+    }).catch((err: unknown) => {
       logger.error({ err }, '[creditService] DownloadGrant creation failed — credits already granted')
       Sentry.captureException(err)
     })

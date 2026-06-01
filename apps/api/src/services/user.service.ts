@@ -88,7 +88,7 @@ export class UserService {
         totalCreditsUsed: { increment: 1 },
         generationCount: { increment: 1 },
       },
-    }).catch((err) => {
+    }).catch((err: unknown) => {
       // Non-fatal — Redis is source of truth for real-time credits
       logger.error({ err }, '[UserService] recordGeneration DB sync failed')
     })
