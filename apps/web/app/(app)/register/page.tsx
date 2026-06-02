@@ -45,9 +45,21 @@ export default function RegisterPage() {
     return () => controller.abort()
   }, [router])
 
-  function handleContinue(contactValue: string, authMethod: 'phone' | 'email') {
+  async function handleContinue(contactValue: string, authMethod: 'phone' | 'email') {
     setContact(contactValue)
     setMethod(authMethod)
+    // Send OTP first
+    try {
+      await fetch('/api/register/otp/send', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: contactValue, identifierType: authMethod }),
+      })
+    } catch {
+      // non-fatal — proceed to OTP step anyway, user can resend
+    }
+
     setStep('otp')
   }
 
