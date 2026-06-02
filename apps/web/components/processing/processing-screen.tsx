@@ -6,15 +6,35 @@ import { useTranslations } from 'next-intl'
 import { AppHeader } from '@/components/shared/app-header'
 
 const PHASE_KEYS = ['phase_1', 'phase_2', 'phase_3', 'phase_4'] as const
+// Real worker phases mapped to a target progress fraction. The bar advances
+// when the worker reports a new phase via /api/generate/status; it never
+// runs ahead of actual work.
+const PHASE_PROGRESS: Record<string, number> = {
+  queued: 0.1,
+  processing: 0.3,
+  generating: 0.55,
+  finalizing: 0.85,
+  done: 1,
+}
+// Map a real worker phase to one of the four user-facing phase strings.
+const WORKER_PHASE_TO_INDEX: Record<string, number> = {
+  queued: 0,
+  processing: 1,
+  generating: 2,
+  finalizing: 3,
+}
+const POLL_FAILURE_OFFLINE_THRESHOLD = 3
 
 export function ProcessingScreen() {
   const router = useRouter()
   const t = useTranslations('processing')
+  const tResults = useTranslations('results')
   const PHASES = PHASE_KEYS.map((k) => t(k))
   const [phaseIndex, setPhaseIndex] = useState(0)
   const [phaseVisible, setPhaseVisible] = useState(true)
-  const [progressWidth, setProgressWidth] = useState(0)
+  const [progressFraction, setProgressFraction] = useState(0.05)
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  const [isReconnecting, setIsReconnecting] = useState(false)
 
   useEffect(() => {
     const jobId = sessionStorage.getItem('leve_job_id')
@@ -29,9 +49,8 @@ export function ProcessingScreen() {
     const uploadPreviewData = sessionStorage.getItem('leve_upload_preview')
     if (uploadPreviewData) setUploadPreview(uploadPreviewData)
 
-    const raf = requestAnimationFrame(() => setProgressWidth(85))
-
     let attempts = 0
+    let pollFailures = 0
     const MAX_ATTEMPTS = 60 // 2 minutes at 2s interval
 
     const poll = async () => {
@@ -41,9 +60,27 @@ export function ProcessingScreen() {
         })
         const data = await res.json()
         const status = data?.data?.status
+        const phase = data?.data?.phase as string | undefined
+
+        // Successful poll — clear reconnecting state
+        pollFailures = 0
+        setIsReconnecting((prev) => (prev ? false : prev))
+
+        // Advance the bar based on real worker phase (falls back to status)
+        const key = phase ?? status
+        const target = typeof key === 'string' ? PHASE_PROGRESS[key] : undefined
+        if (target !== undefined) {
+          setProgressFraction((prev) => Math.max(prev, target))
+        }
+        // Sync the user-facing phase label with the real worker phase
+        if (phase && WORKER_PHASE_TO_INDEX[phase] !== undefined) {
+          const target = WORKER_PHASE_TO_INDEX[phase]
+          setPhaseIndex((prev) => (prev === target ? prev : target))
+        }
 
         if (status === 'done') {
           clearInterval(interval)
+          setProgressFraction(1)
           sessionStorage.removeItem('leve_job_dispatched_at')
           router.push('/results')
           return
@@ -63,13 +100,19 @@ export function ProcessingScreen() {
           router.push('/templates')
         }
       } catch {
-        // network error — keep polling
+        // network error — keep polling, but surface "Reconnecting…" if it persists
+        pollFailures += 1
+        if (pollFailures >= POLL_FAILURE_OFFLINE_THRESHOLD) {
+          setIsReconnecting((prev) => (prev ? prev : true))
+        }
       }
     }
 
     const interval = setInterval(poll, 2000)
     poll() // immediate first check
 
+    // Fallback phase label cycle — only used when the worker hasn't yet
+    // reported a phase. Once a real phase arrives the worker drives the index.
     const phaseInterval = setInterval(() => {
       setPhaseVisible(false)
       setTimeout(() => {
@@ -79,7 +122,6 @@ export function ProcessingScreen() {
     }, 2500)
 
     return () => {
-      cancelAnimationFrame(raf)
       clearInterval(interval)
       clearInterval(phaseInterval)
     }
@@ -110,14 +152,16 @@ export function ProcessingScreen() {
           {PHASES[phaseIndex]}
         </p>
 
-        {/* Progress bar + time estimate — full width of page-funnel */}
+        {/* Progress bar + time estimate — full width of page-funnel.
+            Width is driven by the real worker phase reported by /api/generate/status,
+            with a 400ms ease so jumps look smooth rather than snapping. */}
         <div className="w-full flex flex-col gap-3">
           <div className="w-full h-[3px] rounded-[2px] bg-bg-elevated overflow-hidden">
             <div
               className="h-full bg-[#D64C1A] rounded-[2px]"
               style={{
-                width: `${progressWidth}%`,
-                transition: 'width 20000ms linear',
+                width: `${Math.round(progressFraction * 100)}%`,
+                transition: 'width 400ms ease-out',
               }}
             />
           </div>
@@ -127,6 +171,14 @@ export function ProcessingScreen() {
           <p className="text-[12px] text-text-muted text-center mt-1">
             {t('dont_close')}
           </p>
+          {isReconnecting && (
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <div className="w-3 h-3 rounded-full border-2 border-text-muted border-t-transparent animate-spin" />
+              <span className="text-[12px] text-text-secondary">
+                {tResults('reconnecting')}
+              </span>
+            </div>
+          )}
         </div>
       </main>
     </div>

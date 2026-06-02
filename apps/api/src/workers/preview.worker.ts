@@ -9,6 +9,7 @@ import { QUEUE_NAMES, PreviewJobData } from '../lib/queues'
 import { applyTextOverlayToS3Image } from '../lib/text-overlay'
 import { applyWatermark } from '../lib/watermark'
 import { uploadToS3 } from '../lib/s3'
+import { setJobPhase, clearJobPhase } from '../lib/job-phase'
 
 const PREVIEW_CONCURRENCY = 8
 
@@ -27,11 +28,12 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
 
   logger.info({ requestId, jobId, isEdit }, '[preview worker] job start')
 
-  // Mark processing in DB
+  // Mark processing in DB + emit phase for the FE progress bar
   await prisma.generationJob.update({
     where: { id: jobId },
     data: { status: 'processing', bullJobId: String(job.id) },
   })
+  await setJobPhase(jobId, 'processing')
 
   // Deduct 1 credit BEFORE calling provider
   // Anonymous users (isVerified=false) have anon generation budget tracked separately
@@ -49,6 +51,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
   // That counter is tracked in the session object, not here
 
   try {
+    await setJobPhase(jobId, 'generating')
     const output = await runGeneration({
       sessionId,
       jobId,
@@ -59,6 +62,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       isEdit: isEdit ?? false,
       sourceImageS3Key,
     })
+    await setJobPhase(jobId, 'finalizing')
 
     // Quality gate: output dimensions must be at least half of requested size
     const outputMeta = await sharp(output.outputBuffer).metadata()
@@ -75,6 +79,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
         where: { id: jobId },
         data: { status: isVerified ? 'credit_refunded' : 'failed', errorCode: 'quality_gate_failed', qualityGatePassed: false },
       })
+      await clearJobPhase(jobId)
       return
     }
 
@@ -136,6 +141,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       await SessionService.incrementDailyGeneration(sessionId)
     }
 
+    await setJobPhase(jobId, 'done')
     logger.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
   } catch (err) {
     const errorCode = err instanceof Error ? err.message : 'unknown'
@@ -154,6 +160,10 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
         errorCode: isFinalAttempt ? errorCode : null,
       },
     })
+
+    if (isFinalAttempt) {
+      await clearJobPhase(jobId)
+    }
   }
 }
 

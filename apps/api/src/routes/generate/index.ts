@@ -10,6 +10,7 @@ import {
   FREE_DAILY_GENERATION_SOFT_CAP,
 } from '../../lib/session.types'
 import { checkAnonIpGenerationLimit } from '../../lib/rate-limit'
+import { getJobPhase, setJobPhase } from '../../lib/job-phase'
 
 const UPLOAD_KEY_PATTERN =
   /^uploads\/[a-zA-Z0-9_-]{10,50}\/[0-9]{10,16}-original\.(jpeg|jpg|png|webp)$/
@@ -163,6 +164,10 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
 
       const priority = session.isPaid ? PRIORITIES.PAID : session.isVerified ? PRIORITIES.VERIFIED : PRIORITIES.ANON
 
+      // Emit initial 'queued' phase so the FE progress bar starts moving
+      // immediately, before the worker picks up the job.
+      await setJobPhase(job.id, 'queued')
+
       await previewQueue.add(
         'preview',
         {
@@ -226,10 +231,15 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(404).send({ success: false, error: 'not_found', requestId })
       }
 
+      // Fine-grained worker phase (Redis, 5min TTL). Drives the FE progress
+      // bar without a Postgres migration. Falls back to status if unset.
+      const phase = await getJobPhase(jobId)
+
       return reply.send({
         success: true,
         data: {
           status: job.status,
+          phase: phase ?? job.status,
           previewS3Keys: job.previewS3Keys,
           hdS3Key: job.hdS3Key,
           provider: job.provider,
