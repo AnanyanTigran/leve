@@ -100,6 +100,12 @@
     "tip4": "Minimum 800×800px resolution",
     "error_type": "Only JPEG, PNG and WEBP files are supported",
     "error_size": "File too large — max 20MB",
+    "error_resolution_too_low": "Photo too small — please use at least 512×512px",
+    "error_resolution_too_high": "Photo too large — please use under 8000×8000px",
+    "error_content_policy": "This photo couldn't be processed. Please try another product photo.",
+    "error_validation_failed": "Couldn't check the photo right now — please try again in a moment",
+    "error_upload_failed": "Upload failed — please try again",
+    "error_rate_limit": "Too many uploads — please wait an hour and try again",
     "category_prompt": "What are you photographing?"
   },
   "templates": {

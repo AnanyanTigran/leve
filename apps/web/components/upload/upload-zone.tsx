@@ -142,7 +142,19 @@ export function UploadZone() {
       const json = await res.json()
 
       if (!res.ok) {
-        setError(json.error ?? t('error_type'))
+        const code = typeof json?.error === 'string' ? json.error : null
+        const ERROR_MAP: Record<string, string> = {
+          invalid_file_type: t('error_type'),
+          file_too_large: t('error_size'),
+          resolution_too_low: t('error_resolution_too_low'),
+          resolution_too_high: t('error_resolution_too_high'),
+          content_policy_violation: t('error_content_policy'),
+          validation_failed: t('error_validation_failed'),
+          rate_limit_exceeded: t('error_rate_limit'),
+          upload_error: t('error_upload_failed'),
+          no_file: t('error_upload_failed'),
+        }
+        setError((code && ERROR_MAP[code]) ?? t('error_upload_failed'))
         return
       }
 
@@ -163,7 +175,7 @@ export function UploadZone() {
 
       router.push('/templates')
     } catch {
-      setError(t('error_type'))
+      setError(t('error_upload_failed'))
     } finally {
       setIsUploading(false)
     }
