@@ -244,6 +244,14 @@ export default function SceneSelectionPage() {
     // fails and the user bounces back to this page.
     sessionStorage.setItem('leve_selected_chips', JSON.stringify(selectedChips))
     sessionStorage.setItem('leve_custom_text', customText)
+    // Snapshot the setup at dispatch time (not at completion) so that if the
+    // session expires during the 15-20s generation wait, the templates page
+    // can still offer "Use my last setup" on return. The results page will
+    // overwrite these on success — but the dispatch-time write closes the gap.
+    sessionStorage.setItem('leve_last_scene_id', selectedScene.id)
+    sessionStorage.setItem('leve_last_chips', JSON.stringify(selectedChips))
+    sessionStorage.setItem('leve_last_aspect_ratio', aspectRatio)
+    sessionStorage.setItem('leve_last_custom_text', customText)
 
     if (result.softCapReached) {
       sessionStorage.setItem('leve_soft_cap_reached', '1')
@@ -278,7 +286,11 @@ export default function SceneSelectionPage() {
       {generationError && (
         <div className="mx-4 mt-3 px-4 py-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px]">
           <p className="text-[13px] text-[#DC2626] font-medium">
-            {generationError === 'timeout' ? t('error_timeout') : t('error_failed')}
+            {generationError === 'timeout'
+              ? t('error_timeout')
+              : generationError === 'quality_gate_failed'
+                ? t('error_quality_gate')
+                : t('error_failed')}
           </p>
         </div>
       )}
@@ -405,6 +417,11 @@ export default function SceneSelectionPage() {
           {error === 'insufficient_credits' && (
             <p className="text-[13px] text-[#EF4444] text-center mb-3">
               {t('insufficient_credits')}
+            </p>
+          )}
+          {error === 'rate_limit_exceeded' && (
+            <p className="text-[13px] text-[#EF4444] text-center mb-3">
+              {t('rate_limit_exceeded')}
             </p>
           )}
 
