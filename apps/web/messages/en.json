@@ -162,7 +162,10 @@
     "edit_submit": "Regenerate",
     "edit_regenerating": "Regenerating...",
     "edit_error": "Edit failed — please try again",
-    "edit_no_credits": "Buy images to edit"
+    "edit_no_credits": "Buy images to edit",
+    "preview_load_failed": "Couldn't load your image",
+    "preview_load_retry": "Try again",
+    "reconnecting": "Reconnecting…"
   },
   "paywall": {
     "title": "Unlock HD Download",

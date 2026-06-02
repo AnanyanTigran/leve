@@ -15,6 +15,20 @@ import type { AspectRatio } from '@leve/types'
 
 type JobStatus = 'queued' | 'processing' | 'done' | 'failed' | null
 
+// Stop polling silently in the background after this many consecutive failures —
+// surface a "Reconnecting…" hint to the user instead.
+const POLL_FAILURE_OFFLINE_THRESHOLD = 3
+// Preview URL fetch should not hang forever — fail fast and show retry button.
+const PREVIEW_URL_TIMEOUT_MS = 10_000
+
+async function fetchPreviewUrlWithTimeout(jobId: string, signal: AbortSignal) {
+  const res = await fetch(`/api/download/preview-url?jobId=${jobId}`, {
+    credentials: 'include',
+    signal,
+  })
+  return res.json() as Promise<{ success: boolean; data?: { previewUrls?: string[] } }>
+}
+
 export default function ResultsPage() {
   const router = useRouter()
   const t = useTranslations('results')
@@ -28,7 +42,10 @@ export default function ResultsPage() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<JobStatus>(null)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
+  const [previewUrlError, setPreviewUrlError] = useState(false)
+  const [isReconnecting, setIsReconnecting] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pollFailuresRef = useRef(0)
 
   // Edit flow state
   const [editPrompt, setEditPrompt] = useState('')
@@ -84,15 +101,22 @@ export default function ResultsPage() {
     // When returning from a payment redirect the job is already done — skip
     // status polling and go straight to fetching the preview URL.
     if (paywallInitialState === 'processing') {
-      fetch(`/api/download/preview-url?jobId=${jobId}`, { credentials: 'include' })
-        .then(r => r.json())
+      const ctl = new AbortController()
+      const timeoutId = setTimeout(() => ctl.abort(), PREVIEW_URL_TIMEOUT_MS)
+      fetchPreviewUrlWithTimeout(jobId, ctl.signal)
         .then(urlData => {
-          if (urlData.success && urlData.data.previewUrls?.[0]) {
+          if (urlData.success && urlData.data?.previewUrls?.[0]) {
             setGeneratedImageUrl(urlData.data.previewUrls[0])
+            setPreviewUrlError(false)
+          } else {
+            setPreviewUrlError(true)
           }
         })
-        .catch(() => {})
-        .finally(() => setJobStatus('done'))
+        .catch(() => setPreviewUrlError(true))
+        .finally(() => {
+          clearTimeout(timeoutId)
+          setJobStatus('done')
+        })
       return
     }
 
@@ -108,16 +132,28 @@ export default function ResultsPage() {
         const data = await res.json()
         if (!res.ok || !data.success) return
 
+        // Successful poll — clear any "reconnecting" indicator
+        pollFailuresRef.current = 0
+        if (isReconnecting) setIsReconnecting(false)
+
         setJobStatus(data.data.status)
 
         if (data.data.status === 'done') {
           if (pollRef.current) clearInterval(pollRef.current)
-          const urlRes = await fetch(`/api/download/preview-url?jobId=${jobId}`, {
-            credentials: 'include',
-          })
-          const urlData = await urlRes.json()
-          if (urlData.success && urlData.data.previewUrls?.[0]) {
-            setGeneratedImageUrl(urlData.data.previewUrls[0])
+          const ctl = new AbortController()
+          const timeoutId = setTimeout(() => ctl.abort(), PREVIEW_URL_TIMEOUT_MS)
+          try {
+            const urlData = await fetchPreviewUrlWithTimeout(jobId, ctl.signal)
+            if (urlData.success && urlData.data?.previewUrls?.[0]) {
+              setGeneratedImageUrl(urlData.data.previewUrls[0])
+              setPreviewUrlError(false)
+            } else {
+              setPreviewUrlError(true)
+            }
+          } catch {
+            setPreviewUrlError(true)
+          } finally {
+            clearTimeout(timeoutId)
           }
           // Snapshot the last successful selection so the templates page can
           // offer a "Use my last setup" quick action on the next upload.
@@ -152,14 +188,18 @@ export default function ResultsPage() {
           }
         }
       } catch {
-        // network error — keep polling
+        // network error — keep polling, but surface "Reconnecting…" after a few failures
+        pollFailuresRef.current += 1
+        if (pollFailuresRef.current >= POLL_FAILURE_OFFLINE_THRESHOLD && !isReconnecting) {
+          setIsReconnecting(true)
+        }
       }
     }
 
     poll()
     pollRef.current = setInterval(poll, 2000)
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [jobId, jobStatus, paywallInitialState, router])
+  }, [jobId, jobStatus, paywallInitialState, router, isReconnecting])
 
   // Check whether the user can still run edits (credits or anon budget remaining)
   useEffect(() => {
@@ -178,6 +218,25 @@ export default function ResultsPage() {
   }, [jobStatus])
 
   const verified = typeof window !== 'undefined' ? isVerified() : false
+
+  async function handleRetryPreviewUrl() {
+    if (!jobId) return
+    setPreviewUrlError(false)
+    const ctl = new AbortController()
+    const timeoutId = setTimeout(() => ctl.abort(), PREVIEW_URL_TIMEOUT_MS)
+    try {
+      const urlData = await fetchPreviewUrlWithTimeout(jobId, ctl.signal)
+      if (urlData.success && urlData.data?.previewUrls?.[0]) {
+        setGeneratedImageUrl(urlData.data.previewUrls[0])
+      } else {
+        setPreviewUrlError(true)
+      }
+    } catch {
+      setPreviewUrlError(true)
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  }
 
   async function handleShare() {
     if (navigator.share) {
@@ -286,8 +345,28 @@ export default function ResultsPage() {
         }
       />
 
-      <main className="page-content flex-1 overflow-y-auto pb-24">
+      <main className="page-content flex-1 overflow-y-auto pb-40">
         <div className="py-4 flex flex-col gap-4">
+          {isReconnecting && (
+            <div className="px-3 py-2 bg-bg-surface border border-border-default rounded-[10px] flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full border-2 border-text-muted border-t-transparent animate-spin" />
+              <span className="text-[12px] text-text-secondary">{t('reconnecting')}</span>
+            </div>
+          )}
+          {previewUrlError && (
+            <div className="px-4 py-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px] flex items-center justify-between gap-3">
+              <p className="text-[13px] text-[#DC2626] font-medium">
+                {t('preview_load_failed')}
+              </p>
+              <button
+                type="button"
+                onClick={handleRetryPreviewUrl}
+                className="text-[13px] text-[#DC2626] font-semibold underline"
+              >
+                {t('preview_load_retry')}
+              </button>
+            </div>
+          )}
           <BeforeAfterSlider
             beforeSrc={previousImageUrl ?? uploadPreview}
             afterSrc={generatedImageUrl}
@@ -348,16 +427,24 @@ export default function ResultsPage() {
             </div>
           )}
 
-          <div className="mt-4 mb-2">
+        </div>
+      </main>
+
+      {/* Sticky Download HD CTA — sits above the BottomNav so it stays
+          visible while the user scrolls through the slider, phone nudge,
+          text overlay, and edit panels above the fold. */}
+      {!paywallOpen && (
+        <div className="fixed left-0 right-0 bottom-16 z-40 bg-bg-base border-t border-border-default px-4 py-3 safe-area-pb">
+          <div className="page-content">
             <button
               onClick={() => setPaywallOpen(true)}
-              className="btn-primary btn-full"
+              className="btn-primary btn-full h-12 text-[15px] font-semibold"
             >
               {tPaywall('title')}
             </button>
           </div>
         </div>
-      </main>
+      )}
 
       {!paywallOpen && <BottomNav />}
       <PaywallSheet
