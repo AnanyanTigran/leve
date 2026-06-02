@@ -4,6 +4,24 @@ import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
 import { buildCloudfrontSignedUrl } from '../../lib/cloudfront'
 import { exportForPlatform } from '../../services/export.service'
+import { applyTextOverlayToS3Image } from '../../lib/text-overlay'
+
+// Resolve the actual S3 key to serve for a job's HD download. If the user
+// configured a text overlay on /results, composite it onto the HD output
+// here so the downloaded image matches the live preview they saw.
+async function resolveHdKeyWithOverlay(
+  hdKey: string,
+  job: { id: string; sessionId: string; overlayText: string | null; overlayPosition: string | null },
+): Promise<string> {
+  if (!job.overlayText) return hdKey
+  return applyTextOverlayToS3Image({
+    sourceS3Key: hdKey,
+    sessionId: job.sessionId,
+    jobId: job.id,
+    text: job.overlayText,
+    position: (job.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
+  })
+}
 
 const MAX_DOWNLOAD_COUNT_ALERT = 10
 
@@ -55,9 +73,17 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         })
       }
 
+      let hdKey: string
+      try {
+        hdKey = await resolveHdKeyWithOverlay(grant.job.hdS3Key, grant.job)
+      } catch (err) {
+        app.log.error({ requestId, jobId, err }, 'overlay composite failed — falling back to clean HD')
+        hdKey = grant.job.hdS3Key
+      }
+
       let signedUrl: string
       try {
-        signedUrl = buildCloudfrontSignedUrl(grant.job.hdS3Key)
+        signedUrl = buildCloudfrontSignedUrl(hdKey)
       } catch (err) {
         app.log.error({ requestId, err }, 'cloudfront signing failed')
         return reply.status(500).send({ success: false, error: 'signing_failed', requestId })
@@ -141,6 +167,22 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       } catch (err) {
         app.log.error({ requestId, jobId, platform, err }, 'export failed')
         return reply.status(500).send({ success: false, error: 'export_failed', requestId })
+      }
+
+      // Apply text overlay AFTER platform resize so the font scales correctly
+      // to the target dimensions. Falls back to the clean export on failure.
+      if (grant.job.overlayText) {
+        try {
+          exportKey = await applyTextOverlayToS3Image({
+            sourceS3Key: exportKey,
+            sessionId: session.sessionId,
+            jobId,
+            text: grant.job.overlayText,
+            position: (grant.job.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
+          })
+        } catch (err) {
+          app.log.error({ requestId, jobId, platform, err }, 'overlay composite on export failed — serving clean export')
+        }
       }
 
       let signedUrl: string

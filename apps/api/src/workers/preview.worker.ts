@@ -6,7 +6,6 @@ import { logger } from '../lib/logger'
 import { SessionService } from '../services/session.service'
 import { runGeneration } from '../providers/model-router'
 import { QUEUE_NAMES, PreviewJobData } from '../lib/queues'
-import { applyTextOverlayToS3Image } from '../lib/text-overlay'
 import { applyWatermark } from '../lib/watermark'
 import { uploadToS3 } from '../lib/s3'
 import { setJobPhase, clearJobPhase } from '../lib/job-phase'
@@ -98,34 +97,15 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       }
     }
 
-    // Apply text overlay if the route stored one on the job record
-    const jobRecord = await prisma.generationJob.findUnique({
-      where: { id: jobId },
-      select: { overlayText: true, overlayPosition: true },
-    })
-
-    let finalS3Key = workingKey
-
-    if (jobRecord?.overlayText) {
-      try {
-        finalS3Key = await applyTextOverlayToS3Image({
-          sourceS3Key: workingKey,
-          sessionId,
-          jobId,
-          text: jobRecord.overlayText,
-          position: (jobRecord.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
-        })
-      } catch (err) {
-        // Non-fatal — serve image without overlay rather than failing the job
-        logger.error({ requestId, jobId, err }, '[preview worker] text overlay failed — serving without overlay')
-      }
-    }
-
+    // Text overlay is now applied at HD download time (see audit R1), not on
+    // the preview. The user picks/edits the overlay live on /results, so the
+    // preview stays clean and the overlay is composited deterministically
+    // when they actually download.
     await prisma.generationJob.update({
       where: { id: jobId },
       data: {
         status: 'done',
-        previewS3Keys: [finalS3Key],
+        previewS3Keys: [workingKey],
         hdS3Key: output.s3Key,
         provider: output.provider,
         durationMs: output.durationMs,

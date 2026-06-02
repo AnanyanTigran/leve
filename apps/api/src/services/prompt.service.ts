@@ -289,66 +289,10 @@ const PRODUCT_PRESERVATION_SUFFIX =
 const GLOBAL_QUALITY_SUFFIX =
   'Deliver high-resolution professional product photography quality with sharp focus on the product, accurate true-to-source colors, realistic soft contact shadows grounding it to the surface, and crisp commercial detail.'
 
-// ─── Text-on-Image Detection ───────────────────────────────────────────────────
-// Detect when user wants text rendered ON the image.
-// We extract the text, do NOT send to Kontext, apply via sharp SVG composite
-// instead. Kept verbatim from the previous implementation — these patterns
-// are validated and correct.
-
-const TEXT_INTENT_PATTERNS = [
-  /add(?:ing)?\s+(?:the\s+)?text/i,
-  /write\s+(?:the\s+)?(?:text\s+)?["""'«»]/i,
-  /put\s+(?:the\s+)?text/i,
-  /include\s+(?:the\s+)?(?:text|word)/i,
-  /добавь?\s+(?:текст|надпись)/i,
-  /напиши?\s/i,
-  /ավելացրու?\s+տեքստ/i,
-  /գրիր?\s/i,
-  // Detect quoted content — the quoted part is likely display text
-  /["""'«»]([^"""'«»]{2,60})["""'«»]/,
-]
-
-const TEXT_EXTRACTION_PATTERN = /["""'«»]([^"""'«»]{2,60})["""'«»]/
-
-export interface ParsedCustomText {
-  sceneDescription: string   // translated, sent to Kontext
-  overlayText: string | null // NOT translated, applied as sharp SVG overlay
-  hasTextIntent: boolean
-}
-
-export function parseCustomText(rawText: string): ParsedCustomText {
-  const cleaned = sanitizeCustomText(rawText)
-
-  const hasTextIntent = TEXT_INTENT_PATTERNS.some((p) => p.test(cleaned))
-
-  if (!hasTextIntent) {
-    return { sceneDescription: cleaned, overlayText: null, hasTextIntent: false }
-  }
-
-  // Extract the exact quoted text — must NOT be translated
-  const quotedMatch = cleaned.match(TEXT_EXTRACTION_PATTERN)
-  const overlayText = quotedMatch?.[1]?.trim() ?? null
-
-  // Remove the text request from the scene description
-  let sceneDescription = cleaned
-  if (overlayText) {
-    sceneDescription = cleaned.replace(TEXT_EXTRACTION_PATTERN, '').trim()
-  }
-  // Remove common text-intent phrases to clean up the scene description
-  sceneDescription = sceneDescription
-    .replace(/add(?:ing)?\s+(?:the\s+)?text\s*/gi, '')
-    .replace(/write\s+(?:the\s+)?(?:text\s+)?/gi, '')
-    .replace(/put\s+(?:the\s+)?text\s*/gi, '')
-    .replace(/добавь?\s+(?:текст|надпись)\s*/gi, '')
-    .replace(/напиши?\s*/gi, '')
-    .replace(/ավելացրու?\s+տեքստ\s*/gi, '')
-    .replace(/գրիր?\s*/gi, '')
-    .trim()
-
-  return { sceneDescription, overlayText, hasTextIntent: true }
-}
-
 // ─── Main Prompt Compiler ──────────────────────────────────────────────────────
+// NOTE: Text-on-image (price tags, "SALE", etc.) is no longer parsed here.
+// The user picks the overlay on the results page and it is composited
+// deterministically at HD download time. See audit R1.
 
 export interface CompilePromptInput {
   sceneId: string

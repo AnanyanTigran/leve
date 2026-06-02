@@ -8,9 +8,10 @@ import { AppHeader } from '@/components/shared/app-header'
 import { isVerified } from '@/lib/session'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { BeforeAfterSlider } from '@/components/results/before-after-slider'
-import { TextOverlaySection } from '@/components/results/text-overlay-section'
+import { TextOverlaySection, type OverlayState } from '@/components/results/text-overlay-section'
 import { PaywallSheet } from '@/components/results/paywall-sheet'
 import { useGenerate } from '@/hooks/use-generate'
+import { cn } from '@/lib/utils'
 import type { AspectRatio } from '@leve/types'
 
 type JobStatus = 'queued' | 'processing' | 'done' | 'failed' | null
@@ -57,6 +58,10 @@ export default function ResultsPage() {
 
   // Refs so the polling closure reads current edit state without being in its dep array
   const editStateRef = useRef({ isEditing: false, previousImageUrl: null as string | null })
+
+  // Text overlay (live CSS preview + persisted server-side at HD download time)
+  const [overlay, setOverlay] = useState<OverlayState>({ template: null, text: '', position: 'bottom' })
+  const overlayDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const id = sessionStorage.getItem('leve_job_id')
@@ -219,6 +224,32 @@ export default function ResultsPage() {
 
   const verified = typeof window !== 'undefined' ? isVerified() : false
 
+  // Persist overlay choice on the server (debounced) so that when the user
+  // hits Download HD, the worker can composite the latest overlay onto the
+  // HD output deterministically. Failures are swallowed — the live CSS
+  // preview is already showing the correct overlay locally.
+  function persistOverlay(next: OverlayState) {
+    if (!jobId) return
+    if (overlayDebounceRef.current) clearTimeout(overlayDebounceRef.current)
+    overlayDebounceRef.current = setTimeout(() => {
+      const body = JSON.stringify({
+        text: next.template && next.text.trim() ? next.text.trim() : null,
+        position: next.position,
+      })
+      fetch(`/api/jobs/${jobId}/overlay`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      }).catch(() => {})
+    }, 400)
+  }
+
+  function handleOverlayChange(next: OverlayState) {
+    setOverlay(next)
+    persistOverlay(next)
+  }
+
   async function handleRetryPreviewUrl() {
     if (!jobId) return
     setPreviewUrlError(false)
@@ -367,10 +398,31 @@ export default function ResultsPage() {
               </button>
             </div>
           )}
-          <BeforeAfterSlider
-            beforeSrc={previousImageUrl ?? uploadPreview}
-            afterSrc={generatedImageUrl}
-          />
+          <div className="relative">
+            <BeforeAfterSlider
+              beforeSrc={previousImageUrl ?? uploadPreview}
+              afterSrc={generatedImageUrl}
+            />
+            {/* Live text-overlay preview — purely CSS, no server roundtrip.
+                The HD download composites the same text deterministically. */}
+            {overlay.template && overlay.text.trim().length > 0 && generatedImageUrl && (
+              <div
+                className={cn(
+                  'pointer-events-none absolute left-0 right-0 flex justify-center px-6',
+                  overlay.position === 'top' && 'top-[6%]',
+                  overlay.position === 'center' && 'top-1/2 -translate-y-1/2',
+                  overlay.position === 'bottom' && 'bottom-[8%]',
+                )}
+              >
+                <span
+                  className="inline-block max-w-[80%] truncate rounded-full px-5 py-2 text-white text-[15px] font-semibold"
+                  style={{ background: 'rgba(0,0,0,0.55)', letterSpacing: '0.5px' }}
+                >
+                  {overlay.text}
+                </span>
+              </div>
+            )}
+          </div>
           {!verified && (
             <div className="bg-bg-surface border border-border-default rounded-[12px] p-4 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-accent-subtle flex items-center justify-center shrink-0">
@@ -388,7 +440,7 @@ export default function ResultsPage() {
               </button>
             </div>
           )}
-          <TextOverlaySection />
+          <TextOverlaySection state={overlay} onChange={handleOverlayChange} />
 
           {/* Iterative edit section — shown only when a result exists and session allows it */}
           {generatedImageUrl && canEdit !== null && (

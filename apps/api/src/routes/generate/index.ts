@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
 import { previewQueue, PRIORITIES } from '../../lib/queues'
-import { parseCustomText, compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
+import { compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
 import { translateToEnglish } from '../../services/translate.service'
 import {
   ANON_FREE_GENERATIONS,
@@ -112,17 +112,15 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
       }
 
+      // Custom text is now treated purely as a scene-description hint to the
+      // model. Text-on-image (price tag / SALE / etc.) lives on the results
+      // page via POST /api/jobs/:jobId/overlay and is composited at HD
+      // download time. See audit doc R1.
       const rawCustomText = customText ?? ''
-
-      // Step 1: Detect text-on-image intent and split custom text
-      const { sceneDescription, overlayText, hasTextIntent } = parseCustomText(rawCustomText)
-
-      // Step 2: Translate scene description to English (skipped if already ASCII/English)
-      const translatedDescription = sceneDescription
-        ? await translateToEnglish(sceneDescription)
+      const translatedDescription = rawCustomText
+        ? await translateToEnglish(rawCustomText)
         : ''
 
-      // Step 3: Compile the final AI prompt — overlay text is never included here
       const compiledPrompt = compilePrompt({
         sceneId,
         category,
@@ -130,10 +128,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         translatedSceneDescription: translatedDescription,
       })
 
-      app.log.info(
-        { requestId, hasTextIntent, overlayText: overlayText ?? null },
-        'prompt compiled',
-      )
+      app.log.info({ requestId }, 'prompt compiled')
 
       const job = await prisma.generationJob.create({
         data: {
@@ -144,8 +139,6 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
           status: 'queued',
           uploadS3Key: uploadKey,
           compiledPrompt,
-          overlayText: overlayText ?? null,
-          overlayPosition: 'bottom',
           creditsCost: session.isVerified ? 1 : 0,
           requestId,
         },
@@ -247,6 +240,45 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         },
         requestId,
       })
+    },
+  )
+
+  // POST /api/jobs/:jobId/overlay — persist the user's text overlay choice
+  // from the results page. Applied at HD download time, not on the preview.
+  // Anon and verified sessions both allowed (anon can preview overlays too,
+  // but only verified sessions can actually trigger an HD download).
+  const overlaySchema = z.object({
+    text: z.string().max(80).transform(sanitizeCustomText).nullable(),
+    position: z.enum(['top', 'center', 'bottom']).default('bottom'),
+  })
+  app.post(
+    '/api/jobs/:jobId/overlay',
+    { preHandler: [app.requireSessionOrAnon] },
+    async (request, reply) => {
+      const requestId = nanoid(10)
+      const { jobId } = request.params as { jobId: string }
+      const session = request.session
+
+      const parsed = overlaySchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
+      }
+
+      const job = await prisma.generationJob.findUnique({ where: { id: jobId } })
+      if (!job || job.sessionId !== session.sessionId) {
+        return reply.status(404).send({ success: false, error: 'not_found', requestId })
+      }
+
+      const text = parsed.data.text?.trim()
+      await prisma.generationJob.update({
+        where: { id: jobId },
+        data: {
+          overlayText: text && text.length > 0 ? text : null,
+          overlayPosition: text && text.length > 0 ? parsed.data.position : null,
+        },
+      })
+
+      return reply.send({ success: true, data: { saved: true }, requestId })
     },
   )
 
