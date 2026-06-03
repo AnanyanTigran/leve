@@ -203,6 +203,30 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
     },
   )
 
+  // GET /api/download/check
+  // Cheap existence check for a DownloadGrant. Lets the FE render the
+  // correct CTA on results (download vs unlock) without a 403 round-trip.
+  app.get(
+    '/api/download/check',
+    { preHandler: [app.requireSessionOrAnon] },
+    async (request, reply) => {
+      const requestId = nanoid(10)
+      const { jobId } = request.query as { jobId?: string }
+      if (!jobId) {
+        return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
+      }
+      const grant = await prisma.downloadGrant.findFirst({
+        where: { jobId, sessionId: request.session.sessionId },
+        select: { id: true },
+      })
+      return reply.send({
+        success: true,
+        data: { hasGrant: Boolean(grant) },
+        requestId,
+      })
+    },
+  )
+
   // GET /api/download/preview-url
   // Returns signed URLs for watermarked previews. No payment required.
   app.get(
