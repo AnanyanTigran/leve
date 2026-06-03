@@ -168,7 +168,8 @@
     "edit_no_credits": "Купите изображения для редактирования",
     "preview_load_failed": "Не удалось загрузить изображение",
     "preview_load_retry": "Попробовать снова",
-    "reconnecting": "Восстановление связи…"
+    "reconnecting": "Восстановление связи…",
+    "download_hd": "Скачать HD"
   },
   "paywall": {
     "title": "Разблокировать HD загрузку",

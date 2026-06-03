@@ -35,10 +35,13 @@ export default function ResultsPage() {
   const t = useTranslations('results')
   const tPaywall = useTranslations('paywall')
   const { generate } = useGenerate()
-  const { session } = useSession()
+  const { session, mutate: refreshSession } = useSession()
   const verified = session?.isVerified === true
 
   const [guarded, setGuarded] = useState(false)
+  // null = still checking; true = user already paid for this job (DownloadGrant exists);
+  // false = paywall is required. Drives the sticky CTA at the bottom of the page.
+  const [hasGrant, setHasGrant] = useState<boolean | null>(null)
   const [paywallOpen, setPaywallOpen] = useState(false)
   const [paywallInitialState, setPaywallInitialState] = useState<'pricing' | 'processing'>('pricing')
   const [shareCopied, setShareCopied] = useState(false)
@@ -55,8 +58,16 @@ export default function ResultsPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editError, setEditError] = useState(false)
   const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null)
-  const [canEdit, setCanEdit] = useState<boolean | null>(null)
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+
+  // Derived from shared session — re-derives whenever session changes, so a
+  // post-edit or post-purchase refreshSession() updates the UI without a
+  // separate fetch.
+  const canEdit: boolean | null = (() => {
+    if (!session) return null
+    if (session.isVerified) return session.creditsRemaining > 0
+    return session.anonGenerationsUsed < session.anonGenerationsLimit
+  })()
 
   // Refs so the polling closure reads current edit state without being in its dep array
   const editStateRef = useRef({ isEditing: false, previousImageUrl: null as string | null })
@@ -208,21 +219,47 @@ export default function ResultsPage() {
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [jobId, jobStatus, paywallInitialState, router, isReconnecting])
 
-  // Check whether the user can still run edits (credits or anon budget remaining)
+  // When a job finishes (initial or after an edit), pull fresh session +
+  // download-grant state. canEdit is derived from session.creditsRemaining /
+  // anon budget, hasGrant gates the sticky download CTA.
   useEffect(() => {
-    if (jobStatus !== 'done') return
-    fetch('/api/session/me', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
-        if (!d.success) return
-        const s = d.data
-        setCanEdit(
-          (s.isVerified && s.creditsRemaining > 0) ||
-          (!s.isVerified && s.anonGenerationsUsed < s.anonGenerationsLimit),
-        )
+    if (jobStatus !== 'done' || !jobId) return
+    void refreshSession()
+    setHasGrant(null)
+    const ctl = new AbortController()
+    fetch(`/api/download/check?jobId=${jobId}`, {
+      credentials: 'include',
+      signal: ctl.signal,
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success) setHasGrant(Boolean(d.data?.hasGrant))
+        else setHasGrant(false)
       })
-      .catch(() => setCanEdit(true)) // fail-open: show edit section if check fails
-  }, [jobStatus])
+      .catch((err) => {
+        if (err?.name !== 'AbortError') setHasGrant(false)
+      })
+    return () => ctl.abort()
+  }, [jobStatus, jobId, refreshSession])
+
+  // After the paywall sheet closes, re-pull the grant. The sheet itself
+  // already refreshes session via the success-polling path, but the grant
+  // only flips when the webhook lands, which may be just after.
+  useEffect(() => {
+    if (paywallOpen) return
+    if (!jobId || jobStatus !== 'done') return
+    const ctl = new AbortController()
+    fetch(`/api/download/check?jobId=${jobId}`, {
+      credentials: 'include',
+      signal: ctl.signal,
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success) setHasGrant(Boolean(d.data?.hasGrant))
+      })
+      .catch(() => {})
+    return () => ctl.abort()
+  }, [paywallOpen, jobId, jobStatus])
 
   // Persist overlay choice on the server (debounced) so that when the user
   // hits Download HD, the worker can composite the latest overlay onto the
@@ -484,16 +521,27 @@ export default function ResultsPage() {
 
       {/* Sticky Download HD CTA — sits above the BottomNav so it stays
           visible while the user scrolls through the slider, phone nudge,
-          text overlay, and edit panels above the fold. */}
+          text overlay, and edit panels above the fold.
+          Users with a DownloadGrant for this job jump straight to the
+          download screen; everyone else gets the paywall. */}
       {!paywallOpen && (
         <div className="fixed left-0 right-0 bottom-16 z-40 bg-bg-base border-t border-border-default px-4 py-3 safe-area-pb">
           <div className="page-content">
-            <button
-              onClick={() => setPaywallOpen(true)}
-              className="btn-primary btn-full h-12 text-[15px] font-semibold"
-            >
-              {tPaywall('title')}
-            </button>
+            {hasGrant ? (
+              <button
+                onClick={() => router.push('/download/success')}
+                className="btn-primary btn-full h-12 text-[15px] font-semibold"
+              >
+                {t('download_hd')}
+              </button>
+            ) : (
+              <button
+                onClick={() => setPaywallOpen(true)}
+                className="btn-primary btn-full h-12 text-[15px] font-semibold"
+              >
+                {tPaywall('title')}
+              </button>
+            )}
           </div>
         </div>
       )}

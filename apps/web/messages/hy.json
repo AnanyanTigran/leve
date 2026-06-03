@@ -168,7 +168,8 @@
     "edit_no_credits": "Գնեք նկարներ խմբագրելու համար",
     "preview_load_failed": "Չհաջողվեց բեռնել նկարը",
     "preview_load_retry": "Կրկին փորձել",
-    "reconnecting": "Կապի վերականգնում…"
+    "reconnecting": "Կապի վերականգնում…",
+    "download_hd": "Բեռնել HD"
   },
   "paywall": {
     "title": "Ակտիվացնել HD ներբեռնումը",

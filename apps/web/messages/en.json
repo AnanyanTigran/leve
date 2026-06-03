@@ -168,7 +168,8 @@
     "edit_no_credits": "Buy images to edit",
     "preview_load_failed": "Couldn't load your image",
     "preview_load_retry": "Try again",
-    "reconnecting": "Reconnecting…"
+    "reconnecting": "Reconnecting…",
+    "download_hd": "Download HD"
   },
   "paywall": {
     "title": "Unlock HD Download",
