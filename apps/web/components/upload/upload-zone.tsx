@@ -13,17 +13,26 @@ const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PREVIEW_MAX_PX = 600
 
 function compressToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const img = new Image()
     const blobUrl = URL.createObjectURL(file)
     img.onload = () => {
-      const scale = Math.min(PREVIEW_MAX_PX / img.width, PREVIEW_MAX_PX / img.height, 1)
-      const canvas = document.createElement('canvas')
-      canvas.width = Math.round(img.width * scale)
-      canvas.height = Math.round(img.height * scale)
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      try {
+        const scale = Math.min(PREVIEW_MAX_PX / img.width, PREVIEW_MAX_PX / img.height, 1)
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      } catch (err) {
+        reject(err)
+      } finally {
+        URL.revokeObjectURL(blobUrl)
+      }
+    }
+    img.onerror = () => {
       URL.revokeObjectURL(blobUrl)
-      resolve(canvas.toDataURL('image/jpeg', 0.82))
+      reject(new Error('preview_decode_failed'))
     }
     img.src = blobUrl
   })
