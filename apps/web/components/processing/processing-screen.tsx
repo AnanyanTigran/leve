@@ -58,6 +58,18 @@ export function ProcessingScreen() {
         const res = await fetch(`/api/generate/status/${jobId}`, {
           credentials: 'include',
         })
+        if (res.status === 404) {
+          clearInterval(interval)
+          sessionStorage.removeItem('leve_job_id')
+          sessionStorage.removeItem('leve_job_dispatched_at')
+          router.replace('/templates')
+          return
+        }
+        if (res.status === 401 || res.status === 403) {
+          clearInterval(interval)
+          router.replace('/register')
+          return
+        }
         const data = await res.json()
         const status = data?.data?.status
         const phase = data?.data?.phase as string | undefined
