@@ -63,14 +63,20 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     })
     await setJobPhase(jobId, 'finalizing')
 
-    // Quality gate: output dimensions must be at least half of requested size
+    // Quality gate: only reject genuinely failed or tiny outputs (e.g. a
+    // 200×200 corrupted return), not valid portrait/landscape outputs whose
+    // short side is naturally below the verified 1024 / anon 512 threshold
+    // (e.g. 9:16 verified → 1152×2048; the short side 1152 is fine, but at
+    // 4:5 → 1638×2048 the short side 1638 is also fine). Use the longest
+    // side, which is the actual quality signal Kontext targets.
     const outputMeta = await sharp(output.outputBuffer).metadata()
     const { width = 0, height = 0 } = outputMeta
     const minExpected = isVerified ? 1024 : 512
-    const qualityGatePassed = width >= minExpected && height >= minExpected
+    const longerSide = Math.max(width, height)
+    const qualityGatePassed = longerSide >= minExpected
 
     if (!qualityGatePassed) {
-      logger.error({ requestId, jobId, width, height, minExpected }, '[preview worker] quality gate failed — refunding credit')
+      logger.error({ requestId, jobId, width, height, longerSide, minExpected }, '[preview worker] quality gate failed — refunding credit')
       if (isVerified) {
         await SessionService.refundCredit(sessionId)
       }

@@ -159,6 +159,7 @@ export default function RegisterPage() {
         {step === 'otp' && (
           <OtpForm
             contact={contact}
+            identifierType={method}
             onVerify={handleVerify}
             onResend={async () => {
               try {

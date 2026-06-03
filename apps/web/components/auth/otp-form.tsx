@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 
 interface OtpFormProps {
   contact: string
+  identifierType: 'phone' | 'email'
   onVerify: () => void
   onResend: () => void
 }
@@ -13,11 +14,12 @@ interface OtpFormProps {
 const OTP_LENGTH = 6
 const RESEND_SECONDS = 45
 
-export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
+export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpFormProps) {
   const t = useTranslations('register')
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [error, setError] = useState(false)
   const [incomplete, setIncomplete] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
   const [countdown, setCountdown] = useState(RESEND_SECONDS)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -57,14 +59,34 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
     }
   }
 
-  function handleVerify() {
+  async function handleVerify() {
+    if (isVerifying) return
     const code = digits.join('')
     if (code.length < OTP_LENGTH) {
       setIncomplete(true)
       return
     }
     setIncomplete(false)
-    onVerify()
+    setError(false)
+    setIsVerifying(true)
+    try {
+      const res = await fetch('/api/register/otp/verify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: contact, identifierType, code }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.success) {
+        setError(true)
+        return
+      }
+      onVerify()
+    } catch {
+      setError(true)
+    } finally {
+      setIsVerifying(false)
+    }
   }
 
   function handleResend() {
@@ -128,9 +150,17 @@ export function OtpForm({ contact, onVerify, onResend }: OtpFormProps) {
       <button
         type="button"
         onClick={handleVerify}
-        className="btn-primary btn-full"
+        disabled={isVerifying}
+        className={cn('btn-primary btn-full', isVerifying && 'opacity-60 cursor-not-allowed')}
       >
-        {t('verify')}
+        {isVerifying ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            {t('verify')}
+          </span>
+        ) : (
+          t('verify')
+        )}
       </button>
     </div>
   )
