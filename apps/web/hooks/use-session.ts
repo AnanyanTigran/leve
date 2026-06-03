@@ -24,6 +24,7 @@ type View = { data: SessionData | null; status: Status }
 
 let view: View = { data: null, status: 'idle' }
 let inflight: Promise<SessionData | null> | null = null
+let lastFetchedAt = 0
 const subscribers = new Set<(v: View) => void>()
 
 function setView(next: View) {
@@ -44,6 +45,7 @@ export async function refreshSession(): Promise<SessionData | null> {
       }
       const data = json.data as SessionData
       setView({ data, status: 'ready' })
+      lastFetchedAt = Date.now()
       return data
     } catch {
       setView({ data: view.data, status: 'error' })
@@ -59,15 +61,21 @@ export function useSession() {
   const [local, setLocal] = useState<View>(view)
 
   useEffect(() => {
+    const CACHE_MAX_AGE_MS = 60_000
     const sub = (next: View) => setLocal(next)
     subscribers.add(sub)
-    if (view.status === 'idle') {
+    if (view.status === 'idle' || Date.now() - lastFetchedAt > CACHE_MAX_AGE_MS) {
       void refreshSession()
     } else {
       setLocal(view)
     }
+    const onFocus = () => {
+      void refreshSession()
+    }
+    window.addEventListener('focus', onFocus)
     return () => {
       subscribers.delete(sub)
+      window.removeEventListener('focus', onFocus)
     }
   }, [])
 
