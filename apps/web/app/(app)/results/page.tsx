@@ -14,7 +14,7 @@ import { useGenerate } from '@/hooks/use-generate'
 import { cn } from '@/lib/utils'
 import type { AspectRatio } from '@leve/types'
 
-type JobStatus = 'queued' | 'processing' | 'done' | 'failed' | null
+type JobStatus = 'queued' | 'processing' | 'done' | 'failed' | 'credit_refunded' | null
 
 // Stop polling silently in the background after this many consecutive failures —
 // surface a "Reconnecting…" hint to the user instead.
@@ -114,7 +114,7 @@ export default function ResultsPage() {
   }, [])
 
   useEffect(() => {
-    if (!jobId || jobStatus === 'done' || jobStatus === 'failed') return
+    if (!jobId || jobStatus === 'done' || jobStatus === 'failed' || jobStatus === 'credit_refunded') return
 
     // When returning from a payment redirect the job is already done — skip
     // status polling and go straight to fetching the preview URL.
@@ -145,6 +145,11 @@ export default function ResultsPage() {
           if (pollRef.current) clearInterval(pollRef.current)
           sessionStorage.removeItem('leve_job_id')
           router.replace('/')
+          return
+        }
+        if (res.status === 401 || res.status === 403) {
+          if (pollRef.current) clearInterval(pollRef.current)
+          router.replace('/register')
           return
         }
         const data = await res.json()
@@ -195,7 +200,7 @@ export default function ResultsPage() {
           }
         }
 
-        if (data.data.status === 'failed') {
+        if (data.data.status === 'failed' || data.data.status === 'credit_refunded') {
           if (pollRef.current) clearInterval(pollRef.current)
           if (editStateRef.current.isEditing) {
             setGeneratedImageUrl(editStateRef.current.previousImageUrl)
