@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl'
 import { ChevronLeft } from 'lucide-react'
 import { RegistrationForm } from '@/components/auth/registration-form'
 import { OtpForm } from '@/components/auth/otp-form'
-import { setVerified } from '@/lib/session'
 import { refreshSession } from '@/hooks/use-session'
 
 // Stale order id (older than this) is removed on landing so the user
@@ -44,9 +43,6 @@ export default function RegisterPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.isVerified) {
-          // Keep the legacy sessionStorage flag in sync for any reader that
-          // still consults it before the shared hook hydrates.
-          sessionStorage.setItem('leve_verified', 'true')
           void refreshSession()
           const returnTo = sessionStorage.getItem('leve_return_to')
           if (returnTo) {
@@ -96,7 +92,6 @@ export default function RegisterPage() {
   }
 
   function handleVerify() {
-    setVerified(contact, method)
     // Pull the just-promoted session into the shared cache so the rest of
     // the app reflects the verified state without a per-page re-fetch.
     void refreshSession()
