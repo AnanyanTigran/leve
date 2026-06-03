@@ -20,15 +20,26 @@ export default function PaymentCallbackPage() {
       return
     }
 
-    const poll = async () => {
+    const poll = async (): Promise<boolean> => {
       try {
         const res = await fetch(`/api/payments/status/${orderId}`, {
           credentials: 'include',
         })
-        const data = await res.json()
+
+        // Auth or missing-order: terminal — stop polling and surface failure
+        if (res.status === 401 || res.status === 403 || res.status === 404) {
+          sessionStorage.removeItem('leve_order_id')
+          sessionStorage.removeItem('leve_order_initiated_at')
+          sessionStorage.removeItem('leve_payment_provider')
+          setState('failed')
+          return true
+        }
+
+        const data = await res.json().catch(() => null)
 
         if (data?.data?.status === 'completed') {
           sessionStorage.removeItem('leve_order_id')
+          sessionStorage.removeItem('leve_order_initiated_at')
           sessionStorage.removeItem('leve_payment_provider')
           setState('success')
           setTimeout(() => router.push('/download/success'), 1500)
@@ -36,6 +47,9 @@ export default function PaymentCallbackPage() {
         }
 
         if (data?.data?.status === 'failed') {
+          sessionStorage.removeItem('leve_order_id')
+          sessionStorage.removeItem('leve_order_initiated_at')
+          sessionStorage.removeItem('leve_payment_provider')
           setState('failed')
           return true
         }
@@ -54,7 +68,12 @@ export default function PaymentCallbackPage() {
 
       if (done || attemptCount >= MAX_ATTEMPTS) {
         clearInterval(interval)
-        if (!done) setState('timeout')
+        if (!done) {
+          sessionStorage.removeItem('leve_order_id')
+          sessionStorage.removeItem('leve_order_initiated_at')
+          sessionStorage.removeItem('leve_payment_provider')
+          setState('timeout')
+        }
       }
     }, 2000)
 
