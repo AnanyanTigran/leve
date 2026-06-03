@@ -89,6 +89,7 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
 
   let falResult: { images: { url: string }[] }
 
+  const cancellableTimeout = createCancellableTimeout(30000, 'kontext_timeout')
   try {
     falResult = await Promise.race([
       fal.run('fal-ai/flux-pro/kontext', {
@@ -109,13 +110,15 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
           guidance_scale: 3.5,
         },
       }) as Promise<{ images: { url: string }[] }>,
-      timeout(30000, 'kontext_timeout'),
+      cancellableTimeout.promise,
     ])
     circuitBreaker.recordSuccess()
   } catch (err) {
     circuitBreaker.recordFailure()
     const message = err instanceof Error ? err.message : 'kontext_failed'
     throw new Error(message)
+  } finally {
+    cancellableTimeout.cancel()
   }
 
   const imageUrl = falResult.images?.[0]?.url
@@ -176,8 +179,22 @@ async function downloadImageFromUrl(url: string): Promise<Buffer> {
   return Buffer.from(response.data as ArrayBuffer)
 }
 
-function timeout(ms: number, label: string): Promise<never> {
-  return new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(label)), ms),
-  )
+function createCancellableTimeout(
+  ms: number,
+  label: string,
+): { promise: Promise<never>; cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const promise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), ms)
+  })
+  // Swallow the late rejection if Promise.race already resolved with the winner —
+  // without this, the timer firing after `cancel()` would surface as an
+  // unhandled rejection on the process.
+  promise.catch(() => {})
+  return {
+    promise,
+    cancel: () => {
+      if (timer) clearTimeout(timer)
+    },
+  }
 }
