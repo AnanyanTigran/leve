@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Phone } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
-import { isVerified } from '@/lib/session'
+import { useSession } from '@/hooks/use-session'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { BeforeAfterSlider } from '@/components/results/before-after-slider'
 import { TextOverlaySection, type OverlayState } from '@/components/results/text-overlay-section'
@@ -35,6 +35,8 @@ export default function ResultsPage() {
   const t = useTranslations('results')
   const tPaywall = useTranslations('paywall')
   const { generate } = useGenerate()
+  const { session } = useSession()
+  const verified = session?.isVerified === true
 
   const [guarded, setGuarded] = useState(false)
   const [paywallOpen, setPaywallOpen] = useState(false)
@@ -221,8 +223,6 @@ export default function ResultsPage() {
       })
       .catch(() => setCanEdit(true)) // fail-open: show edit section if check fails
   }, [jobStatus])
-
-  const verified = typeof window !== 'undefined' ? isVerified() : false
 
   // Persist overlay choice on the server (debounced) so that when the user
   // hits Download HD, the worker can composite the latest overlay onto the

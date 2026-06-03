@@ -8,6 +8,7 @@ import { AppHeader } from '@/components/shared/app-header'
 import { SceneGrid } from '@/components/scenes/scene-grid'
 import { RefinementPanel } from '@/components/templates/refinement-panel'
 import { useGenerate } from '@/hooks/use-generate'
+import { useSession } from '@/hooks/use-session'
 import { CATEGORY_ITEMS, CATEGORY_SCENE_MAP, getSceneById } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Scene, ProductCategory, AspectRatio } from '@leve/types'
@@ -22,7 +23,10 @@ export default function SceneSelectionPage() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
   const [category, setCategory] = useState<ProductCategory | null>(null)
   const [favoriteSceneId, setFavoriteSceneId] = useState<string | null>(null)
-  const [isVerified, setIsVerified] = useState(false)
+  const { session } = useSession()
+  // Distinguishes "known unverified" from "still loading" — drives whether
+  // verified-only affordances render in the first paint.
+  const isVerified = session?.isVerified === true
 
   // Selection state
   const [selectedScene, setSelectedScene] = useState<Scene | null>(null)
@@ -93,26 +97,22 @@ export default function SceneSelectionPage() {
       setShowCategoryPicker(true)
     }
 
-    // Also try to get favorite scene from session API
-    fetch('/api/session/me', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.data?.favoriteSceneId) {
-          setFavoriteSceneId(data.data.favoriteSceneId)
-          sessionStorage.setItem('leve_favorite_scene', data.data.favoriteSceneId)
-        }
-        if (data?.data?.isVerified) {
-          setIsVerified(true)
-        }
-        // Default aspect ratio for marketplace users
-        if (cat === 'marketplace_export') {
-          setAspectRatio('3:4')
-        } else if (cat === 'beauty_cosmetics' || cat === 'fashion_clothing') {
-          setAspectRatio('4:5')
-        }
-      })
-      .catch(() => {}) // non-fatal
+    // Default aspect ratio per category (verified status + favoriteSceneId
+    // come from the shared session hook, no per-page fetch needed).
+    if (cat === 'marketplace_export') {
+      setAspectRatio('3:4')
+    } else if (cat === 'beauty_cosmetics' || cat === 'fashion_clothing') {
+      setAspectRatio('4:5')
+    }
   }, [router])
+
+  // Sync favoriteSceneId from the shared session once it lands.
+  useEffect(() => {
+    if (session?.favoriteSceneId) {
+      setFavoriteSceneId(session.favoriteSceneId)
+      sessionStorage.setItem('leve_favorite_scene', session.favoriteSceneId)
+    }
+  }, [session?.favoriteSceneId])
 
   // If scene was previously selected (user navigated back), restore it
   useEffect(() => {

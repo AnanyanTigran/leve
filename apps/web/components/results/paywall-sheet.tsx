@@ -6,7 +6,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { CheckCircle, XCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CREDIT_PACKAGES } from '@/lib/constants'
-import { isVerified } from '@/lib/session'
+import { useSession } from '@/hooks/use-session'
 
 type PaywallState = 'pricing' | 'processing' | 'success' | 'failed'
 type PlanId = 'starter' | 'creator' | 'pro_monthly'
@@ -31,7 +31,9 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('creator')
   const [isDesktop, setIsDesktop] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [showMonthly, setShowMonthly] = useState(false)
+  const { session, mutate: refreshSession } = useSession()
+  const showMonthly = session?.showSubscriptionOffer ?? false
+  const userIsVerified = session?.isVerified ?? false
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollAttemptsRef = useRef(0)
 
@@ -42,17 +44,12 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Refresh shared session state when the sheet opens — captures recent
+  // verify/purchase events from other parts of the UI.
   useEffect(() => {
     if (!isOpen) return
-    const controller = new AbortController()
-    fetch('/api/session/me', { credentials: 'include', signal: controller.signal })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.data?.showSubscriptionOffer) setShowMonthly(true)
-      })
-      .catch(() => {})
-    return () => controller.abort()
-  }, [isOpen])
+    void refreshSession()
+  }, [isOpen, refreshSession])
 
   // Reset state when sheet closes
   useEffect(() => {
@@ -110,6 +107,9 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
           sessionStorage.removeItem('leve_order_id')
           sessionStorage.removeItem('leve_order_initiated_at')
           setPaywallState('success')
+          // Pull updated credits/isPaid into the shared session cache so
+          // the parent results page reflects the purchase without remount.
+          void refreshSession()
         } else if (data.data.status === 'failed') {
           if (pollRef.current) clearInterval(pollRef.current)
           sessionStorage.removeItem('leve_order_id')
@@ -183,8 +183,6 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
     }
     onClose()
   }
-
-  const userIsVerified = typeof window !== 'undefined' ? isVerified() : false
 
   const content = (
     <>
