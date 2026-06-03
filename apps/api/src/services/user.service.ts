@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma'
 import { logger } from '../lib/logger'
+import { Sentry } from '../lib/sentry'
 import { FREE_CREDITS_ON_VERIFY } from '../lib/session.types'
 
 export interface UserRecord {
@@ -89,8 +90,9 @@ export class UserService {
         generationCount: { increment: 1 },
       },
     }).catch((err: unknown) => {
-      // Non-fatal — Redis is source of truth for real-time credits
+      // Non-fatal for the user request but must be alerted — silent drift here causes wrong credit restore on session re-verification
       logger.error({ err }, '[UserService] recordGeneration DB sync failed')
+      Sentry.captureException(err)
     })
   }
 

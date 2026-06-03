@@ -125,6 +125,7 @@ export class SessionService {
       session.creditsRemaining = session.creditsRemaining + tonumber(ARGV[1])
       session.isPaid = true
       session.purchaseCount = session.purchaseCount + 1
+      -- 30-day TTL: any session receiving credits is from a payment flow and should be extended to verified TTL regardless of current isVerified state
       redis.call('SET', KEYS[1], cjson.encode(session), 'EX', 2592000)
       return session.creditsRemaining
     `
