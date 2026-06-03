@@ -191,6 +191,7 @@ export default function ResultsPage() {
             setEditPrompt('')
             setIsEditing(false)
             editStateRef.current.isEditing = false
+            void refreshSession()
           }
         }
 
@@ -460,7 +461,7 @@ export default function ResultsPage() {
               </div>
             )}
           </div>
-          {!verified && (
+          {session !== null && !verified && (
             <div className="bg-bg-surface border border-border-default rounded-[12px] p-4 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-accent-subtle flex items-center justify-center shrink-0">
                 <Phone className="w-4 h-4 text-accent" />
@@ -527,7 +528,9 @@ export default function ResultsPage() {
       {!paywallOpen && (
         <div className="fixed left-0 right-0 bottom-16 z-40 bg-bg-base border-t border-border-default px-4 py-3 safe-area-pb">
           <div className="page-content">
-            {hasGrant ? (
+            {hasGrant === null ? (
+              <div className="h-12 rounded-[12px] bg-bg-elevated animate-pulse" />
+            ) : hasGrant ? (
               <button
                 onClick={() => router.push('/download/success')}
                 className="btn-primary btn-full h-12 text-[15px] font-semibold"
