@@ -7,6 +7,11 @@ import { ChevronLeft } from 'lucide-react'
 import { RegistrationForm } from '@/components/auth/registration-form'
 import { OtpForm } from '@/components/auth/otp-form'
 import { setVerified } from '@/lib/session'
+import { refreshSession } from '@/hooks/use-session'
+
+// Stale order id (older than this) is removed on landing so the user
+// doesn't get parked in a stuck "Processing payment…" sheet on /results.
+const STALE_ORDER_MS = 5 * 60 * 1000
 
 type Step = 'contact' | 'otp' | 'brand_name'
 
@@ -17,14 +22,32 @@ export default function RegisterPage() {
   const [contact, setContact] = useState('')
   const [method, setMethod] = useState<'phone' | 'email'>('phone')
   const [brandName, setBrandName] = useState('')
+  // Until we know server-side verified status, the contact form is disabled —
+  // prevents a verified user from sending a redundant OTP by racing the redirect.
+  const [authChecked, setAuthChecked] = useState(false)
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
+
+    // Drop any stale order id from a previously abandoned payment flow.
+    const initiatedAt = parseInt(
+      sessionStorage.getItem('leve_order_initiated_at') ?? '0',
+      10,
+    )
+    if (initiatedAt && Date.now() - initiatedAt > STALE_ORDER_MS) {
+      sessionStorage.removeItem('leve_order_id')
+      sessionStorage.removeItem('leve_order_initiated_at')
+    }
 
     fetch('/api/session/me', { credentials: 'include', signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.isVerified) {
+          // Keep the legacy sessionStorage flag in sync for any reader that
+          // still consults it before the shared hook hydrates.
+          sessionStorage.setItem('leve_verified', 'true')
+          void refreshSession()
           const returnTo = sessionStorage.getItem('leve_return_to')
           if (returnTo) {
             sessionStorage.removeItem('leve_return_to')
@@ -41,14 +64,21 @@ export default function RegisterPage() {
           // non-fatal — let user proceed with registration
         }
       })
+      .finally(() => {
+        if (!controller.signal.aborted) setAuthChecked(true)
+      })
 
     return () => controller.abort()
   }, [router])
 
   async function handleContinue(contactValue: string, authMethod: 'phone' | 'email') {
+    // Block until the initial /api/session/me check resolves so a verified
+    // user racing the redirect doesn't trigger a wasted OTP send. Also
+    // debounces double-tap on the Continue button.
+    if (!authChecked || isSendingOtp) return
+    setIsSendingOtp(true)
     setContact(contactValue)
     setMethod(authMethod)
-    // Send OTP first
     try {
       await fetch('/api/register/otp/send', {
         method: 'POST',
@@ -58,6 +88,8 @@ export default function RegisterPage() {
       })
     } catch {
       // non-fatal — proceed to OTP step anyway, user can resend
+    } finally {
+      setIsSendingOtp(false)
     }
 
     setStep('otp')
@@ -65,6 +97,9 @@ export default function RegisterPage() {
 
   function handleVerify() {
     setVerified(contact, method)
+    // Pull the just-promoted session into the shared cache so the rest of
+    // the app reflects the verified state without a per-page re-fetch.
+    void refreshSession()
     setStep('brand_name')
   }
 
@@ -148,7 +183,11 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            <RegistrationForm onContinue={handleContinue} />
+            <RegistrationForm
+              onContinue={handleContinue}
+              disabled={!authChecked}
+              isSubmitting={isSendingOtp}
+            />
 
             <p className="text-[11px] text-text-muted text-center mt-6 leading-relaxed px-4">
               {t('terms_full')}

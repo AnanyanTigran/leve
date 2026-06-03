@@ -8,13 +8,15 @@ import { cn } from '@/lib/utils'
 
 interface RegistrationFormProps {
   onContinue: (contact: string, method: 'phone' | 'email') => void
+  disabled?: boolean
+  isSubmitting?: boolean
 }
 
 function isValidEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 }
 
-export function RegistrationForm({ onContinue }: RegistrationFormProps) {
+export function RegistrationForm({ onContinue, disabled = false, isSubmitting = false }: RegistrationFormProps) {
   const t = useTranslations('register')
   const [useEmail, setUseEmail] = useState(false)
   const [phone, setPhone] = useState<string>('')
@@ -110,9 +112,20 @@ export function RegistrationForm({ onContinue }: RegistrationFormProps) {
       <button
         type="button"
         onClick={handleSubmit}
-        className="btn-primary btn-full h-[56px] text-[16px]"
+        disabled={disabled || isSubmitting}
+        className={cn(
+          'btn-primary btn-full h-[56px] text-[16px]',
+          (disabled || isSubmitting) && 'opacity-50 cursor-not-allowed',
+        )}
       >
-        {t('continue')}
+        {isSubmitting ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            {t('continue')}
+          </span>
+        ) : (
+          t('continue')
+        )}
       </button>
     </div>
   )
