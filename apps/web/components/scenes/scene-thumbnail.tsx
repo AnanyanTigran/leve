@@ -41,11 +41,18 @@ export function SceneThumbnail({
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(scene)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect(scene)
+        }
+      }}
       className={cn(
-        'relative rounded-[12px] overflow-hidden border-2 transition-all duration-150 w-full',
+        'relative rounded-[12px] overflow-hidden border-2 transition-all duration-150 w-full cursor-pointer',
         'flex flex-col text-left group',
         isSelected
           ? 'border-accent shadow-[0_0_0_3px_rgba(232,98,26,0.2)]'
@@ -124,6 +131,6 @@ export function SceneThumbnail({
           </p>
         )}
       </div>
-    </button>
+    </div>
   )
 }
