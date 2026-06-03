@@ -43,7 +43,14 @@ export class SessionService {
   static async get(sessionId: string): Promise<LeveSession | null> {
     const raw = await redis.get(SESSION_KEY(sessionId))
     if (!raw) return null
-    const session: LeveSession = JSON.parse(raw)
+    let session: LeveSession
+    try {
+      session = JSON.parse(raw)
+    } catch (err) {
+      logger.error({ err, sessionId }, '[SessionService] corrupt session JSON — deleting key')
+      await redis.del(SESSION_KEY(sessionId)).catch(() => {})
+      return null
+    }
 
     // Backfill defaults for sessions created before this migration
     session.identifierType = session.identifierType ?? null
@@ -52,6 +59,7 @@ export class SessionService {
     session.anonGenerationsUsed = session.anonGenerationsUsed ?? 0
     session.dailyGenerationsUsed = session.dailyGenerationsUsed ?? 0
     session.dailyGenerationsDate = session.dailyGenerationsDate ?? new Date().toISOString().split('T')[0]
+    session.generationHistory = Array.isArray(session.generationHistory) ? session.generationHistory : []
 
     // touch lastActiveAt
     session.lastActiveAt = Date.now()
@@ -167,8 +175,15 @@ export class SessionService {
     const key = SESSION_KEY(sessionId)
     const raw = await redis.get(key)
     if (!raw) return
-    const session: LeveSession = JSON.parse(raw)
-    session.generationHistory = [jobId, ...session.generationHistory].slice(0, 50)
+    let session: LeveSession
+    try {
+      session = JSON.parse(raw)
+    } catch (err) {
+      logger.error({ err, sessionId }, '[SessionService] corrupt session JSON — skipping operation')
+      return
+    }
+    const existing = Array.isArray(session.generationHistory) ? session.generationHistory : []
+    session.generationHistory = [jobId, ...existing].slice(0, 50)
     await redis.set(
       key,
       JSON.stringify(session),
@@ -183,7 +198,13 @@ export class SessionService {
     const raw = await redis.get(key)
     if (!raw) return 0
 
-    const session: LeveSession = JSON.parse(raw)
+    let session: LeveSession
+    try {
+      session = JSON.parse(raw)
+    } catch (err) {
+      logger.error({ err, sessionId }, '[SessionService] corrupt session JSON — skipping operation')
+      return 0
+    }
     session.anonGenerationsUsed = (session.anonGenerationsUsed ?? 0) + 1
     session.lastActiveAt = Date.now()
 
@@ -198,7 +219,13 @@ export class SessionService {
     const raw = await redis.get(key)
     if (!raw) return 0
 
-    const session: LeveSession = JSON.parse(raw)
+    let session: LeveSession
+    try {
+      session = JSON.parse(raw)
+    } catch (err) {
+      logger.error({ err, sessionId }, '[SessionService] corrupt session JSON — skipping operation')
+      return 0
+    }
     const today = new Date().toISOString().split('T')[0]!
 
     if (session.dailyGenerationsDate !== today) {
@@ -219,7 +246,13 @@ export class SessionService {
     const raw = await redis.get(key)
     if (!raw) return
 
-    const session: LeveSession = JSON.parse(raw)
+    let session: LeveSession
+    try {
+      session = JSON.parse(raw)
+    } catch (err) {
+      logger.error({ err, sessionId }, '[SessionService] corrupt session JSON — skipping operation')
+      return
+    }
     session.brandName = brandName.trim().slice(0, 60)
 
     const ttl = session.isVerified ? SESSION_TTL_VERIFIED : SESSION_TTL_ANON
@@ -238,7 +271,13 @@ export class SessionService {
     const raw = await redis.get(key)
     if (!raw) return
 
-    const session: LeveSession = JSON.parse(raw)
+    let session: LeveSession
+    try {
+      session = JSON.parse(raw)
+    } catch (err) {
+      logger.error({ err, sessionId }, '[SessionService] corrupt session JSON — skipping operation')
+      return
+    }
     session.favoriteSceneId = sceneId
 
     const ttl = session.isVerified ? SESSION_TTL_VERIFIED : SESSION_TTL_ANON
