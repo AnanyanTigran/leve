@@ -147,6 +147,10 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       },
     })
 
+    if (!isFinalAttempt) {
+      await setJobPhase(jobId, 'queued')
+    }
+
     if (isFinalAttempt) {
       await clearJobPhase(jobId)
     }
