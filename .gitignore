@@ -38,3 +38,6 @@ prisma/migrations/
 # TypeScript build cache
 *.tsbuildinfo
 tsconfig.tsbuildinfo
+
+apps/api/scripts/dev-grant.ts
+apps/api/scripts/dev-grant-latest.ts
