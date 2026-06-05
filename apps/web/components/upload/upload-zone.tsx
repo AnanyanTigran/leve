@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle, ImageIcon } from 'lucide-react'
 import { CATEGORY_ITEMS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { apiUrl } from '@/lib/api-client'
 import type { ProductCategory } from '@leve/types'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
@@ -193,7 +194,7 @@ export function UploadZone() {
       const formData = new FormData()
       formData.append('file', fileState.file)
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(apiUrl('/api/upload'), {
         method: 'POST',
         credentials: 'include',
         body: formData,

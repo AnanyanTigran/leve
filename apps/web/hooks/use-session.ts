@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { apiUrl } from '@/lib/api-client'
 
 export interface SessionData {
   isVerified: boolean
@@ -37,7 +38,7 @@ export async function refreshSession(): Promise<SessionData | null> {
   if (view.status !== 'ready') setView({ ...view, status: 'loading' })
   inflight = (async () => {
     try {
-      const res = await fetch('/api/session/me', { credentials: 'include' })
+      const res = await fetch(apiUrl('/api/session/me'), { credentials: 'include' })
       const json = await res.json().catch(() => null)
       if (!res.ok || !json?.success) {
         setView({ data: view.data, status: 'error' })

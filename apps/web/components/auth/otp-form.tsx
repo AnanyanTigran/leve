@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
+import { apiUrl } from '@/lib/api-client'
 
 export interface OtpVerifyResult {
   isReturning: boolean
@@ -78,7 +79,7 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
     setError(false)
     setIsVerifying(true)
     try {
-      const res = await fetch('/api/register/otp/verify', {
+      const res = await fetch(apiUrl('/api/register/otp/verify'), {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

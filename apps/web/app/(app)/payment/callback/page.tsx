@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { apiUrl } from '@/lib/api-client'
 
 type CallbackState = 'polling' | 'success' | 'failed' | 'timeout'
 
@@ -22,7 +23,7 @@ export default function PaymentCallbackPage() {
 
     const poll = async (): Promise<boolean> => {
       try {
-        const res = await fetch(`/api/payments/status/${orderId}`, {
+        const res = await fetch(apiUrl(`/api/payments/status/${orderId}`), {
           credentials: 'include',
         })
 

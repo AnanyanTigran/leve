@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Check } from 'lucide-react'
+import { apiUrl } from '@/lib/api-client'
 
 type WorkerPhase = 'queued' | 'processing' | 'generating' | 'finalizing' | 'done'
 
@@ -55,7 +56,7 @@ export function ProcessingScreen() {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/generate/status/${jobId}`, {
+        const res = await fetch(apiUrl(`/api/generate/status/${jobId}`), {
           credentials: 'include',
         })
         if (res.status === 404) {

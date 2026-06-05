@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Coins, Clock, LogOut, User } from 'lucide-react'
 import { useSession, refreshSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
+import { apiUrl } from '@/lib/api-client'
 
 const LOCALES = [
   { id: 'hy', label: 'ՀԱՅ' },
@@ -97,7 +98,7 @@ export function UserMenu() {
   async function handleLogout() {
     setOpen(false)
     try {
-      await fetch('/api/session/logout', { method: 'POST', credentials: 'include' })
+      await fetch(apiUrl('/api/session/logout'), { method: 'POST', credentials: 'include' })
     } catch {
       // Best-effort — even if the network failed, the FE state is cleared
       // below and the cookie will expire eventually.

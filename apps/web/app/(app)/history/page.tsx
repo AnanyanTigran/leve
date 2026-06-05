@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { ImageIcon } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { SCENES } from '@/lib/constants'
+import { apiUrl } from '@/lib/api-client'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 
@@ -39,7 +40,7 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!isVerified) return
 
-    fetch('/api/session/history', { credentials: 'include' })
+    fetch(apiUrl('/api/session/history'), { credentials: 'include' })
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.jobs) setJobs(data.data.jobs)
@@ -53,7 +54,7 @@ export default function HistoryPage() {
 
     Promise.all(
       jobs.map((job) =>
-        fetch(`/api/download/preview-url?jobId=${job.id}`, { credentials: 'include' })
+        fetch(apiUrl(`/api/download/preview-url?jobId=${job.id}`), { credentials: 'include' })
           .then((r) => r.json())
           .then((data) => ({ jobId: job.id, url: data?.data?.previewUrls?.[0] ?? null }))
           .catch(() => ({ jobId: job.id, url: null }))
