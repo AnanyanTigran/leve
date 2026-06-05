@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input'
-import 'react-phone-number-input/style.css'
+import { isValidPhoneNumber } from 'libphonenumber-js'
+import { MaskedPhoneInput } from './masked-phone-input'
 import { cn } from '@/lib/utils'
 
 interface RegistrationFormProps {
@@ -59,13 +59,12 @@ export function RegistrationForm({ onContinue, disabled = false, isSubmitting = 
                 ? 'border-[#EF4444]'
                 : 'border-border-default focus-within:border-accent'
           )}>
-            <PhoneInput
-              international
-              defaultCountry="AM"
+            <MaskedPhoneInput
               value={phone}
-              onChange={(val) => { setPhone(val ?? ''); setTouched(false) }}
+              onChange={(val) => { setPhone(val); setTouched(false) }}
               placeholder={t('phone_placeholder')}
-              className="flex-1 phone-input-leve"
+              autoFocus
+              className="flex-1"
             />
           </div>
           {showError && (
@@ -112,10 +111,10 @@ export function RegistrationForm({ onContinue, disabled = false, isSubmitting = 
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={disabled || isSubmitting}
+        disabled={disabled || isSubmitting || !isValid}
         className={cn(
           'btn-primary btn-full h-[56px] text-[16px]',
-          (disabled || isSubmitting) && 'opacity-50 cursor-not-allowed',
+          (disabled || isSubmitting || !isValid) && 'opacity-50 cursor-not-allowed',
         )}
       >
         {isSubmitting ? (
