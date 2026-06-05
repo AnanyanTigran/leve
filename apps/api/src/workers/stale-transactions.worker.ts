@@ -1,12 +1,8 @@
-import { Worker, Queue } from 'bullmq'
-import { redis } from '../lib/redis'
 import { prisma } from '../lib/prisma'
 import { logger } from '../lib/logger'
 
-const QUEUE_NAME = 'stale-transactions-cleanup'
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000 // 2 hours
-
-const cleanupQueue = new Queue(QUEUE_NAME, { connection: redis })
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000     // every hour
 
 async function runCleanup(): Promise<void> {
   const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS)
@@ -27,34 +23,24 @@ async function runCleanup(): Promise<void> {
   }
 }
 
-export function startStaleTransactionsWorker() {
-  const worker = new Worker(
-    QUEUE_NAME,
-    async () => {
-      await runCleanup()
-    },
-    { connection: redis, concurrency: 1 },
+export function startStaleTransactionsWorker(): { stop: () => void } {
+  // Run once shortly after startup, then every hour — no Redis needed
+  const initialTimer = setTimeout(
+    () => runCleanup().catch((err) => logger.error({ err }, '[staleTransactions] initial cleanup failed')),
+    5 * 60 * 1000,
   )
 
-  worker.on('failed', (job, err) => {
-    logger.error({ jobId: job?.id, err }, '[staleTransactions] cleanup job failed')
-  })
-
-  return worker
-}
-
-export async function scheduleStaleTransactionsCleanup() {
-  // Remove any previously scheduled repeatable job to avoid duplicates on restart
-  await cleanupQueue.removeRepeatable('cleanup', { pattern: '0 * * * *' })
-
-  await cleanupQueue.add(
-    'cleanup',
-    {},
-    {
-      repeat: { pattern: '0 * * * *' }, // every hour at :00
-      jobId: 'stale-transactions-cleanup',
-    },
+  const interval = setInterval(
+    () => runCleanup().catch((err) => logger.error({ err }, '[staleTransactions] cleanup failed')),
+    CLEANUP_INTERVAL_MS,
   )
 
-  logger.info('[staleTransactions] hourly cleanup job scheduled')
+  logger.info('[staleTransactions] hourly cleanup scheduled via setInterval (zero-Redis)')
+
+  return {
+    stop: () => {
+      clearTimeout(initialTimer)
+      clearInterval(interval)
+    },
+  }
 }

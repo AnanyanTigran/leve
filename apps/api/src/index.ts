@@ -10,7 +10,6 @@ import { initSentry, Sentry } from './lib/sentry'
 import { registerAuthMiddleware } from './middleware/auth'
 import { redis } from './lib/redis'
 import { prisma } from './lib/prisma'
-import { previewQueue } from './lib/queues'
 import { registerSessionInit } from './routes/session/init'
 import { registerSessionPreferences } from './routes/session/preferences'
 import { registerUploadRoute } from './routes/upload/index'
@@ -19,7 +18,7 @@ import { registerGenerateRoutes } from './routes/generate/index'
 import { registerPaymentRoutes } from './routes/payments/index'
 import { registerDownloadRoutes } from './routes/download/index'
 import { startPreviewWorker } from './workers/preview.worker'
-import { startStaleTransactionsWorker, scheduleStaleTransactionsCleanup } from './workers/stale-transactions.worker'
+import { startStaleTransactionsWorker } from './workers/stale-transactions.worker'
 import formbody from '@fastify/formbody'
 
 const env = validateEnv()
@@ -104,12 +103,9 @@ async function bootstrap() {
       checks['postgres'] = 'error'
     }
 
-    try {
-      await previewQueue.getJobCounts()
-      checks['queues'] = 'ok'
-    } catch {
-      checks['queues'] = 'error'
-    }
+    // Queue uses the same Redis connection — if the ping above passed, queues are reachable.
+    // Skipping getJobCounts() which issues 6-8 Redis commands per health probe.
+    checks['queues'] = checks['redis'] === 'ok' ? 'ok' : 'error'
 
     const allOk = Object.values(checks).every((v) => v === 'ok')
     return reply.status(allOk ? 200 : 503).send({
@@ -135,11 +131,7 @@ async function bootstrap() {
     app.log.error({ err }, '[worker] preview startup error')
   })
 
-  const staleWorker = startStaleTransactionsWorker()
-  staleWorker.on('error', (err) => {
-    app.log.error({ err }, '[worker] stale-transactions startup error')
-  })
-  await scheduleStaleTransactionsCleanup()
+  startStaleTransactionsWorker()
 
   ready = true
   app.log.info('API ready')

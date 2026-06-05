@@ -160,7 +160,17 @@ export function startPreviewWorker() {
   const worker = new Worker<PreviewJobData>(
     QUEUE_NAMES.PREVIEW,
     processJob,
-    { connection: redis, concurrency: PREVIEW_CONCURRENCY },
+    {
+      connection: redis,
+      concurrency: PREVIEW_CONCURRENCY,
+      // drainDelay (ms) becomes the BLMOVE blocking timeout in seconds inside BullMQ 5
+      // (Math.max(Math.trunc(drainDelay/1000), 1)). Default 5 ms → 1s timeout → 60 polls/min.
+      // 30 000 ms → 30s timeout → 2 polls/min. Jobs still picked up instantly via push notification.
+      drainDelay: 30_000,
+      // Stalled-job checks are only useful when jobs are actively running.
+      // Raising from 30s to 5 min saves ~10 Redis commands/min at idle.
+      stalledInterval: 300_000,
+    },
   )
 
   worker.on('failed', (job, err) => {
