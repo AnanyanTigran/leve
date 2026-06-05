@@ -3,14 +3,48 @@
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle } from 'lucide-react'
+import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle, ImageIcon } from 'lucide-react'
 import { CATEGORY_ITEMS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ACCEPTED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/avif',
+  'image/tiff',
+]
+// Formats that no major browser will decode in <img>/canvas. AVIF works in
+// modern Chrome/Firefox/Safari so we attempt it and fall back on failure.
+const BROWSER_UNRENDERABLE_MIMES = new Set(['image/heic', 'image/heif', 'image/tiff'])
 const PREVIEW_MAX_PX = 600
+// 1x1 transparent PNG — used as a placeholder for the templates page when
+// the browser can't decode the source (HEIC, TIFF) into a canvas.
+const PLACEHOLDER_DATA_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+
+// iOS Safari frequently sends an empty file.type for HEIC pulled from the
+// camera roll — infer from the extension so validation doesn't reject it.
+function getEffectiveMime(file: File): string {
+  if (file.type) return file.type.toLowerCase()
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  switch (ext) {
+    case 'heic': return 'image/heic'
+    case 'heif': return 'image/heif'
+    case 'avif': return 'image/avif'
+    case 'tif':
+    case 'tiff': return 'image/tiff'
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg'
+    case 'png': return 'image/png'
+    case 'webp': return 'image/webp'
+    default: return ''
+  }
+}
 
 function compressToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -40,7 +74,8 @@ function compressToDataUrl(file: File): Promise<string> {
 
 interface FileState {
   file: File
-  preview: string
+  preview: string | null
+  mime: string
 }
 
 function formatFileSize(bytes: number): string {
@@ -71,22 +106,27 @@ export function UploadZone() {
     sessionStorage.setItem('leve_category', cat)
   }, [])
 
-  const validateFile = useCallback((file: File): string | null => {
-    if (!ACCEPTED_TYPES.includes(file.type)) return t('error_type')
-    if (file.size > MAX_FILE_SIZE) return t('error_size')
-    return null
+  const validateFile = useCallback((file: File): { error: string | null; mime: string } => {
+    const mime = getEffectiveMime(file)
+    if (!ACCEPTED_TYPES.includes(mime)) return { error: t('error_type'), mime }
+    if (file.size > MAX_FILE_SIZE) return { error: t('error_size'), mime }
+    return { error: null, mime }
   }, [t])
 
   const handleFile = useCallback((file: File) => {
-    const validationError = validateFile(file)
+    const { error: validationError, mime } = validateFile(file)
     if (validationError) {
       setError(validationError)
       setFileState(null)
       return
     }
     setError(null)
-    const preview = URL.createObjectURL(file)
-    setFileState({ file, preview })
+    // Skip the blob URL for formats the browser can't decode — the <img>
+    // would just show a broken icon. The placeholder branch handles them.
+    const preview = BROWSER_UNRENDERABLE_MIMES.has(mime)
+      ? null
+      : URL.createObjectURL(file)
+    setFileState({ file, preview, mime })
   }, [validateFile])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -135,8 +175,15 @@ export function UploadZone() {
     setError(null)
 
     try {
-      // Generate compressed preview for the scene selection page
-      const dataUrl = await compressToDataUrl(fileState.file)
+      // Generate compressed preview for the scene selection page. HEIC/TIFF
+      // can't decode in canvas — server transcodes to JPEG anyway, so we just
+      // store a 1x1 placeholder and let /templates show it.
+      let dataUrl: string
+      try {
+        dataUrl = await compressToDataUrl(fileState.file)
+      } catch {
+        dataUrl = PLACEHOLDER_DATA_URL
+      }
 
       // Upload file to API to get S3 key
       const formData = new FormData()
@@ -217,12 +264,21 @@ export function UploadZone() {
           >
             {fileState ? (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={fileState.preview}
-                  alt="Preview"
-                  className="absolute inset-0 w-full h-full object-cover rounded-[14px]"
-                />
+                {fileState.preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={fileState.preview}
+                    alt="Preview"
+                    className="absolute inset-0 w-full h-full object-cover rounded-[14px]"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-bg-elevated rounded-[14px]">
+                    <ImageIcon className="w-12 h-12 text-text-muted" strokeWidth={1.5} />
+                    <span className="text-[12px] text-text-secondary uppercase tracking-wide">
+                      {fileState.mime.replace('image/', '')}
+                    </span>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleRemove() }}
@@ -264,7 +320,7 @@ export function UploadZone() {
             <input
               ref={inputRef}
               type="file"
-              accept=".jpg,.jpeg,.png,.webp"
+              accept=".jpg,.jpeg,.png,.webp,.heic,.heif,.avif,.tif,.tiff,image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,image/tiff"
               onChange={handleInputChange}
               className="hidden"
             />
