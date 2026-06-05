@@ -527,6 +527,25 @@ export default function ResultsPage() {
             </div>
           )}
 
+          {/* End-of-page next actions — keeps the current upload when jumping
+              back to scene selection; only the "new photo" branch clears it. */}
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => router.push('/templates')}
+              className="btn-secondary btn-full"
+            >
+              {t('generate_another')}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="text-[13px] text-text-muted hover:text-text-secondary font-semibold py-2"
+            >
+              {t('upload_new_photo')}
+            </button>
+          </div>
+
         </div>
 
         {/* Sticky Download HD CTA — lives in the document flow so the whole

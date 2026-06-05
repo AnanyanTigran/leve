@@ -169,7 +169,9 @@
     "preview_load_failed": "Couldn't load your image",
     "preview_load_retry": "Try again",
     "reconnecting": "Reconnecting…",
-    "download_hd": "Download HD"
+    "download_hd": "Download HD",
+    "generate_another": "Generate another scene",
+    "upload_new_photo": "Upload a new photo"
   },
   "paywall": {
     "title": "Unlock HD Download",
@@ -228,7 +230,8 @@
     "send_code": "Send code",
     "phone_disclaimer": "We'll never spam you · Only for session recovery",
     "skip": "Skip for now",
-    "generate_another": "Generate another",
+    "generate_another": "Generate another scene",
+    "upload_new_photo": "Upload a new photo",
     "download_failed": "Download failed — please try again",
     "image_not_loaded": "Image could not be loaded",
     "go_to_history": "Go to History",

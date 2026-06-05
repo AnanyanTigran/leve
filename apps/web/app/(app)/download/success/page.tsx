@@ -228,10 +228,16 @@ export default function DownloadSuccessPage() {
         </div>
 
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.push('/templates')}
           className="btn-secondary btn-full mt-6"
         >
           {t('generate_another')}
+        </button>
+        <button
+          onClick={() => router.push('/')}
+          className="block mx-auto text-[13px] text-text-muted hover:text-text-secondary font-semibold py-3 mt-1"
+        >
+          {t('upload_new_photo')}
         </button>
       </main>
     </div>

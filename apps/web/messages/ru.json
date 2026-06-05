@@ -169,7 +169,9 @@
     "preview_load_failed": "Не удалось загрузить изображение",
     "preview_load_retry": "Попробовать снова",
     "reconnecting": "Восстановление связи…",
-    "download_hd": "Скачать HD"
+    "download_hd": "Скачать HD",
+    "generate_another": "Другая сцена",
+    "upload_new_photo": "Загрузить новое фото"
   },
   "paywall": {
     "title": "Разблокировать HD загрузку",
@@ -228,7 +230,8 @@
     "send_code": "Отправить код",
     "phone_disclaimer": "Мы никогда не спамим · Только для восстановления сессии",
     "skip": "Пропустить",
-    "generate_another": "Создать ещё",
+    "generate_another": "Другая сцена",
+    "upload_new_photo": "Загрузить новое фото",
     "download_failed": "Ошибка загрузки",
     "image_not_loaded": "Изображение не загрузилось",
     "go_to_history": "Перейти в историю",

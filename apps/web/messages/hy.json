@@ -169,7 +169,9 @@
     "preview_load_failed": "Չհաջողվեց բեռնել նկարը",
     "preview_load_retry": "Կրկին փորձել",
     "reconnecting": "Կապի վերականգնում…",
-    "download_hd": "Բեռնել HD"
+    "download_hd": "Բեռնել HD",
+    "generate_another": "Այլ տեսարան",
+    "upload_new_photo": "Բեռնել նոր լուսանկար"
   },
   "paywall": {
     "title": "Ակտիվացնել HD ներբեռնումը",
@@ -228,7 +230,8 @@
     "send_code": "Ուղարկել կոդը",
     "phone_disclaimer": "Առանց սպամի · Միայն մուտքը վերականգնելու համար",
     "skip": "Առայժմ բաց թողնել",
-    "generate_another": "Գեներացնել նորը",
+    "generate_another": "Այլ տեսարան",
+    "upload_new_photo": "Բեռնել նոր լուսանկար",
     "download_failed": "Ներբեռնումը ձախողվեց",
     "image_not_loaded": "Նկարը չբեռնվեց",
     "go_to_history": "Գնալ պատմություն",
