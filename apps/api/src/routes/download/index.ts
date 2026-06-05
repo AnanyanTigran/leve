@@ -5,6 +5,9 @@ import { prisma } from '../../lib/prisma'
 import { buildCloudfrontSignedUrl, downloadFromS3 } from '../../lib/cloudfront'
 import { exportForPlatform } from '../../services/export.service'
 import { applyTextOverlayToS3Image } from '../../lib/text-overlay'
+import { SessionService } from '../../services/session.service'
+import { UserService } from '../../services/user.service'
+import { Sentry } from '../../lib/sentry'
 
 // Resolve the actual S3 key to serve for a job's HD download. If the user
 // configured a text overlay on /results, composite it onto the HD output
@@ -384,6 +387,104 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         .header('Content-Disposition', `attachment; filename="leve-${jobId}-${platform}.jpg"`)
         .header('Cache-Control', 'private, no-cache')
         .send(buffer)
+    },
+  )
+
+  // POST /api/download/spend-credit
+  // Verified users with free credits (granted on OTP verification) can spend
+  // one to unlock HD download without going through the paywall. Deducts
+  // atomically from Redis, mirrors the deduction to the User DB row, and
+  // creates a Transaction + DownloadGrant so the regular /url and /file
+  // endpoints work unchanged.
+  app.post(
+    '/api/download/spend-credit',
+    { preHandler: [app.requireVerified], config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const requestId = nanoid(10)
+      const session = request.session
+
+      const parsed = z.object({ jobId: z.string().min(1) }).safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
+      }
+      const { jobId } = parsed.data
+
+      const job = await prisma.generationJob.findUnique({ where: { id: jobId } })
+      if (!job || job.sessionId !== session.sessionId) {
+        return reply.status(404).send({ success: false, error: 'not_found', requestId })
+      }
+
+      if (!job.hdS3Key) {
+        return reply.status(202).send({
+          success: false,
+          error: 'hd_not_ready',
+          data: { retryAfterSeconds: 5 },
+          requestId,
+        })
+      }
+
+      // Short-circuit when a grant already exists for this job — avoids
+      // double-spending if the FE retries after a slow response.
+      const existingGrant = await prisma.downloadGrant.findFirst({
+        where: { jobId, sessionId: session.sessionId },
+        select: { id: true },
+      })
+      if (existingGrant) {
+        return reply.send({ success: true, data: { hasGrant: true }, requestId })
+      }
+
+      const deducted = await SessionService.deductCredit(session.sessionId)
+      if (!deducted) {
+        return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
+      }
+
+      // Mirror to the User DB row so credits survive session expiry. Failure
+      // here is non-fatal — Redis is the source of truth for the active
+      // session — but must be alerted so drift can be reconciled.
+      const identifier = session.phone ?? session.email
+      const identifierType: 'phone' | 'email' = session.phone ? 'phone' : 'email'
+      if (identifier) {
+        await UserService.recordGeneration(identifier, identifierType).catch((err: unknown) => {
+          app.log.error({ err, requestId, sessionId: session.sessionId }, 'spend-credit DB sync failed')
+          Sentry.captureException(err)
+        })
+      }
+
+      let transaction
+      try {
+        transaction = await prisma.transaction.create({
+          data: {
+            sessionId: session.sessionId,
+            provider: 'credit',
+            orderId: nanoid(16),
+            pack: 'free_credit',
+            amountAMD: 0,
+            credits: 1,
+            status: 'completed',
+            completedAt: new Date(),
+          },
+        })
+
+        await prisma.downloadGrant.create({
+          data: {
+            sessionId: session.sessionId,
+            jobId,
+            transactionId: transaction.id,
+            hdS3Key: job.hdS3Key,
+          },
+        })
+      } catch (err) {
+        // Refund the credit so the user is not charged for a half-finished
+        // grant. The next click will retry cleanly.
+        await SessionService.refundCredit(session.sessionId).catch(() => {})
+        app.log.error({ err, requestId, jobId }, 'spend-credit grant creation failed — credit refunded')
+        Sentry.captureException(err)
+        return reply.status(500).send({ success: false, error: 'grant_creation_failed', requestId })
+      }
+
+      app.log.info({ requestId, jobId, sessionId: session.sessionId }, 'credit spent for HD download')
+
+      return reply.send({ success: true, data: { hasGrant: true }, requestId })
     },
   )
 
