@@ -169,6 +169,10 @@ export function UploadZone() {
       sessionStorage.removeItem('leve_job_upload_session_id')
       sessionStorage.removeItem('leve_scene_id')
       sessionStorage.removeItem('leve_scene_name')
+      // Clear the previously-saved aspect ratio so the new upload's natural
+      // ratio drives the auto-selection on /templates instead of inheriting
+      // the prior generation's choice.
+      sessionStorage.removeItem('leve_aspect_ratio')
     }
 
     setIsUploading(true)
@@ -216,12 +220,25 @@ export function UploadZone() {
 
       const uploadKey: string = json.data.uploadKey
       const qualityWarning: string | null = json.data.qualityWarning ?? null
+      const uploadWidth = typeof json.data.width === 'number' ? json.data.width : null
+      const uploadHeight = typeof json.data.height === 'number' ? json.data.height : null
 
       sessionStorage.setItem('leve_upload_key', uploadKey)
       sessionStorage.setItem('leve_upload_preview', dataUrl)
       sessionStorage.setItem('leve_upload_session_id', Date.now().toString())
       sessionStorage.setItem('leve_upload_name', fileState.file.name)
       // leve_category is already written by handleCategorySelect
+
+      // Store natural aspect ratio so /templates can auto-select the closest
+      // chip and warn when the user picks a format that would crop the product.
+      if (uploadWidth && uploadHeight && uploadHeight > 0) {
+        sessionStorage.setItem(
+          'leve_upload_aspect_ratio',
+          (uploadWidth / uploadHeight).toFixed(4),
+        )
+      } else {
+        sessionStorage.removeItem('leve_upload_aspect_ratio')
+      }
 
       if (qualityWarning) {
         sessionStorage.setItem('leve_upload_quality', qualityWarning)
