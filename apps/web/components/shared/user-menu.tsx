@@ -22,13 +22,30 @@ function getCurrentLocale(): LocaleId {
   return val === 'hy' || val === 'ru' || val === 'en' ? val : 'hy'
 }
 
-function getInitial(session: { email: string | null; phone: string | null; brandName: string | null }): string {
-  const source = session.brandName || session.email || session.phone || ''
-  const first = source.trim().charAt(0)
-  return first ? first.toUpperCase() : ''
+// Returns the letter to show in the avatar circle, or null when a generic
+// icon should be used instead (phone-only users — "+" is not a letter).
+function getInitial(session: { email: string | null; phone: string | null; brandName: string | null }): string | null {
+  if (session.brandName?.trim()) return session.brandName.trim()[0].toUpperCase()
+  if (session.email?.trim()) return session.email.trim()[0].toUpperCase()
+  return null
 }
 
-function truncateIdentity(value: string, max = 22): string {
+// Inserts spaces into an Armenian mobile number for readability.
+// +374XXXXXXXX → +374 XX XXX XXX. Other formats are returned unchanged.
+function formatPhone(phone: string): string {
+  const m = phone.match(/^(\+374)(\d{2})(\d{3})(\d{3})$/)
+  return m ? `${m[1]} ${m[2]} ${m[3]} ${m[4]}` : phone
+}
+
+// The display name shown in the menu header follows brandName > email > phone.
+function getDisplayName(session: { email: string | null; phone: string | null; brandName: string | null }): string {
+  if (session.brandName?.trim()) return session.brandName.trim()
+  if (session.email?.trim()) return session.email.trim()
+  if (session.phone?.trim()) return formatPhone(session.phone.trim())
+  return ''
+}
+
+function truncate(value: string, max = 22): string {
   return value.length > max ? `${value.slice(0, max - 1)}…` : value
 }
 
@@ -68,7 +85,7 @@ export function UserMenu() {
 
   if (!session?.isVerified) return null
 
-  const identity = session.email || session.phone || ''
+  const displayName = getDisplayName(session)
   const initial = getInitial(session)
 
   function switchLocale(next: LocaleId) {
@@ -109,13 +126,10 @@ export function UserMenu() {
           className="absolute right-0 top-[calc(100%+8px)] z-50 w-[260px] rounded-xl border border-border-default bg-bg-elevated shadow-lg overflow-hidden"
         >
           <div className="px-4 py-3 flex flex-col gap-1">
-            {identity && (
+            {displayName && (
               <p className="text-[13px] font-semibold text-text-primary truncate">
-                {truncateIdentity(identity)}
+                {truncate(displayName)}
               </p>
-            )}
-            {session.brandName && (
-              <p className="text-[12px] text-text-muted truncate">{session.brandName}</p>
             )}
             <div className="flex items-center gap-1.5 mt-1">
               <Coins className="w-3.5 h-3.5 text-accent" strokeWidth={2} />
