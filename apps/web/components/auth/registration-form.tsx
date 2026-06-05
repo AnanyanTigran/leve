@@ -52,7 +52,7 @@ export function RegistrationForm({ onContinue, disabled = false, isSubmitting = 
       {!useEmail ? (
         <div className="flex flex-col gap-2">
           <div className={cn(
-            'flex items-center h-[56px] bg-bg-surface border-2 rounded-[14px] overflow-hidden transition-all duration-150 px-4',
+            'flex items-center h-[56px] bg-bg-surface border-2 rounded-[14px] transition-all duration-150 px-4',
             phoneValid
               ? 'border-accent'
               : showError
