@@ -26,6 +26,7 @@
     "@fastify/multipart": "^8.3.0",
     "@fastify/rate-limit": "^9.1.0",
     "@leve/types": "*",
+    "@leve/config": "*",
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^10.54.0",
     "axios": "^1.16.1",
@@ -43,7 +44,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@leve/config": "*",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
     "@types/nodemailer": "^8.0.0",
