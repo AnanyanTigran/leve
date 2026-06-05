@@ -129,8 +129,8 @@ export async function registerOtpRoutes(app: FastifyInstance) {
       // Extend cookie TTL to 30 days
       reply.setCookie(env.SESSION_COOKIE_NAME, request.session.sessionId, {
         httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true,
+        sameSite: 'none',
         path: '/',
         maxAge: 60 * 60 * 24 * 30,
       })
