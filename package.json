@@ -18,7 +18,9 @@
   },
   "devDependencies": {
     "@types/sharp": "^0.31.1",
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "prisma": "^5.22.0",
+    "typescript": "^5.7.2"
   },
   "dependencies": {
     "@aws-sdk/client-rekognition": "^3.1051.0",
