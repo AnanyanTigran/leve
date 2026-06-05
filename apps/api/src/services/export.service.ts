@@ -20,18 +20,57 @@ export const SERVER_PLATFORM_SPECS: Record<string, PlatformSpec> = {
   original_hd:     { width: 0,    height: 0,    forceWhiteBg: false, padding: 0 },
 }
 
+// User-defined crop, sent from the FE as fractions of the source image
+// (top-left origin). When omitted we keep the previous behavior: a centered
+// `fit: 'cover'` for normal platforms and a contain+pad for marketplace ones.
+export interface CropRegion {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+function isValidCrop(c: CropRegion | undefined): c is CropRegion {
+  if (!c) return false
+  if (c.width <= 0 || c.height <= 0) return false
+  if (c.x < 0 || c.y < 0) return false
+  if (c.x + c.width > 1.0001 || c.y + c.height > 1.0001) return false
+  return true
+}
+
+// Apply a user crop to the source buffer up front so the rest of the pipeline
+// (resize / pad / overlay) sees the chosen region as if it were the original.
+async function applyUserCrop(buffer: Buffer, crop: CropRegion): Promise<Buffer> {
+  const meta = await sharp(buffer).metadata()
+  const srcW = meta.width ?? 0
+  const srcH = meta.height ?? 0
+  if (srcW <= 0 || srcH <= 0) return buffer
+
+  const left = Math.max(0, Math.min(srcW - 1, Math.round(crop.x * srcW)))
+  const top = Math.max(0, Math.min(srcH - 1, Math.round(crop.y * srcH)))
+  const width = Math.max(1, Math.min(srcW - left, Math.round(crop.width * srcW)))
+  const height = Math.max(1, Math.min(srcH - top, Math.round(crop.height * srcH)))
+
+  return sharp(buffer).extract({ left, top, width, height }).toBuffer()
+}
+
 export async function exportForPlatform(
   sourceS3Key: string,
   platform: string,
   sessionId: string,
   jobId: string,
+  cropRegion?: CropRegion,
 ): Promise<string> {
   const spec = SERVER_PLATFORM_SPECS[platform]
   if (!spec) throw new Error('invalid_platform')
 
   if (platform === 'original_hd') return sourceS3Key
 
-  const sourceBuffer = await downloadFromS3(sourceS3Key)
+  let sourceBuffer = await downloadFromS3(sourceS3Key)
+
+  if (isValidCrop(cropRegion)) {
+    sourceBuffer = await applyUserCrop(sourceBuffer, cropRegion)
+  }
 
   let pipeline: sharp.Sharp
 

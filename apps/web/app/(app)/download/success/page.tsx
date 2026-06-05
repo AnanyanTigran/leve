@@ -7,8 +7,9 @@ import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Glob
 import { cn } from '@/lib/utils'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 import { PLATFORM_SPECS } from '@leve/types'
-import type { ExportPlatform } from '@leve/types'
+import type { AspectRatio, ExportPlatform } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
+import { CropSelector, type CropRegion } from '@/components/results/crop-selector'
 
 const PLATFORM_ICONS: Record<ExportPlatform, LucideIcon> = {
   instagram_feed: Square,
@@ -38,6 +39,18 @@ const PLATFORM_ORDER: ExportPlatform[] = [
   'list_am',
 ]
 
+const ASPECT_RATIO_VALUES: Record<AspectRatio, number> = {
+  '1:1': 1,
+  '4:5': 4 / 5,
+  '3:4': 3 / 4,
+  '9:16': 9 / 16,
+  '16:9': 16 / 9,
+}
+
+// Within this fractional difference the FE considers the two ratios "close
+// enough" to skip the crop selector and let the server fit/cover as usual.
+const RATIO_TOLERANCE = 0.05
+
 export default function DownloadSuccessPage() {
   const router = useRouter()
   const t = useTranslations('download')
@@ -46,7 +59,14 @@ export default function DownloadSuccessPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTimedOut, setPreviewTimedOut] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
+  const [cropOpen, setCropOpen] = useState(false)
   const { checked, isVerified } = useVerifiedGuard()
+
+  const sourceAspectRatio = (() => {
+    if (typeof window === 'undefined') return 1
+    const raw = sessionStorage.getItem('leve_aspect_ratio') as AspectRatio | null
+    return raw && ASPECT_RATIO_VALUES[raw] ? ASPECT_RATIO_VALUES[raw] : 1
+  })()
 
   // Redirect to /history if job context is missing after auth confirmed
   useEffect(() => {
@@ -83,7 +103,7 @@ export default function DownloadSuccessPage() {
     ? t('download_btn')
     : `${t('download_for')} ${PLATFORM_SPECS[selectedPlatform].label}`
 
-  async function handleDownload() {
+  async function triggerDownload(crop?: CropRegion) {
     const jobId = sessionStorage.getItem('leve_job_id')
     if (!jobId) return
 
@@ -92,9 +112,22 @@ export default function DownloadSuccessPage() {
 
     let blobUrl: string | null = null
     try {
-      const endpoint = selectedPlatform === 'original_hd'
-        ? `/api/download/file?jobId=${encodeURIComponent(jobId)}`
-        : `/api/download/export-file?jobId=${encodeURIComponent(jobId)}&platform=${encodeURIComponent(selectedPlatform)}`
+      let endpoint: string
+      if (selectedPlatform === 'original_hd') {
+        endpoint = `/api/download/file?jobId=${encodeURIComponent(jobId)}`
+      } else {
+        const params = new URLSearchParams({
+          jobId,
+          platform: selectedPlatform,
+        })
+        if (crop) {
+          params.set('cropX', crop.x.toFixed(4))
+          params.set('cropY', crop.y.toFixed(4))
+          params.set('cropW', crop.width.toFixed(4))
+          params.set('cropH', crop.height.toFixed(4))
+        }
+        endpoint = `/api/download/export-file?${params.toString()}`
+      }
 
       const res = await fetch(endpoint, { credentials: 'include' })
 
@@ -112,12 +145,32 @@ export default function DownloadSuccessPage() {
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
+      setCropOpen(false)
     } catch {
       setDownloadError(t('download_failed'))
     } finally {
       if (blobUrl) URL.revokeObjectURL(blobUrl)
       setIsDownloading(false)
     }
+  }
+
+  function needsCropPicker(): boolean {
+    if (selectedPlatform === 'original_hd') return false
+    const spec = PLATFORM_SPECS[selectedPlatform]
+    // Marketplace exports (Wildberries, Ozon) use contain+pad on the server,
+    // so a manual crop wouldn't change the visible composition.
+    if (spec.forceWhiteBg) return false
+    if (!spec.width || !spec.height) return false
+    const targetRatio = spec.width / spec.height
+    return Math.abs(targetRatio - sourceAspectRatio) / targetRatio > RATIO_TOLERANCE
+  }
+
+  function handleDownload() {
+    if (needsCropPicker()) {
+      setCropOpen(true)
+      return
+    }
+    void triggerDownload()
   }
 
   if (!checked) {
@@ -240,6 +293,23 @@ export default function DownloadSuccessPage() {
           {t('upload_new_photo')}
         </button>
       </main>
+
+      {cropOpen && previewUrl && selectedPlatform !== 'original_hd' && (
+        <CropSelector
+          imageUrl={previewUrl}
+          sourceAspectRatio={sourceAspectRatio}
+          targetAspectRatio={
+            PLATFORM_SPECS[selectedPlatform].width /
+            PLATFORM_SPECS[selectedPlatform].height
+          }
+          targetWidth={PLATFORM_SPECS[selectedPlatform].width}
+          targetHeight={PLATFORM_SPECS[selectedPlatform].height}
+          platformLabel={PLATFORM_SPECS[selectedPlatform].label}
+          isDownloading={isDownloading}
+          onCancel={() => setCropOpen(false)}
+          onConfirm={(region) => void triggerDownload(region)}
+        />
+      )}
     </div>
   )
 }

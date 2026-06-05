@@ -39,6 +39,16 @@ const exportSchema = z.object({
   ]),
 })
 
+// Optional crop region as query params (fractions of source 0–1). All four
+// must be present together; otherwise the export falls back to the default
+// center-crop / contain behavior.
+const cropQuerySchema = z.object({
+  cropX: z.coerce.number().min(0).max(1),
+  cropY: z.coerce.number().min(0).max(1),
+  cropW: z.coerce.number().min(0).max(1),
+  cropH: z.coerce.number().min(0).max(1),
+})
+
 export async function registerDownloadRoutes(app: FastifyInstance) {
 
   // GET /api/download/url
@@ -301,6 +311,18 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       const { jobId, platform } = parsed.data
 
+      // Optional crop region. All four fields must parse; partial sets are
+      // silently ignored so a malformed link still produces a clean export.
+      const cropParsed = cropQuerySchema.safeParse(request.query)
+      const cropRegion = cropParsed.success
+        ? {
+            x: cropParsed.data.cropX,
+            y: cropParsed.data.cropY,
+            width: cropParsed.data.cropW,
+            height: cropParsed.data.cropH,
+          }
+        : undefined
+
       const grant = await prisma.downloadGrant.findFirst({
         where: { jobId, sessionId: session.sessionId },
         include: { job: true },
@@ -326,6 +348,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
           platform,
           session.sessionId,
           jobId,
+          cropRegion,
         )
       } catch (err) {
         app.log.error({ requestId, jobId, platform, err }, 'export failed')
