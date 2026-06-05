@@ -25,8 +25,8 @@ function getCurrentLocale(): LocaleId {
 // Returns the letter to show in the avatar circle, or null when a generic
 // icon should be used instead (phone-only users — "+" is not a letter).
 function getInitial(session: { email: string | null; phone: string | null; brandName: string | null }): string | null {
-  if (session.brandName?.trim()) return session.brandName.trim()[0].toUpperCase()
-  if (session.email?.trim()) return session.email.trim()[0].toUpperCase()
+  if (session.brandName?.trim()) return session.brandName.trim().charAt(0).toUpperCase()
+  if (session.email?.trim()) return session.email.trim().charAt(0).toUpperCase()
   return null
 }
 
