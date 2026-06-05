@@ -90,46 +90,32 @@ export default function DownloadSuccessPage() {
     setIsDownloading(true)
     setDownloadError(null)
 
+    let blobUrl: string | null = null
     try {
-      let downloadUrl: string
+      const endpoint = selectedPlatform === 'original_hd'
+        ? `/api/download/file?jobId=${encodeURIComponent(jobId)}`
+        : `/api/download/export-file?jobId=${encodeURIComponent(jobId)}&platform=${encodeURIComponent(selectedPlatform)}`
 
-      if (selectedPlatform === 'original_hd') {
-        const res = await fetch(
-          `/api/download/url?jobId=${jobId}`,
-          { credentials: 'include' },
-        )
-        const data = await res.json()
+      const res = await fetch(endpoint, { credentials: 'include' })
 
-        if (!res.ok || !data?.data?.url) {
-          setDownloadError(t('download_failed'))
-          return
-        }
-        downloadUrl = data.data.url
-      } else {
-        const res = await fetch('/api/download/export', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId, platform: selectedPlatform }),
-        })
-        const data = await res.json()
-
-        if (!res.ok || !data?.data?.url) {
-          setDownloadError(t('download_failed'))
-          return
-        }
-        downloadUrl = data.data.url
+      if (!res.ok) {
+        setDownloadError(t('download_failed'))
+        return
       }
 
+      const blob = await res.blob()
+      blobUrl = URL.createObjectURL(blob)
+
       const a = document.createElement('a')
-      a.href = downloadUrl
-      a.download = `leve-${selectedPlatform}.jpg`
+      a.href = blobUrl
+      a.download = `leve-studio-${selectedPlatform}-${Date.now()}.jpg`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
     } catch {
       setDownloadError(t('download_failed'))
     } finally {
+      if (blobUrl) URL.revokeObjectURL(blobUrl)
       setIsDownloading(false)
     }
   }
