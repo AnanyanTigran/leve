@@ -4,10 +4,18 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
+export interface OtpVerifyResult {
+  isReturning: boolean
+  brandName: string | null
+  creditsRemaining: number
+  purchaseCount: number
+  favoriteSceneId: string | null
+}
+
 interface OtpFormProps {
   contact: string
   identifierType: 'phone' | 'email'
-  onVerify: () => void
+  onVerify: (result: OtpVerifyResult) => void
   onResend: () => void
 }
 
@@ -81,7 +89,13 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
         setError(true)
         return
       }
-      onVerify()
+      onVerify({
+        isReturning: Boolean(data.data?.isReturning),
+        brandName: data.data?.brandName ?? null,
+        creditsRemaining: data.data?.creditsRemaining ?? 0,
+        purchaseCount: data.data?.purchaseCount ?? 0,
+        favoriteSceneId: data.data?.favoriteSceneId ?? null,
+      })
     } catch {
       setError(true)
     } finally {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { ChevronLeft } from 'lucide-react'
 import { RegistrationForm } from '@/components/auth/registration-form'
-import { OtpForm } from '@/components/auth/otp-form'
+import { OtpForm, type OtpVerifyResult } from '@/components/auth/otp-form'
 import { refreshSession } from '@/hooks/use-session'
 
 // Stale order id (older than this) is removed on landing so the user
@@ -91,10 +91,20 @@ export default function RegisterPage() {
     setStep('otp')
   }
 
-  function handleVerify() {
+  function handleVerify(result: OtpVerifyResult) {
     // Pull the just-promoted session into the shared cache so the rest of
     // the app reflects the verified state without a per-page re-fetch.
     void refreshSession()
+
+    // Skip the brand-name step when there's nothing to ask:
+    //  - user already has a brand name stored on their User row, OR
+    //  - user is returning (they had a chance before; don't nag).
+    // Only first-time verifiers without a brand land on the brand step.
+    const hasBrand = Boolean(result.brandName && result.brandName.trim().length > 0)
+    if (hasBrand || result.isReturning) {
+      navigateToReturn()
+      return
+    }
     setStep('brand_name')
   }
 
