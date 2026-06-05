@@ -182,19 +182,26 @@ export default function DownloadSuccessPage() {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
-      <main className="page-funnel flex-1 overflow-y-auto py-8">
-        {/* Generated image */}
+    <div className="bg-bg-base min-h-[100dvh]">
+      <main className="page-funnel py-8 pb-12">
+        {/* Generated image — sized to the generated image's natural aspect ratio.
+            maxWidth pairs with maxHeight so the container doesn't go wider than
+            the height budget allows, matching the approach used in the slider. */}
         <div
-          className="w-full rounded-[16px] overflow-hidden border border-border-default relative bg-bg-elevated"
-          style={{ minHeight: '240px', maxHeight: '50vh' }}
+          className="mx-auto rounded-[16px] overflow-hidden border border-border-default relative bg-bg-elevated"
+          style={{
+            width: '100%',
+            aspectRatio: String(sourceAspectRatio),
+            maxHeight: '50vh',
+            maxWidth: `calc(50vh * ${sourceAspectRatio})`,
+          }}
         >
           {previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={previewUrl}
               alt="Your generated image"
-              className="w-full h-full object-contain"
+              className="absolute inset-0 w-full h-full object-contain"
             />
           ) : previewTimedOut ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
