@@ -25,6 +25,8 @@ import formbody from '@fastify/formbody'
 const env = validateEnv()
 initSentry(env.SENTRY_DSN)
 
+let ready = false
+
 const app = Fastify({
   logger: {
     level: env.LOG_LEVEL,
@@ -82,6 +84,10 @@ async function bootstrap() {
 
   // Health check
   app.get('/health', async (_request, reply) => {
+    if (!ready) {
+      return reply.status(200).send({ status: 'starting', ts: Date.now() })
+    }
+
     const checks: Record<string, string> = {}
 
     try {
@@ -134,6 +140,9 @@ async function bootstrap() {
     app.log.error({ err }, '[worker] stale-transactions startup error')
   })
   await scheduleStaleTransactionsCleanup()
+
+  ready = true
+  app.log.info('API ready')
 }
 
 bootstrap().catch((err) => {
