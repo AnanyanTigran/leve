@@ -144,14 +144,16 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         },
       })
 
-      // Determine source image for iterative edits
+      // Determine source image for iterative edits — use the clean hdS3Key,
+      // not previewS3Keys[0] (now watermarked for all users). Kontext gets the
+      // best signal from the un-watermarked image.
       let sourceImageS3Key: string | undefined
       if (isEdit && sourceJobId) {
         const sourceJob = await prisma.generationJob.findUnique({
           where: { id: sourceJobId },
         })
-        if (sourceJob?.sessionId === session.sessionId && sourceJob.previewS3Keys[0]) {
-          sourceImageS3Key = sourceJob.previewS3Keys[0]
+        if (sourceJob?.sessionId === session.sessionId && sourceJob.hdS3Key) {
+          sourceImageS3Key = sourceJob.hdS3Key
         }
       }
 

@@ -88,19 +88,18 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       return
     }
 
-    // For anonymous sessions: watermark the output before serving as preview.
-    // The clean original (output.s3Key) is always preserved as hdS3Key for future HD purchase.
+    // Every preview is watermarked — verified and anonymous alike. The clean
+    // original (output.s3Key) is preserved as hdS3Key and only served after
+    // purchase via the HD download endpoint.
     let workingKey = output.s3Key
 
-    if (!isVerified) {
-      try {
-        const watermarkedBuffer = await applyWatermark(output.outputBuffer)
-        const watermarkedKey = output.s3Key.replace('-output.jpg', '-wm.jpg')
-        await uploadToS3(watermarkedKey, watermarkedBuffer, 'image/jpeg')
-        workingKey = watermarkedKey
-      } catch (err) {
-        logger.error({ requestId, jobId, err }, '[preview worker] watermark failed — serving without watermark')
-      }
+    try {
+      const watermarkedBuffer = await applyWatermark(output.outputBuffer)
+      const watermarkedKey = output.s3Key.replace('-output.jpg', '-wm.jpg')
+      await uploadToS3(watermarkedKey, watermarkedBuffer, 'image/jpeg')
+      workingKey = watermarkedKey
+    } catch (err) {
+      logger.error({ requestId, jobId, err }, '[preview worker] watermark failed — serving without watermark')
     }
 
     // Text overlay is now applied at HD download time (see audit R1), not on

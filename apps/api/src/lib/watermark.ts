@@ -2,8 +2,8 @@ import sharp from 'sharp'
 
 /**
  * Applies a diagonal tiled "LEVE" watermark to an image buffer.
- * Used for anonymous preview images only.
- * Verified user downloads are served without watermark via signed URL.
+ * Applied to every preview (anonymous and verified). The clean original is
+ * preserved as hdS3Key and only served after purchase via the HD download.
  */
 export async function applyWatermark(inputBuffer: Buffer): Promise<Buffer> {
   const meta = await sharp(inputBuffer).metadata()
@@ -20,7 +20,7 @@ export async function applyWatermark(inputBuffer: Buffer): Promise<Buffer> {
         font-family="Arial, sans-serif"
         font-size="${fontSize}"
         font-weight="bold"
-        fill="rgba(255,255,255,0.35)"
+        fill="rgba(255,255,255,0.25)"
         text-anchor="middle"
         dominant-baseline="middle"
         transform="rotate(-30, ${tileSize / 2}, ${tileSize / 2})"
