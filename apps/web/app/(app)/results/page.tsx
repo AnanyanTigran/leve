@@ -44,7 +44,6 @@ export default function ResultsPage() {
   const [hasGrant, setHasGrant] = useState<boolean | null>(null)
   const [paywallOpen, setPaywallOpen] = useState(false)
   const [paywallInitialState, setPaywallInitialState] = useState<'pricing' | 'processing'>('pricing')
-  const [shareCopied, setShareCopied] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<JobStatus>(null)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
@@ -351,28 +350,6 @@ export default function ResultsPage() {
     }
   }
 
-  async function handleShare() {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'LEVE — AI Product Photography',
-          text: 'Transform your product photos into studio-quality visuals in seconds.',
-          url: window.location.origin,
-        })
-      } catch {
-        // user cancelled, silent fail
-      }
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(window.location.origin)
-      setShareCopied(true)
-      setTimeout(() => setShareCopied(false), 2000)
-    } catch {
-      // silent fail
-    }
-  }
-
   async function handleEditSubmit() {
     if (!editPrompt.trim() || !jobId || isEditing) return
 
@@ -450,16 +427,6 @@ export default function ResultsPage() {
         variant="app"
         showBack={false}
         title={t('title')}
-        rightSlot={
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleShare}
-              className="text-[13px] text-accent font-ui font-semibold"
-            >
-              {shareCopied ? t('share_copied') : t('share')}
-            </button>
-          </div>
-        }
       />
 
       <main className="page-content flex-1 pb-16">
