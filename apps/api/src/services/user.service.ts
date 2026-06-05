@@ -3,6 +3,8 @@ import { logger } from '../lib/logger'
 import { Sentry } from '../lib/sentry'
 import { FREE_CREDITS_ON_VERIFY } from '../lib/session.types'
 
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
 export interface UserRecord {
   id: string
   phone: string | null
@@ -144,7 +146,7 @@ export class UserService {
       u.totalCreditsPurchased + u.totalCreditsUsed + u.generationCount + u.purchaseCount
     const [winner, loser] = score(a) >= score(b) ? [a, b] : [b, a]
 
-    const merged = await prisma.$transaction(async (tx) => {
+    const merged = await prisma.$transaction(async (tx: PrismaTx) => {
       await tx.user.delete({ where: { id: loser.id } })
       return tx.user.update({
         where: { id: winner.id },
