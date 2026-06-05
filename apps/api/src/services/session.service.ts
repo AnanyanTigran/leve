@@ -81,11 +81,16 @@ export class SessionService {
     const session = await SessionService.get(sessionId)
     if (!session) throw new Error('session_not_found')
 
-    // Upsert User record in DB
+    // The OTHER identifier already attached to this session (if any) is the
+    // signal that two User rows might belong to the same person. Pass it down
+    // so upsertOnVerify can merge instead of forking.
+    const sessionOtherIdentifier = identifierType === 'phone' ? session.email : session.phone
+
     const { user, isReturning } = await UserService.upsertOnVerify(
       identifier,
       identifierType,
       sessionId,
+      sessionOtherIdentifier,
     )
 
     // Returning user: restore credits from DB. New user: welcome credits already set by upsert.
@@ -93,8 +98,11 @@ export class SessionService {
       ? user.creditsRemaining
       : FREE_CREDITS_ON_VERIFY
 
-    if (identifierType === 'phone') session.phone = identifier
-    else session.email = identifier
+    // Reflect the merged identity on the session — both the freshly-verified
+    // identifier and whichever value the User row ended up with for the other
+    // side (the upsert may have attached or merged it).
+    session.phone = user.phone
+    session.email = user.email
 
     session.identifierType = identifierType
     session.isVerified = true
