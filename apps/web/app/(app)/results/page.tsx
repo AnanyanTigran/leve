@@ -50,6 +50,9 @@ export default function ResultsPage() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
   const [previewUrlError, setPreviewUrlError] = useState(false)
   const [isReconnecting, setIsReconnecting] = useState(false)
+  // True while POST /api/download/spend-credit is in flight, so the sticky
+  // CTA can show a loading state and ignore double clicks.
+  const [isSpendingCredit, setIsSpendingCredit] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollFailuresRef = useRef(0)
 
@@ -68,6 +71,10 @@ export default function ResultsPage() {
     if (session.isVerified) return session.creditsRemaining > 0
     return session.anonGenerationsUsed < session.anonGenerationsLimit
   })()
+
+  // Verified users who already have free credits should be able to spend one
+  // directly from the sticky CTA instead of being routed through the paywall.
+  const hasCredits = session !== null && session.creditsRemaining > 0
 
   // Refs so the polling closure reads current edit state without being in its dep array
   const editStateRef = useRef({ isEditing: false, previousImageUrl: null as string | null })
@@ -291,6 +298,38 @@ export default function ResultsPage() {
   function handleOverlayChange(next: OverlayState) {
     setOverlay(next)
     persistOverlay(next)
+  }
+
+  // Verified user with a free credit clicks "Download HD" on the sticky CTA.
+  // Spends the credit server-side, creates a DownloadGrant, then refreshes
+  // the local session + grant state so the CTA flips to "Download HD".
+  async function handleSpendCredit() {
+    if (!jobId || isSpendingCredit) return
+    setIsSpendingCredit(true)
+    try {
+      const res = await fetch('/api/download/spend-credit', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      })
+      const data = await res.json().catch(() => null)
+      if (res.ok && data?.success) {
+        setHasGrant(true)
+        void refreshSession()
+      } else if (res.status === 402) {
+        // Race: credit was spent elsewhere between render and click.
+        void refreshSession()
+        setPaywallOpen(true)
+      } else {
+        // Unknown failure — fall back to the paywall so the user is not stuck.
+        setPaywallOpen(true)
+      }
+    } catch {
+      setPaywallOpen(true)
+    } finally {
+      setIsSpendingCredit(false)
+    }
   }
 
   async function handleRetryPreviewUrl() {
@@ -562,6 +601,24 @@ export default function ResultsPage() {
                 className="btn-primary btn-full h-12 text-[15px] font-semibold"
               >
                 {t('download_hd')}
+              </button>
+            ) : hasCredits ? (
+              <button
+                onClick={handleSpendCredit}
+                disabled={isSpendingCredit}
+                className="btn-primary btn-full h-12 text-[15px] font-semibold disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSpendingCredit ? (
+                  <>
+                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    <span>{t('download_hd_spending')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{t('download_hd')}</span>
+                    <span className="text-[12px] font-medium opacity-80">({t('download_hd_credit')})</span>
+                  </>
+                )}
               </button>
             ) : (
               <button

@@ -177,6 +177,8 @@
     "preview_load_retry": "Try again",
     "reconnecting": "Reconnecting…",
     "download_hd": "Download HD",
+    "download_hd_credit": "1 credit",
+    "download_hd_spending": "Unlocking…",
     "generate_another": "Generate another scene",
     "upload_new_photo": "Upload a new photo"
   },

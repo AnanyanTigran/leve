@@ -177,6 +177,8 @@
     "preview_load_retry": "Попробовать снова",
     "reconnecting": "Восстановление связи…",
     "download_hd": "Скачать HD",
+    "download_hd_credit": "1 кредит",
+    "download_hd_spending": "Открываем…",
     "generate_another": "Другая сцена",
     "upload_new_photo": "Загрузить новое фото"
   },
