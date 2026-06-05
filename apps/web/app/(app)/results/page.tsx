@@ -401,8 +401,12 @@ export default function ResultsPage() {
     )
   }
 
+  const sliderAspectRatio = (
+    (typeof window !== 'undefined' && sessionStorage.getItem('leve_aspect_ratio')) || '1:1'
+  ) as AspectRatio
+
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
+    <div className="flex flex-col min-h-[100dvh] bg-bg-base">
       <AppHeader
         variant="app"
         showBack={false}
@@ -419,7 +423,7 @@ export default function ResultsPage() {
         }
       />
 
-      <main className="page-content flex-1 overflow-y-auto pb-40">
+      <main className="page-content flex-1 pb-16">
         <div className="py-4 flex flex-col gap-4">
           {isReconnecting && (
             <div className="px-3 py-2 bg-bg-surface border border-border-default rounded-[10px] flex items-center gap-2">
@@ -445,6 +449,7 @@ export default function ResultsPage() {
             <BeforeAfterSlider
               beforeSrc={previousImageUrl ?? uploadPreview}
               afterSrc={generatedImageUrl}
+              aspectRatio={sliderAspectRatio}
             />
             {/* Live text-overlay preview — purely CSS, no server roundtrip.
                 The HD download composites the same text deterministically. */}
@@ -523,16 +528,13 @@ export default function ResultsPage() {
           )}
 
         </div>
-      </main>
 
-      {/* Sticky Download HD CTA — sits above the BottomNav so it stays
-          visible while the user scrolls through the slider, phone nudge,
-          text overlay, and edit panels above the fold.
-          Users with a DownloadGrant for this job jump straight to the
-          download screen; everyone else gets the paywall. */}
-      {!paywallOpen && (
-        <div className="fixed left-0 right-0 bottom-16 z-40 bg-bg-base border-t border-border-default px-4 py-3 safe-area-pb">
-          <div className="page-content">
+        {/* Sticky Download HD CTA — lives in the document flow so the whole
+            page scrolls as one unit. Stays 64px above the viewport bottom
+            (BottomNav's height) so it never overlaps the nav. The gradient
+            fade lets content scroll behind it. */}
+        {!paywallOpen && (
+          <div className="sticky bottom-16 z-40 -mx-4 px-4 pb-3 pt-6 bg-gradient-to-t from-bg-base from-50% to-transparent safe-bottom">
             {hasGrant === null ? (
               <div className="h-12 rounded-[12px] bg-bg-elevated animate-pulse" />
             ) : hasGrant ? (
@@ -551,8 +553,8 @@ export default function ResultsPage() {
               </button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </main>
 
       {!paywallOpen && <BottomNav />}
       <PaywallSheet

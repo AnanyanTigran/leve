@@ -3,16 +3,29 @@
 import { useState, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import type { AspectRatio } from '@leve/types'
 
 interface BeforeAfterSliderProps {
   beforeSrc?: string | null
   afterSrc?: string | null
+  aspectRatio?: AspectRatio
   className?: string
+}
+
+// Map the user-facing ratios to CSS aspect-ratio values so the slider container
+// can size itself to the generated image's natural shape before the bitmap loads.
+const ASPECT_RATIO_CSS: Record<AspectRatio, string> = {
+  '1:1': '1 / 1',
+  '4:5': '4 / 5',
+  '3:4': '3 / 4',
+  '9:16': '9 / 16',
+  '16:9': '16 / 9',
 }
 
 export function BeforeAfterSlider({
   beforeSrc,
   afterSrc,
+  aspectRatio = '1:1',
   className,
 }: BeforeAfterSliderProps) {
   const t = useTranslations('results')
@@ -80,9 +93,10 @@ export function BeforeAfterSlider({
       aria-valuenow={Math.round(sliderPosition)}
       aria-valuemin={5}
       aria-valuemax={95}
-      className={`relative w-full aspect-square max-h-[420px] lg:max-h-[480px] overflow-hidden rounded-[12px] border border-border-default ${className ?? ''}`}
+      className={`relative w-full mx-auto max-w-full max-h-[60vh] overflow-hidden rounded-[12px] border border-border-default ${className ?? ''}`}
       onKeyDown={onKeyDown}
       style={{
+        aspectRatio: ASPECT_RATIO_CSS[aspectRatio],
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
