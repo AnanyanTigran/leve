@@ -27,20 +27,39 @@ export function BeforeAfterSlider({
     setSliderPosition(pct)
   }, [])
 
-  const onMouseDown = useCallback(() => setIsDragging(true), [])
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent) => { if (isDragging) updatePosition(e.clientX) },
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      setIsDragging(true)
+      updatePosition(e.clientX)
+    },
+    [updatePosition]
+  )
+
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isDragging) return
+      e.preventDefault()
+      e.stopPropagation()
+      updatePosition(e.clientX)
+    },
     [isDragging, updatePosition]
   )
-  const onMouseUp = useCallback(() => setIsDragging(false), [])
-  const onMouseLeave = useCallback(() => setIsDragging(false), [])
-  const onTouchStart = useCallback(() => setIsDragging(true), [])
-  const onTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (isDragging && e.touches[0]) updatePosition(e.touches[0].clientX)
-    },    [isDragging, updatePosition]
+
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const target = e.target as HTMLElement
+      if (target.hasPointerCapture(e.pointerId)) {
+        target.releasePointerCapture(e.pointerId)
+      }
+      setIsDragging(false)
+    },
+    []
   )
-  const onTouchEnd = useCallback(() => setIsDragging(false), [])
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowLeft') {
@@ -61,24 +80,26 @@ export function BeforeAfterSlider({
       aria-valuenow={Math.round(sliderPosition)}
       aria-valuemin={5}
       aria-valuemax={95}
-      className={`relative w-full aspect-square max-h-[420px] lg:max-h-[480px] overflow-hidden rounded-[12px] border border-border-default select-none cursor-col-resize ${className ?? ''}`}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      className={`relative w-full aspect-square max-h-[420px] lg:max-h-[480px] overflow-hidden rounded-[12px] border border-border-default ${className ?? ''}`}
       onKeyDown={onKeyDown}
-      style={{ cursor: isDragging ? 'grabbing' : 'col-resize' }}
+      style={{
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+      }}
     >
       {/* Before layer */}
       <div className="absolute inset-0 bg-bg-elevated">
         {beforeSrc && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={beforeSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img
+            src={beforeSrc}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          />
         )}
-        <span className="absolute top-3 left-3 text-[11px] text-text-secondary bg-white px-2 py-1 rounded-[6px] z-10 select-none">
+        <span className="absolute top-3 left-3 text-[11px] text-text-secondary bg-white px-2 py-1 rounded-[6px] z-10 select-none pointer-events-none">
           {t('before')}
         </span>
       </div>
@@ -90,11 +111,19 @@ export function BeforeAfterSlider({
       >
         {afterSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={afterSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img
+            src={afterSrc}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          />
         ) : (
           <div className="absolute inset-0 bg-bg-elevated animate-pulse" />
         )}
-        <span className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none" style={{ background: '#D64C1A' }}>
+        <span
+          className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none pointer-events-none"
+          style={{ background: '#D64C1A' }}
+        >
           {t('after')}
         </span>
       </div>
@@ -105,19 +134,25 @@ export function BeforeAfterSlider({
         style={{ left: `${sliderPosition}%`, filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.3))' }}
       />
 
-      {/* Drag handle */}
+      {/* Drag handle — interactive */}
       <div
-        className="absolute z-20 w-12 h-12 rounded-full flex items-center justify-center gap-0.5 pointer-events-none"
+        role="presentation"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className="absolute z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white"
         style={{
           left: `${sliderPosition}%`,
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: '#D64C1A',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          touchAction: 'none',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.06)',
+          cursor: isDragging ? 'grabbing' : 'grab',
         }}
       >
-        <ChevronLeft className="w-3.5 h-3.5 text-white" />
-        <ChevronRight className="w-3.5 h-3.5 text-white" />
+        <ChevronLeft className="w-3.5 h-3.5 text-bg-base pointer-events-none" />
+        <ChevronRight className="w-3.5 h-3.5 text-bg-base pointer-events-none -ml-1" />
       </div>
     </div>
   )
