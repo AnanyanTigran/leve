@@ -8,6 +8,13 @@
     "done": "Done",
     "loading": "Loading..."
   },
+  "user_menu": {
+    "open_menu": "Open account menu",
+    "credits": "{count} images",
+    "history": "History",
+    "language": "Language",
+    "logout": "Log out"
+  },
   "landing": {
     "eyebrow": "AI product photography",
     "headline_1": "Your product.",

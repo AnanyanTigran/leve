@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronRight, CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
+import { useSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
 import { CATEGORY_ITEMS } from '@/lib/constants'
@@ -20,6 +21,12 @@ const STEPS = [1, 2, 3] as const
 export function LandingContent() {
   const router = useRouter()
   const t = useTranslations('landing')
+  const { session, status } = useSession()
+  // Hide the inline "Sign in" link once we know the user is verified —
+  // AppHeader now renders <UserMenu /> in that same slot. While the session
+  // is hydrating we keep the link hidden too, to avoid a flicker from
+  // sign-in → avatar on first paint for returning users.
+  const showSignIn = status === 'ready' && !session?.isVerified
 
   function handleCategorySelect(categoryId: ProductCategory) {
     sessionStorage.setItem('leve_category', categoryId)
@@ -38,13 +45,15 @@ export function LandingContent() {
         rightSlot={
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <button
-              type="button"
-              onClick={() => router.push('/register')}
-              className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors hidden sm:block"
-            >
-              {t('signin')}
-            </button>
+            {showSignIn && (
+              <button
+                type="button"
+                onClick={() => router.push('/register')}
+                className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors hidden sm:block"
+              >
+                {t('signin')}
+              </button>
+            )}
           </div>
         }
       />

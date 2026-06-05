@@ -3,6 +3,7 @@
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { LanguageSwitcher } from './language-switcher'
+import { UserMenu } from './user-menu'
 
 interface AppHeaderProps {
   variant: 'landing' | 'app'
@@ -49,10 +50,13 @@ export function AppHeader({
         </span>
       )}
 
-      {/* Right side */}
+      {/* Right side — UserMenu renders for verified users (skeleton while
+          loading, null otherwise). LanguageSwitcher / rightSlot stay for
+          page-specific extras like Share buttons. */}
       <div className="flex items-center gap-2 justify-end">
         {showLangSwitcher && <LanguageSwitcher />}
         {rightSlot}
+        <UserMenu />
       </div>
     </header>
   )

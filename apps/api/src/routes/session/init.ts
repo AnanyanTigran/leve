@@ -1,9 +1,14 @@
 import { FastifyInstance } from 'fastify'
 import { nanoid } from 'nanoid'
+import { redis } from '../../lib/redis'
+import { SESSION_KEY } from '../../lib/session.types'
+import { validateEnv } from '../../config/env'
 import {
   ANON_FREE_GENERATIONS,
   FREE_DAILY_GENERATION_SOFT_CAP,
 } from '../../lib/session.types'
+
+const env = validateEnv()
 
 export async function registerSessionInit(app: FastifyInstance) {
   // GET /api/session/me — returns current session state (used by FE on hydration).
@@ -38,6 +43,21 @@ export async function registerSessionInit(app: FastifyInstance) {
         },
         requestId,
       })
+    },
+  )
+
+  // POST /api/session/logout — clears the session cookie + Redis state. The
+  // persistent User record (credits, brand) stays, so re-verifying with the
+  // same phone/email restores the account on the next OTP success.
+  app.post(
+    '/api/session/logout',
+    { preHandler: [app.requireSessionOrAnon] },
+    async (request, reply) => {
+      const requestId = nanoid(10)
+      const sessionId = request.session.sessionId
+      await redis.del(SESSION_KEY(sessionId)).catch(() => {})
+      reply.clearCookie(env.SESSION_COOKIE_NAME, { path: '/' })
+      return reply.send({ success: true, requestId })
     },
   )
 }

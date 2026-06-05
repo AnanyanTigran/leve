@@ -8,6 +8,13 @@
     "done": "Готово",
     "loading": "Загрузка..."
   },
+  "user_menu": {
+    "open_menu": "Открыть меню аккаунта",
+    "credits": "{count} изображ.",
+    "history": "История",
+    "language": "Язык",
+    "logout": "Выйти"
+  },
   "landing": {
     "eyebrow": "AI фотография товаров",
     "headline_1": "Ваш товар.",

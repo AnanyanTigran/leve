@@ -8,6 +8,13 @@
     "done": "Պատրաստ է",
     "loading": "Բեռնում..."
   },
+  "user_menu": {
+    "open_menu": "Բացել հաշվի մենյուն",
+    "credits": "{count} նկար",
+    "history": "Պատմություն",
+    "language": "Լեզու",
+    "logout": "Դուրս գալ"
+  },
   "landing": {
     "eyebrow": "Արտադրանքի AI լուսանկարչություն",
     "headline_1": "Ձեր ապրանքը.",
