@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import sharp from 'sharp'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import multipart from '@fastify/multipart'
@@ -35,7 +36,24 @@ const app = Fastify({
   genReqId: () => `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
 })
 
+// Log which image formats libvips compiled into sharp so we know HEIC/AVIF
+// uploads will transcode at runtime. Warn loudly if HEIF is missing — iOS
+// users would otherwise hit a silent invalid_file_type after upload.
+function logSharpFormatSupport() {
+  const formats = sharp.format
+  const supported = (Object.keys(formats) as Array<keyof typeof formats>)
+    .filter((name) => formats[name]?.input?.file)
+    .sort()
+  app.log.info({ sharpVersion: sharp.versions.vips, formats: supported }, '[sharp] format support')
+  const missing = (['heif', 'avif', 'tiff'] as const).filter((f) => !formats[f]?.input?.file)
+  if (missing.length > 0) {
+    app.log.warn({ missing }, '[sharp] some image inputs unavailable — corresponding uploads will be rejected as invalid_file_type. Reinstall sharp with a libvips that includes libheif/libtiff.')
+  }
+}
+
 async function bootstrap() {
+  logSharpFormatSupport()
+
   await app.register(cors, {
     origin: env.CORS_ORIGIN,
     credentials: true,

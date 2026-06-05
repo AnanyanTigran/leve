@@ -76,12 +76,16 @@ export async function registerUploadRoute(app: FastifyInstance) {
         })
       }
 
-      // Upload to S3
-      const ext = originalFilename.split('.').pop()?.toLowerCase() ?? 'jpg'
-      const s3Key = buildS3Key('uploads', session.sessionId, `original.${ext}`)
+      // If validation converted HEIC/HEIF/AVIF/TIFF → JPEG, upload the
+      // transcoded buffer (Kontext can't ingest HEIC) and stamp .jpg.
+      const storedBuffer = validation.convertedBuffer ?? fileBuffer
+      const storedExt = validation.convertedBuffer
+        ? 'jpg'
+        : originalFilename.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const s3Key = buildS3Key('uploads', session.sessionId, `original.${storedExt}`)
 
       try {
-        await uploadToS3(s3Key, fileBuffer, validation.mimeType!)
+        await uploadToS3(s3Key, storedBuffer, validation.mimeType!)
       } catch (err) {
         app.log.error({ requestId, err }, 's3 upload failed')
         return reply.status(500).send({ success: false, error: 'upload_error', requestId })
@@ -90,7 +94,7 @@ export async function registerUploadRoute(app: FastifyInstance) {
       // Best-effort quality probe — never blocks. The FE shows a soft
       // warning ("looks a bit dark — generate anyway?") so users avoid
       // spending a credit on a low-quality source photo.
-      const qualityWarning = await probeImageQuality(fileBuffer)
+      const qualityWarning = await probeImageQuality(storedBuffer)
 
       app.log.info({ requestId, s3Key, sessionId: session.sessionId, qualityWarning }, 'upload complete')
 

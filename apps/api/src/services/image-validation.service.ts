@@ -16,7 +16,22 @@ const rekognition = new RekognitionClient({
   },
 })
 
-const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/avif',
+  'image/tiff',
+])
+// Formats Kontext / Rekognition can't consume directly — convert to JPEG.
+const CONVERT_TO_JPEG_MIMES = new Set([
+  'image/heic',
+  'image/heif',
+  'image/avif',
+  'image/tiff',
+])
 const MAX_BYTES = 20 * 1024 * 1024 // 20MB
 const MIN_DIMENSION = 512
 const MAX_DIMENSION = 8000
@@ -36,6 +51,9 @@ export interface ValidationResult {
   width?: number
   height?: number
   mimeType?: string
+  // Populated when the original was HEIC/HEIF/AVIF/TIFF and we re-encoded
+  // to JPEG. Callers should upload this buffer instead of the original.
+  convertedBuffer?: Buffer
 }
 
 export async function validateImage(buffer: Buffer): Promise<ValidationResult> {
@@ -50,10 +68,27 @@ export async function validateImage(buffer: Buffer): Promise<ValidationResult> {
     return { valid: false, error: 'invalid_file_type' }
   }
 
+  // 2a. Transcode HEIC/HEIF/AVIF/TIFF to JPEG so downstream Sharp ops,
+  // Rekognition, and Kontext receive a format they can read.
+  const needsConversion = CONVERT_TO_JPEG_MIMES.has(fileType.mime)
+  let workingBuffer = buffer
+  let workingMime = fileType.mime
+  let convertedBuffer: Buffer | undefined
+
+  if (needsConversion) {
+    try {
+      workingBuffer = await sharp(buffer).rotate().jpeg({ quality: 92 }).toBuffer()
+      workingMime = 'image/jpeg'
+      convertedBuffer = workingBuffer
+    } catch {
+      return { valid: false, error: 'invalid_file_type' }
+    }
+  }
+
   // 3. Dimensions
   let meta: sharp.Metadata
   try {
-    meta = await sharp(buffer).metadata()
+    meta = await sharp(workingBuffer).metadata()
   } catch {
     return { valid: false, error: 'invalid_file_type' }
   }
@@ -69,7 +104,7 @@ export async function validateImage(buffer: Buffer): Promise<ValidationResult> {
   // 4. AWS Rekognition NSFW moderation
   try {
     const cmd = new DetectModerationLabelsCommand({
-      Image: { Bytes: buffer },
+      Image: { Bytes: workingBuffer },
       MinConfidence: MODERATION_CONFIDENCE_THRESHOLD,
     })
     const result = await rekognition.send(cmd)
@@ -85,5 +120,5 @@ export async function validateImage(buffer: Buffer): Promise<ValidationResult> {
     return { valid: false, error: 'validation_failed' }
   }
 
-  return { valid: true, width, height, mimeType: fileType.mime }
+  return { valid: true, width, height, mimeType: workingMime, convertedBuffer }
 }
