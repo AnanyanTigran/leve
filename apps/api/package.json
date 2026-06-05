@@ -27,6 +27,7 @@
     "@fastify/rate-limit": "^9.1.0",
     "@leve/types": "*",
     "@leve/config": "*",
+    "prisma": "^5.22.0",
     "@prisma/client": "^5.22.0",
     "@sentry/node": "^10.54.0",
     "axios": "^1.16.1",
@@ -50,7 +51,6 @@
     "@types/sharp": "^0.31.1",
     "@typescript-eslint/eslint-plugin": "^8.60.0",
     "@typescript-eslint/parser": "^8.60.0",
-    "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
