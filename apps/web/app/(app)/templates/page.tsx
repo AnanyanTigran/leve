@@ -9,7 +9,12 @@ import { SceneGrid } from '@/components/scenes/scene-grid'
 import { RefinementPanel } from '@/components/templates/refinement-panel'
 import { useGenerate } from '@/hooks/use-generate'
 import { useSession } from '@/hooks/use-session'
-import { CATEGORY_ITEMS, CATEGORY_SCENE_MAP, getSceneById } from '@/lib/constants'
+import {
+  CATEGORY_ITEMS,
+  CATEGORY_SCENE_MAP,
+  getSceneById,
+  ASPECT_RATIO_OPTIONS,
+} from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Scene, ProductCategory, AspectRatio } from '@leve/types'
 
@@ -23,6 +28,9 @@ export default function SceneSelectionPage() {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
   const [category, setCategory] = useState<ProductCategory | null>(null)
   const [favoriteSceneId, setFavoriteSceneId] = useState<string | null>(null)
+  // Raw width/height ratio of the user's uploaded photo. Drives the
+  // "Recommended" highlight on aspect-ratio chips and the mismatch warning.
+  const [uploadRatioValue, setUploadRatioValue] = useState<number | null>(null)
   const { session } = useSession()
   // Distinguishes "known unverified" from "still loading" — drives whether
   // verified-only affordances render in the first paint.
@@ -103,6 +111,27 @@ export default function SceneSelectionPage() {
       setAspectRatio('3:4')
     } else if (cat === 'beauty_cosmetics' || cat === 'fashion_clothing') {
       setAspectRatio('4:5')
+    }
+
+    // Auto-select the chip closest to the upload's natural aspect ratio.
+    // Skipped when the user has already saved a ratio for this upload —
+    // the second effect below restores their choice and must win.
+    const uploadRatioStr = sessionStorage.getItem('leve_upload_aspect_ratio')
+    const parsedRatio = uploadRatioStr ? parseFloat(uploadRatioStr) : NaN
+    if (Number.isFinite(parsedRatio) && parsedRatio > 0) {
+      setUploadRatioValue(parsedRatio)
+      if (!sessionStorage.getItem('leve_aspect_ratio')) {
+        let bestId: AspectRatio | null = null
+        let bestDiff = Infinity
+        for (const opt of ASPECT_RATIO_OPTIONS) {
+          const diff = Math.abs(opt.width / opt.height - parsedRatio)
+          if (diff < bestDiff) {
+            bestDiff = diff
+            bestId = opt.id
+          }
+        }
+        if (bestId) setAspectRatio(bestId)
+      }
     }
   }, [router])
 
@@ -403,6 +432,7 @@ export default function SceneSelectionPage() {
                 selectedAspectRatio={aspectRatio}
                 initialChipIds={selectedChips}
                 initialCustomText={customText}
+                uploadRatioValue={uploadRatioValue}
               />
             </div>
           )}

@@ -24,6 +24,20 @@ interface RefinementPanelProps {
   // when they change to a non-empty value.
   initialChipIds?: string[]
   initialCustomText?: string
+  // Raw width/height of the user's uploaded photo. Drives a "Recommended"
+  // highlight on chips that share the upload's orientation and a soft
+  // advisory warning when the picked chip would crop the product.
+  uploadRatioValue?: number | null
+}
+
+type Orientation = 'portrait' | 'square' | 'landscape'
+
+// The 0.9 / 1.1 deadband around 1.0 treats near-square uploads (e.g. 1080x1200)
+// as square so we don't nag users about a barely-perceptible crop.
+function getOrientation(ratio: number): Orientation {
+  if (ratio < 0.9) return 'portrait'
+  if (ratio > 1.1) return 'landscape'
+  return 'square'
 }
 
 // i18n keys for the quick-fill chips above the custom text textarea.
@@ -38,6 +52,7 @@ export function RefinementPanel({
   selectedAspectRatio,
   initialChipIds,
   initialCustomText,
+  uploadRatioValue,
 }: RefinementPanelProps) {
   const locale = useLocale()
   const t = useTranslations('refinement')
@@ -98,6 +113,41 @@ export function RefinementPanel({
     return ratio.label
   }
 
+  // Chips whose ratio is "close enough" to the upload's natural ratio. 0.3 of
+  // span covers same-orientation neighbours (e.g. 9:16, 3:4, 4:5 for a portrait
+  // photo) without highlighting strongly opposite chips.
+  const uploadOrientation: Orientation | null = uploadRatioValue
+    ? getOrientation(uploadRatioValue)
+    : null
+  const RECOMMEND_TOLERANCE = 0.3
+  const recommendedRatioIds = new Set<string>()
+  if (uploadRatioValue) {
+    for (const opt of ASPECT_RATIO_OPTIONS) {
+      if (Math.abs(opt.width / opt.height - uploadRatioValue) <= RECOMMEND_TOLERANCE) {
+        recommendedRatioIds.add(opt.id)
+      }
+    }
+  }
+
+  const selectedRatioOption = ASPECT_RATIO_OPTIONS.find((o) => o.id === selectedAspectRatio)
+  const selectedOrientation: Orientation | null = selectedRatioOption
+    ? getOrientation(selectedRatioOption.width / selectedRatioOption.height)
+    : null
+
+  // Warn only when the user picks a chip whose orientation flips against the
+  // upload (portrait↔landscape). Square ↔ portrait/landscape is allowed
+  // without warning — the crop is mild and sometimes the user actually wants it.
+  const showRatioWarning =
+    uploadOrientation !== null &&
+    selectedOrientation !== null &&
+    uploadOrientation !== 'square' &&
+    selectedOrientation !== 'square' &&
+    uploadOrientation !== selectedOrientation
+
+  const recommendedList = ASPECT_RATIO_OPTIONS.filter((o) => recommendedRatioIds.has(o.id))
+    .map((o) => o.id)
+    .join(' / ')
+
   const renderChipRow = (chips: RefinementChip[], groupLabel: string) => (
     <div key={groupLabel}>
       <p className="text-[12px] text-text-muted mb-2 font-medium uppercase tracking-wide">
@@ -153,6 +203,7 @@ export function RefinementPanel({
             <div className="flex gap-2 overflow-x-auto pb-1">
               {ASPECT_RATIO_OPTIONS.map((option) => {
                 const isSelected = selectedAspectRatio === option.id
+                const isRecommended = recommendedRatioIds.has(option.id)
                 return (
                   <button
                     key={option.id}
@@ -162,7 +213,9 @@ export function RefinementPanel({
                       'flex-shrink-0 rounded-[10px] px-3 py-2 border text-center transition-all min-w-[72px]',
                       isSelected
                         ? 'bg-accent-subtle border-accent'
-                        : 'border-border-default hover:border-border-strong',
+                        : isRecommended
+                          ? 'border-[#4CAF50]/70 hover:border-[#4CAF50]'
+                          : 'border-border-default hover:border-border-strong',
                     )}
                   >
                     <p className={cn('text-[13px] font-semibold', isSelected ? 'text-accent' : 'text-text-primary')}>
@@ -173,6 +226,11 @@ export function RefinementPanel({
                 )
               })}
             </div>
+            {showRatioWarning && (
+              <p className="text-[12px] text-[#F59E0B] mt-2 leading-snug">
+                {t(`format_warning_${uploadOrientation}`, { ratios: recommendedList })}
+              </p>
+            )}
           </div>
 
           {/* Lighting */}

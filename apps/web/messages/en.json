@@ -262,7 +262,9 @@
     "quick_minimal": "minimal style",
     "quick_warm": "warm tones",
     "quick_macro": "macro close-up",
-    "quick_props_off": "no extra props"
+    "quick_props_off": "no extra props",
+    "format_warning_portrait": "Your photo is portrait — landscape format may crop your product significantly. We recommend {ratios} for best results.",
+    "format_warning_landscape": "Your photo is landscape — portrait format may crop your product significantly. We recommend {ratios} for best results."
   },
   "history": {
     "generate_first": "Generate your first image",
