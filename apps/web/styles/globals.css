@@ -63,6 +63,21 @@
   }
 }
 
+@keyframes processing-shimmer {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(210%); }
+}
+
+@keyframes processing-done-scale {
+  from { transform: scale(0.95); }
+  to { transform: scale(1); }
+}
+
+@keyframes processing-fade-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -210,10 +225,32 @@
     padding-right: 16px;
   }
 
-  /* Processing screen glow */
-  .processing-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-    border: 2px solid rgba(214, 76, 26, 0.3);
+  /* Processing screen — gradient shimmer that sweeps across the image */
+  .processing-shimmer {
+    position: relative;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .processing-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.22),
+      transparent
+    );
+    animation: processing-shimmer 2s linear infinite;
+  }
+  .processing-done-scale {
+    animation: processing-done-scale 300ms ease-out forwards;
+  }
+  .processing-fade-in {
+    animation: processing-fade-in 220ms ease-out forwards;
   }
 
   /* Skeleton shimmer for loading states */

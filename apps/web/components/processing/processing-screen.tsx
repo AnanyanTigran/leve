@@ -1,40 +1,40 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { AppHeader } from '@/components/shared/app-header'
+import { Check } from 'lucide-react'
 
-const PHASE_KEYS = ['phase_1', 'phase_2', 'phase_3', 'phase_4'] as const
-// Real worker phases mapped to a target progress fraction. The bar advances
-// when the worker reports a new phase via /api/generate/status; it never
-// runs ahead of actual work.
-const PHASE_PROGRESS: Record<string, number> = {
-  queued: 0.1,
-  processing: 0.3,
-  generating: 0.55,
-  finalizing: 0.85,
-  done: 1,
+type WorkerPhase = 'queued' | 'processing' | 'generating' | 'finalizing' | 'done'
+
+// Real worker phases mapped to the top of their progress range. The bar
+// advances when the worker reports a new phase via /api/generate/status; it
+// never runs ahead of actual work.
+const PHASE_PROGRESS: Record<WorkerPhase, number> = {
+  queued: 0.15,
+  processing: 0.40,
+  generating: 0.85,
+  finalizing: 0.95,
+  done: 1.0,
 }
-// Map a real worker phase to one of the four user-facing phase strings.
-const WORKER_PHASE_TO_INDEX: Record<string, number> = {
-  queued: 0,
-  processing: 1,
-  generating: 2,
-  finalizing: 3,
-}
+
 const POLL_FAILURE_OFFLINE_THRESHOLD = 3
+const DONE_ANIMATION_MS = 300
+
+function isWorkerPhase(v: string | undefined): v is WorkerPhase {
+  return v === 'queued' || v === 'processing' || v === 'generating' || v === 'finalizing' || v === 'done'
+}
 
 export function ProcessingScreen() {
   const router = useRouter()
   const t = useTranslations('processing')
   const tResults = useTranslations('results')
-  const PHASES = PHASE_KEYS.map((k) => t(k))
-  const [phaseIndex, setPhaseIndex] = useState(0)
-  const [phaseVisible, setPhaseVisible] = useState(true)
+
+  const [phase, setPhase] = useState<WorkerPhase>('queued')
   const [progressFraction, setProgressFraction] = useState(0.05)
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
   const [isReconnecting, setIsReconnecting] = useState(false)
+  const [isDone, setIsDone] = useState(false)
 
   useEffect(() => {
     const jobId = sessionStorage.getItem('leve_job_id')
@@ -71,30 +71,28 @@ export function ProcessingScreen() {
           return
         }
         const data = await res.json()
-        const status = data?.data?.status
-        const phase = data?.data?.phase as string | undefined
+        const status = data?.data?.status as string | undefined
+        const workerPhase = data?.data?.phase as string | undefined
 
         // Successful poll — clear reconnecting state
         pollFailures = 0
         setIsReconnecting((prev) => (prev ? false : prev))
 
         // Advance the bar based on real worker phase (falls back to status)
-        const key = phase ?? status
-        const target = typeof key === 'string' ? PHASE_PROGRESS[key] : undefined
-        if (target !== undefined) {
+        const key = workerPhase ?? status
+        if (isWorkerPhase(key)) {
+          const target = PHASE_PROGRESS[key]
           setProgressFraction((prev) => Math.max(prev, target))
-        }
-        // Sync the user-facing phase label with the real worker phase
-        if (phase && WORKER_PHASE_TO_INDEX[phase] !== undefined) {
-          const target = WORKER_PHASE_TO_INDEX[phase]
-          setPhaseIndex((prev) => (prev === target ? prev : target))
+          setPhase((prev) => (prev === key ? prev : key))
         }
 
         if (status === 'done') {
           clearInterval(interval)
+          setPhase('done')
           setProgressFraction(1)
+          setIsDone(true)
           sessionStorage.removeItem('leve_job_dispatched_at')
-          router.push('/results')
+          setTimeout(() => router.push('/results'), DONE_ANIMATION_MS)
           return
         }
 
@@ -123,76 +121,86 @@ export function ProcessingScreen() {
     const interval = setInterval(poll, 2000)
     poll() // immediate first check
 
-    // Fallback phase label cycle — only used when the worker hasn't yet
-    // reported a phase. Once a real phase arrives the worker drives the index.
-    const phaseInterval = setInterval(() => {
-      setPhaseVisible(false)
-      setTimeout(() => {
-        setPhaseIndex((i) => (i + 1) % PHASE_KEYS.length)
-        setPhaseVisible(true)
-      }, 400)
-    }, 2500)
-
     return () => {
       clearInterval(interval)
-      clearInterval(phaseInterval)
     }
   }, [router])
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
-      <AppHeader
-        variant="app"
-        showBack={false}
-        title=""
-      />
-
-      <main className="page-funnel flex-1 overflow-y-auto flex flex-col items-center justify-center py-12 gap-8">
-        {/* Photo preview with pulsing glow */}
-        <div className="w-[240px] h-[240px] rounded-[16px] bg-bg-elevated overflow-hidden processing-glow relative">
-          {uploadPreview && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={uploadPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          )}
-        </div>
-
-        {/* Phase text with fade transition */}
-        <p
-          className="text-[18px] font-ui text-text-secondary text-center transition-opacity duration-[400ms]"
-          style={{ opacity: phaseVisible ? 1 : 0 }}
+    <div className="flex flex-col h-[100dvh] bg-bg-base items-center justify-center px-6">
+      <div className="w-full max-w-[420px] flex flex-col items-center gap-6">
+        {/* Photo preview — the hero. Height pinned at ~40vh; width adapts
+            to the source image AR. Subtle accent glow + drop shadow. The
+            shimmer sweep only runs while we're still generating. */}
+        <div
+          className={`relative rounded-[20px] overflow-hidden bg-bg-elevated ${isDone ? 'processing-done-scale' : ''}`}
+          style={{
+            boxShadow:
+              '0 25px 60px -15px rgba(214, 76, 26, 0.25), 0 10px 25px -5px rgba(0,0,0,0.4)',
+          }}
         >
-          {PHASES[phaseIndex]}
-        </p>
-
-        {/* Progress bar + time estimate — full width of page-funnel.
-            Width is driven by the real worker phase reported by /api/generate/status,
-            with a 400ms ease so jumps look smooth rather than snapping. */}
-        <div className="w-full flex flex-col gap-3">
-          <div className="w-full h-[3px] rounded-[2px] bg-bg-elevated overflow-hidden">
-            <div
-              className="h-full bg-[#D64C1A] rounded-[2px]"
-              style={{
-                width: `${Math.round(progressFraction * 100)}%`,
-                transition: 'width 400ms ease-out',
-              }}
+          {uploadPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={uploadPreview}
+              alt=""
+              draggable={false}
+              className="block"
+              style={{ height: '40vh', width: 'auto', maxWidth: '100%' }}
             />
-          </div>
-          <p className="text-[13px] text-text-muted text-center">
-            {t('time_estimate')}
-          </p>
-          <p className="text-[12px] text-text-muted text-center mt-1">
-            {t('dont_close')}
-          </p>
-          {isReconnecting && (
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <div className="w-3 h-3 rounded-full border-2 border-text-muted border-t-transparent animate-spin" />
-              <span className="text-[12px] text-text-secondary">
-                {tResults('reconnecting')}
-              </span>
+          ) : (
+            <div style={{ height: '40vh', aspectRatio: '4 / 5' }} />
+          )}
+
+          {!isDone && <div className="absolute inset-0 processing-shimmer" aria-hidden />}
+
+          {isDone && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30 processing-fade-in">
+              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg">
+                <Check className="w-7 h-7 text-bg-base" strokeWidth={3} />
+              </div>
             </div>
           )}
         </div>
-      </main>
+
+        {/* Thin progress bar — width is driven by the real worker phase
+            reported by /api/generate/status, with a 600ms ease so jumps
+            look smooth rather than snapping. */}
+        <div className="w-full h-[3px] rounded-full bg-bg-elevated overflow-hidden">
+          <div
+            className="h-full bg-accent rounded-full"
+            style={{
+              width: `${Math.round(progressFraction * 100)}%`,
+              transition: 'width 600ms ease-out',
+            }}
+          />
+        </div>
+
+        <div className="flex flex-col items-center gap-1.5">
+          <p className="text-[14px] text-text-secondary text-center">
+            {t(`phase_${phase}`)}
+          </p>
+          <p className="text-[12px] text-text-muted text-center">
+            {t('time_estimate')}
+          </p>
+          {isReconnecting && (
+            <span
+              className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+              style={{
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                color: '#F59E0B',
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ background: '#F59E0B' }}
+              />
+              {tResults('reconnecting')}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

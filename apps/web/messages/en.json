@@ -220,11 +220,12 @@
   },
   "processing": {
     "dont_close": "Please keep this page open while your image is being generated.",
-    "time_estimate": "This takes about 15–20 seconds",
-    "phase_1": "Setting up the studio...",
-    "phase_2": "Adjusting the lighting...",
-    "phase_3": "Applying the style...",
-    "phase_4": "Final touches..."
+    "time_estimate": "This usually takes 15–20 seconds",
+    "phase_queued": "Preparing your studio...",
+    "phase_processing": "Analyzing your product...",
+    "phase_generating": "Creating your image...",
+    "phase_finalizing": "Adding final touches...",
+    "phase_done": "Ready!"
   },
   "download": {
     "ready": "Your image is ready",
