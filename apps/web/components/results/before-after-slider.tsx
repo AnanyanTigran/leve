@@ -12,16 +12,6 @@ interface BeforeAfterSliderProps {
   className?: string
 }
 
-// Map the user-facing ratios to CSS aspect-ratio values so the slider container
-// can size itself to the generated image's natural shape before the bitmap loads.
-const ASPECT_RATIO_CSS: Record<AspectRatio, string> = {
-  '1:1': '1 / 1',
-  '4:5': '4 / 5',
-  '3:4': '3 / 4',
-  '9:16': '9 / 16',
-  '16:9': '16 / 9',
-}
-
 export function BeforeAfterSlider({
   beforeSrc,
   afterSrc,
@@ -32,6 +22,8 @@ export function BeforeAfterSlider({
   const [sliderPosition, setSliderPosition] = useState(30)
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const [W, H] = aspectRatio.split(':').map(Number)
 
   const updatePosition = useCallback((clientX: number) => {
     if (!containerRef.current) return
@@ -93,10 +85,12 @@ export function BeforeAfterSlider({
       aria-valuenow={Math.round(sliderPosition)}
       aria-valuemin={5}
       aria-valuemax={95}
-      className={`relative w-full mx-auto max-w-full max-h-[60vh] overflow-hidden rounded-[12px] border border-border-default ${className ?? ''}`}
+      className={`relative w-full mx-auto overflow-hidden rounded-[12px] border border-border-default ${className ?? ''}`}
       onKeyDown={onKeyDown}
       style={{
-        aspectRatio: ASPECT_RATIO_CSS[aspectRatio],
+        aspectRatio: `${W} / ${H}`,
+        maxHeight: '70vh',
+        maxWidth: `calc(70vh * ${W} / ${H})`,
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
@@ -129,7 +123,7 @@ export function BeforeAfterSlider({
             src={afterSrc}
             alt=""
             draggable={false}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
           />
         ) : (
           <div className="absolute inset-0 bg-bg-elevated animate-pulse" />
