@@ -194,11 +194,21 @@ export function UploadZone() {
       const formData = new FormData()
       formData.append('file', fileState.file)
 
-      const res = await fetch(apiUrl('/api/upload'), {
+      // Silent retry on non-2xx or network error — handles Railway edge warmup failures
+      let res = await fetch(apiUrl('/api/upload'), {
         method: 'POST',
         credentials: 'include',
         body: formData,
-      })
+      }).catch(() => null)
+
+      if (!res || !res.ok) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000))
+        res = await fetch(apiUrl('/api/upload'), {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        })
+      }
 
       const json = await res.json()
 

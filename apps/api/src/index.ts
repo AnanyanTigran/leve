@@ -35,6 +35,8 @@ const app = Fastify({
         : undefined,
   },
   genReqId: () => `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+  keepAliveTimeout: 61000,
+  connectionTimeout: 0,
 })
 
 // Log which image formats libvips compiled into sharp so we know HEIC/AVIF
