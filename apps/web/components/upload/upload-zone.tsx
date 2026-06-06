@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle, ImageIcon } from 'lucide-react'
 import { CATEGORY_ITEMS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import type { ProductCategory } from '@leve/types'
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
@@ -195,17 +195,15 @@ export function UploadZone() {
       formData.append('file', fileState.file)
 
       // Silent retry on non-2xx or network error — handles Railway edge warmup failures
-      let res = await fetch(apiUrl('/api/upload'), {
+      let res = await apiFetch('/api/upload', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       }).catch(() => null)
 
       if (!res || !res.ok) {
         await new Promise<void>((resolve) => setTimeout(resolve, 1000))
-        res = await fetch(apiUrl('/api/upload'), {
+        res = await apiFetch('/api/upload', {
           method: 'POST',
-          credentials: 'include',
           body: formData,
         })
       }

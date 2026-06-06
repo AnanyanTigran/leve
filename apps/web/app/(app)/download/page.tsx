@@ -2,13 +2,13 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 export default function DownloadPage() {
   const router = useRouter()
 
   useEffect(() => {
-    fetch(apiUrl('/api/session/me'), { credentials: 'include' })
+    apiFetch('/api/session/me')
       .then((r) => r.json())
       .then((data) => {
         if (!data?.data?.isVerified) {

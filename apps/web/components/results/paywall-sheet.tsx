@@ -6,7 +6,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { CheckCircle, XCircle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CREDIT_PACKAGES } from '@/lib/constants'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import { useSession } from '@/hooks/use-session'
 
 type PaywallState = 'pricing' | 'processing' | 'success' | 'failed'
@@ -89,7 +89,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
       }
 
       try {
-        const res = await fetch(apiUrl(`/api/payments/status/${orderId}`), { credentials: 'include' })
+        const res = await apiFetch(`/api/payments/status/${orderId}`)
 
         // Fatal errors — stop polling immediately, don't keep retrying
         if (res.status === 404 || res.status === 401 || res.status === 403) {
@@ -134,9 +134,8 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
       setIsLoading(true)
 
       try {
-        const res = await fetch(apiUrl('/api/payments/intent'), {
+        const res = await apiFetch('/api/payments/intent', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             packId: selectedPlan,

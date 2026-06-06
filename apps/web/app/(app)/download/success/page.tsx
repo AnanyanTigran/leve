@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import { PLATFORM_SPECS } from '@leve/types'
 import type { AspectRatio, ExportPlatform } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
@@ -82,7 +82,7 @@ export default function DownloadSuccessPage() {
     const jobId = sessionStorage.getItem('leve_job_id')
     if (!jobId) return
 
-    fetch(apiUrl(`/api/download/preview-url?jobId=${jobId}`), { credentials: 'include' })
+    apiFetch(`/api/download/preview-url?jobId=${jobId}`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.previewUrls?.[0]) {
@@ -113,9 +113,9 @@ export default function DownloadSuccessPage() {
 
     let blobUrl: string | null = null
     try {
-      let endpoint: string
+      let endpointPath: string
       if (selectedPlatform === 'original_hd') {
-        endpoint = apiUrl(`/api/download/file?jobId=${encodeURIComponent(jobId)}`)
+        endpointPath = `/api/download/file?jobId=${encodeURIComponent(jobId)}`
       } else {
         const params = new URLSearchParams({
           jobId,
@@ -127,10 +127,10 @@ export default function DownloadSuccessPage() {
           params.set('cropW', crop.width.toFixed(4))
           params.set('cropH', crop.height.toFixed(4))
         }
-        endpoint = apiUrl(`/api/download/export-file?${params.toString()}`)
+        endpointPath = `/api/download/export-file?${params.toString()}`
       }
 
-      const res = await fetch(endpoint, { credentials: 'include' })
+      const res = await apiFetch(endpointPath)
 
       if (!res.ok) {
         setDownloadError(t('download_failed'))

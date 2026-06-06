@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 type CallbackState = 'polling' | 'success' | 'failed' | 'timeout'
 
@@ -23,9 +23,7 @@ export default function PaymentCallbackPage() {
 
     const poll = async (): Promise<boolean> => {
       try {
-        const res = await fetch(apiUrl(`/api/payments/status/${orderId}`), {
-          credentials: 'include',
-        })
+        const res = await apiFetch(`/api/payments/status/${orderId}`)
 
         // Auth or missing-order: terminal — stop polling and surface failure
         if (res.status === 401 || res.status === 403 || res.status === 404) {

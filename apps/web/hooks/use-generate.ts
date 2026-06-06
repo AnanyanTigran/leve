@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import type { AspectRatio } from '@leve/types'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 interface GenerateParams {
   uploadKey: string
@@ -40,9 +40,8 @@ export function useGenerate() {
       setError(null)
 
       try {
-        const res = await fetch(apiUrl('/api/generate/preview'), {
+        const res = await apiFetch('/api/generate/preview', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             uploadKey: params.uploadKey,

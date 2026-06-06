@@ -26,6 +26,7 @@ export async function registerSessionInit(app: FastifyInstance) {
       return reply.send({
         success: true,
         data: {
+          sessionId: s.sessionId, // TODO: remove when custom domain is configured
           isVerified: s.isVerified,
           creditsRemaining: s.creditsRemaining,
           isPaid: s.isPaid,

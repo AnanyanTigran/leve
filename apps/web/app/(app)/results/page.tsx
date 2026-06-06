@@ -12,7 +12,7 @@ import { TextOverlaySection, type OverlayState } from '@/components/results/text
 import { PaywallSheet } from '@/components/results/paywall-sheet'
 import { useGenerate } from '@/hooks/use-generate'
 import { cn } from '@/lib/utils'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import type { AspectRatio } from '@leve/types'
 
 type JobStatus = 'queued' | 'processing' | 'done' | 'failed' | 'credit_refunded' | null
@@ -24,10 +24,7 @@ const POLL_FAILURE_OFFLINE_THRESHOLD = 3
 const PREVIEW_URL_TIMEOUT_MS = 10_000
 
 async function fetchPreviewUrlWithTimeout(jobId: string, signal: AbortSignal) {
-  const res = await fetch(apiUrl(`/api/download/preview-url?jobId=${jobId}`), {
-    credentials: 'include',
-    signal,
-  })
+  const res = await apiFetch(`/api/download/preview-url?jobId=${jobId}`, { signal })
   return res.json() as Promise<{ success: boolean; data?: { previewUrls?: string[] } }>
 }
 
@@ -147,7 +144,7 @@ export default function ResultsPage() {
 
     const poll = async () => {
       try {
-        const res = await fetch(apiUrl(`/api/generate/status/${jobId}`), { credentials: 'include' })
+        const res = await apiFetch(`/api/generate/status/${jobId}`)
         if (res.status === 404) {
           if (pollRef.current) clearInterval(pollRef.current)
           sessionStorage.removeItem('leve_job_id')
@@ -240,10 +237,7 @@ export default function ResultsPage() {
     void refreshSession()
     setHasGrant(null)
     const ctl = new AbortController()
-    fetch(apiUrl(`/api/download/check?jobId=${jobId}`), {
-      credentials: 'include',
-      signal: ctl.signal,
-    })
+    apiFetch(`/api/download/check?jobId=${jobId}`, { signal: ctl.signal })
       .then((r) => r.json())
       .then((d) => {
         if (d?.success) setHasGrant(Boolean(d.data?.hasGrant))
@@ -262,10 +256,7 @@ export default function ResultsPage() {
     if (paywallOpen) return
     if (!jobId || jobStatus !== 'done') return
     const ctl = new AbortController()
-    fetch(apiUrl(`/api/download/check?jobId=${jobId}`), {
-      credentials: 'include',
-      signal: ctl.signal,
-    })
+    apiFetch(`/api/download/check?jobId=${jobId}`, { signal: ctl.signal })
       .then((r) => r.json())
       .then((d) => {
         if (d?.success) setHasGrant(Boolean(d.data?.hasGrant))
@@ -286,9 +277,8 @@ export default function ResultsPage() {
         text: next.template && next.text.trim() ? next.text.trim() : null,
         position: next.position,
       })
-      fetch(apiUrl(`/api/jobs/${jobId}/overlay`), {
+      apiFetch(`/api/jobs/${jobId}/overlay`, {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body,
       }).catch(() => {})
@@ -307,9 +297,8 @@ export default function ResultsPage() {
     if (!jobId || isSpendingCredit) return
     setIsSpendingCredit(true)
     try {
-      const res = await fetch(apiUrl('/api/download/spend-credit'), {
+      const res = await apiFetch('/api/download/spend-credit', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId }),
       })

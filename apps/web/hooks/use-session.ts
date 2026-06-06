@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch, storeSessionId } from '@/lib/api-client'
 
 export interface SessionData {
   isVerified: boolean
@@ -38,11 +38,14 @@ export async function refreshSession(): Promise<SessionData | null> {
   if (view.status !== 'ready') setView({ ...view, status: 'loading' })
   inflight = (async () => {
     try {
-      const res = await fetch(apiUrl('/api/session/me'), { credentials: 'include' })
+      const res = await apiFetch('/api/session/me')
       const json = await res.json().catch(() => null)
       if (!res.ok || !json?.success) {
         setView({ data: view.data, status: 'error' })
         return null
+      }
+      if (json.data?.sessionId) {
+        storeSessionId(json.data.sessionId) // TODO: remove when custom domain is configured
       }
       const data = json.data as SessionData
       setView({ data, status: 'ready' })

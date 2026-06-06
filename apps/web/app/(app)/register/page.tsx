@@ -7,7 +7,7 @@ import { ChevronLeft } from 'lucide-react'
 import { RegistrationForm } from '@/components/auth/registration-form'
 import { OtpForm, type OtpVerifyResult } from '@/components/auth/otp-form'
 import { refreshSession } from '@/hooks/use-session'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 // Stale order id (older than this) is removed on landing so the user
 // doesn't get parked in a stuck "Processing payment…" sheet on /results.
@@ -40,7 +40,7 @@ export default function RegisterPage() {
       sessionStorage.removeItem('leve_order_initiated_at')
     }
 
-    fetch(apiUrl('/api/session/me'), { credentials: 'include', signal: controller.signal })
+    apiFetch('/api/session/me', { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.isVerified) {
@@ -77,9 +77,8 @@ export default function RegisterPage() {
     setContact(contactValue)
     setMethod(authMethod)
     try {
-      await fetch(apiUrl('/api/register/otp/send'), {
+      await apiFetch('/api/register/otp/send', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: contactValue, identifierType: authMethod }),
       })
@@ -112,9 +111,8 @@ export default function RegisterPage() {
   async function handleBrandNameSave() {
     if (brandName.trim()) {
       try {
-        await fetch(apiUrl('/api/session/brand-name'), {
+        await apiFetch('/api/session/brand-name', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ brandName: brandName.trim() }),
         })
@@ -208,9 +206,8 @@ export default function RegisterPage() {
             onVerify={handleVerify}
             onResend={async () => {
               try {
-                await fetch(apiUrl('/api/register/otp/send'), {
+                await apiFetch('/api/register/otp/send', {
                   method: 'POST',
-                  credentials: 'include',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ identifier: contact, identifierType: method }),
                 })

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 
 function captureReturnTo() {
   if (typeof window === 'undefined') return
@@ -22,7 +22,7 @@ export function useVerifiedGuard() {
   useEffect(() => {
     const controller = new AbortController()
 
-    fetch(apiUrl('/api/session/me'), { credentials: 'include', signal: controller.signal })
+    apiFetch('/api/session/me', { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data?.data?.isVerified) {

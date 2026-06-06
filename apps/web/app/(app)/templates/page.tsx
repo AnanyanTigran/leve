@@ -16,7 +16,7 @@ import {
   ASPECT_RATIO_OPTIONS,
 } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import { apiUrl } from '@/lib/api-client'
+import { apiFetch } from '@/lib/api-client'
 import type { Scene, ProductCategory, AspectRatio } from '@leve/types'
 
 export default function SceneSelectionPage() {
@@ -234,9 +234,8 @@ export default function SceneSelectionPage() {
 
   const handleSetDefault = useCallback(async (sceneId: string) => {
     try {
-      await fetch(apiUrl('/api/session/favorite-scene'), {
+      await apiFetch('/api/session/favorite-scene', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sceneId }),
       })
