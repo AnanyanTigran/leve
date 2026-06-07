@@ -23,7 +23,7 @@ const SCENE_PROMPTS: Record<string, string> = {
 
   // Lightbox = shadowless wraparound. "Catalog photography" anchors style.
   light_box:
-    'Place the product inside a brightly lit white lightbox with evenly diffused light wrapping every side. Use crisp shadowless packshot lighting suitable for catalog photography.',
+    'Enclose the product inside a brightly lit white lightbox with evenly diffused light wrapping every side. Use crisp shadowless packshot lighting suitable for catalog photography.',
 
   // Dark luxury — rim light is the highest-value cue for editorial moods.
   black_studio:
@@ -60,29 +60,32 @@ const SCENE_PROMPTS: Record<string, string> = {
   // Each environment names the foreground surface AND a softly blurred
   // background depth cue separately. Kontext renders environments more
   // reliably when surface and background are split into two clauses.
+  // "Replace the surface beneath the product" / "Replace the background behind
+  // the product" are the canonical Kontext edit verbs — they instruct the model
+  // to modify only the environment, not reposition or recompose the subject.
   bathroom_shelf:
-    'Place the product on a clean white bathroom shelf with a softly blurred white tile wall behind it and a folded towel out of focus to one side. Use soft natural light coming through a nearby window.',
+    'Replace the surface beneath the product with a clean white bathroom shelf. Add a softly blurred white tile wall behind it and a folded towel out of focus to one side. Use soft natural light coming through a nearby window.',
 
   kitchen_counter:
-    'Place the product on a clean light kitchen countertop with fresh herbs and a few cooking ingredients softly blurred in the background. Light the scene with bright morning daylight.',
+    'Replace the surface beneath the product with a clean light kitchen countertop. Add fresh herbs and a few cooking ingredients softly blurred in the background. Light the scene with bright morning daylight.',
 
   vanity_table:
-    'Place the product on a wooden makeup vanity with a softly blurred mirror behind it. Light the scene with warm soft beauty lighting from vanity bulbs.',
+    'Replace the surface beneath the product with a wooden makeup vanity. Add a softly blurred mirror behind it. Light the scene with warm soft beauty lighting from vanity bulbs.',
 
   cafe_table:
-    'Place the product on a small wooden cafe table with a warm cafe interior softly blurred behind it. Light the scene with warm ambient indoor lighting and gentle window-light highlights.',
+    'Replace the surface beneath the product with a small wooden cafe table. Keep a warm cafe interior softly blurred behind it. Light the scene with warm ambient indoor lighting and gentle window-light highlights.',
 
   outdoor_garden:
-    'Place the product on a wooden garden table with green plants and leaves softly blurred behind it. Light the scene with bright natural sunlight for a fresh outdoor feel.',
+    'Replace the surface beneath the product with a wooden garden table. Add green plants and leaves softly blurred behind it. Light the scene with bright natural sunlight for a fresh outdoor feel.',
 
   office_desk:
-    'Place the product on a clean modern minimal office desk with a softly blurred laptop and notebook behind it. Light with bright soft professional daylight.',
+    'Replace the surface beneath the product with a clean modern minimal office desk. Add a softly blurred laptop and notebook behind it. Light with bright soft professional daylight.',
 
   bed_pillows:
-    'Place the product on crisp white bedding with softly arranged pillows around it. Light the scene with soft morning sunlight filtering through sheer curtains for a cozy lifestyle feel.',
+    'Replace the surface beneath the product with crisp white bedding. Add softly arranged pillows around it. Light the scene with soft morning sunlight filtering through sheer curtains for a cozy lifestyle feel.',
 
   beach_sand:
-    'Place the product on smooth golden beach sand with the ocean softly blurred in the background. Light with warm golden-hour sunlight for a sun-kissed lifestyle scene.',
+    'Replace the surface beneath the product with smooth golden beach sand. Keep the ocean softly blurred in the background. Light with warm golden-hour sunlight for a sun-kissed lifestyle scene.',
 
   // ─── Seasonal ──────────────────────────────────────────────────────────────
   // "Surround the product with..." is the precise Kontext verb for adding
@@ -94,10 +97,10 @@ const SCENE_PROMPTS: Record<string, string> = {
     'Surround the product with fresh spring flowers and soft cherry blossom petals in pastel pinks and whites. Light with bright airy daylight for a seasonal spring feel.',
 
   autumn_warm:
-    'Place the product on a wooden surface with scattered autumn leaves in red, orange, and gold tones around it. Light with warm golden afternoon sunlight for a cozy autumn atmosphere.',
+    'Replace the surface beneath the product with a wooden surface scattered with autumn leaves in red, orange, and gold tones. Light with warm golden afternoon sunlight for a cozy autumn atmosphere.',
 
   summer_fresh:
-    'Place the product on a bright clean surface with ice cubes, fresh water droplets, and citrus slices arranged around it. Light with bright crisp daylight for a vibrant summer feel.',
+    'Replace the surface beneath the product with a bright clean surface. Arrange ice cubes, fresh water droplets, and citrus slices around it. Light with bright crisp daylight for a vibrant summer feel.',
 
   // Marketing scene — explicit empty area for the post-composite text overlay.
   sale_promo:
@@ -117,13 +120,13 @@ const SCENE_PROMPTS: Record<string, string> = {
     'Compose the scene as a flat lay shot from directly overhead, with the product centered and surrounded by its natural ingredients. Use soft even top-down lighting.',
 
   neon_glow:
-    'Place the product on a dark surface with vivid neon light reflections in pink, cyan, and purple washing across the background. Use a moody cyberpunk editorial aesthetic.',
+    'Replace the surface beneath the product with a dark surface. Cast vivid neon light reflections in pink, cyan, and purple across the background. Use a moody cyberpunk editorial aesthetic.',
 
   minimal_pastel:
     'Replace the background with a soft single-tone pastel seamless backdrop. Light with even soft minimal studio lighting for a clean modern composition.',
 
   editorial_dark:
-    'Place the product in a moody dark editorial scene with deep shadows and a single dramatic key light from the side. Use a high-contrast luxury brand aesthetic.',
+    'Transform the scene into a moody dark editorial setting with deep shadows and a single dramatic key light from the side. Use a high-contrast luxury brand aesthetic.',
 
   // ─── Additions (2026-06) ───────────────────────────────────────────────────
   // Backed by competitor research (Pebblely top templates, Photoroom
@@ -141,7 +144,7 @@ const SCENE_PROMPTS: Record<string, string> = {
 
   // Armenian copper jezve coffee context — culturally specific cafe scene.
   coffee_jezve:
-    'Place the product on a small wooden cafe table beside a small Armenian copper coffee jezve and a tiny cup of black coffee, with a warm cafe interior softly blurred behind. Light the scene with warm ambient indoor lighting.',
+    'Replace the surface beneath the product with a small wooden cafe table. Add a small Armenian copper coffee jezve and a tiny cup of black coffee beside the product, with a warm cafe interior softly blurred behind. Light the scene with warm ambient indoor lighting.',
 
   // Wildberries-compliant packshot: neutral white, 15% padding, 70% fill.
   wb_white_strict:
@@ -149,7 +152,7 @@ const SCENE_PROMPTS: Record<string, string> = {
 
   // Best-converting lifestyle framing without a full model — "in hand".
   handheld_lifestyle:
-    'Place the product as if gently held in a person’s hand, with only the hand visible and the rest of the frame softly blurred. Light with soft natural daylight from the side. Use a shallow depth of field for a candid lifestyle feel.',
+    "Show the product as if gently held in a person’s hand, with only the hand visible and the rest of the frame softly blurred. Light with soft natural daylight from the side. Use a shallow depth of field for a candid lifestyle feel.",
 }
 
 // ─── Chip Prompt Fragments ─────────────────────────────────────────────────────
@@ -275,10 +278,14 @@ const CHIP_GROUPS: Record<string, 'lighting' | 'angle' | 'mood' | 'accent' | 'ca
 // Including camera angle here is what lets us safely drop angle preservation
 // from individual scene prompts.
 
+const FOOD_PRESERVATION_PREFIX =
+  'Preserve the food exactly as presented in its original plate, bowl, or serving vessel. Do not remove, replace, or alter the serving vessel in any way. Only modify the background and surrounding environment. '
+
 const PRODUCT_PRESERVATION_SUFFIX =
   'Keep the product itself identical to the source image — preserve its exact shape, colors, materials, labels, printed text, logos, and proportions. ' +
   'Maintain the exact same product position, scale, orientation, and camera angle as in the source. ' +
-  'Do not add any new text, badges, stickers, watermarks, or promotional graphics to the product or scene.'
+  'Do not add any new text, badges, stickers, watermarks, or promotional graphics to the product or scene. ' +
+  'Preserve the original exposure and brightness of the product. Do not darken, overexpose, or alter the product\'s natural lighting.'
 
 // ─── Global Quality Cue ────────────────────────────────────────────────────────
 // Specific photographic vocabulary (high-resolution, sharp focus, true-to-source
@@ -368,6 +375,7 @@ export function compilePrompt(input: CompilePromptInput): string {
     angleSentence,
     categorySentence,
     customSentence,
+    input.category === 'food_cafe' ? FOOD_PRESERVATION_PREFIX.trim() : '',
     GLOBAL_QUALITY_SUFFIX,
     PRODUCT_PRESERVATION_SUFFIX,
   ].filter(Boolean)

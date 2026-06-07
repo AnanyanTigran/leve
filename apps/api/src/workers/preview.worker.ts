@@ -17,6 +17,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     jobId,
     sessionId,
     uploadS3Key,
+    sceneId,
     compiledPrompt,
     isVerified,
     aspectRatio,
@@ -24,6 +25,9 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     sourceImageS3Key,
     requestId,
   } = job.data
+
+  const DARK_SCENES = new Set(['black_studio', 'velvet_dark', 'editorial_dark', 'neon_glow'])
+  const guidanceScale = DARK_SCENES.has(sceneId) ? 4.0 : undefined
 
   logger.info({ requestId, jobId, isEdit }, '[preview worker] job start')
 
@@ -60,6 +64,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       aspectRatio: aspectRatio ?? '1:1',
       isEdit: isEdit ?? false,
       sourceImageS3Key,
+      guidanceScale,
     })
     await setJobPhase(jobId, 'finalizing')
 

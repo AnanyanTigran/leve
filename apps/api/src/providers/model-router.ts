@@ -53,6 +53,7 @@ export interface GenerationInput {
   aspectRatio?: string     // '1:1' | '4:5' | '3:4' | '9:16' | '16:9', default '1:1'
   isEdit?: boolean         // true = iterative edit, sourceImageS3Key is prior output
   sourceImageS3Key?: string // for iterative edits: the previously generated image
+  guidanceScale?: number   // override default 3.5; dark scenes use 4.0 to prevent underexposure
 }
 
 export interface GenerationOutput {
@@ -102,12 +103,10 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
           // visibly under-resolved fine product detail (jewelry, label text);
           // 50+ is diminishing returns at significant runtime cost.
           num_inference_steps: 40,
-          // 3.5 is the BFL-documented default and community-validated sweet
-          // spot. 4.0 was over-constraining edits and producing over-contrasty
-          // artifacts. Preservation strength is now carried by the prompt's
-          // trailing constraint (see prompt.service.ts PRODUCT_PRESERVATION_SUFFIX),
-          // not by elevated guidance.
-          guidance_scale: 3.5,
+          // Default 3.5 is BFL-documented. Dark scenes (black_studio,
+          // velvet_dark, editorial_dark, neon_glow) pass 4.0 to strengthen
+          // instruction adherence and prevent underexposure.
+          guidance_scale: input.guidanceScale ?? 3.5,
         },
       }) as Promise<{ images: { url: string }[] }>,
       cancellableTimeout.promise,
