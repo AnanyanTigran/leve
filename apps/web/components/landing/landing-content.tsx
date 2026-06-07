@@ -49,7 +49,7 @@ export function LandingContent() {
               <button
                 type="button"
                 onClick={() => router.push('/register')}
-                className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors hidden sm:block"
+                className="text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors"
               >
                 {t('signin')}
               </button>
