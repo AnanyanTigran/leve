@@ -181,7 +181,8 @@
     "download_hd_credit": "1 credit",
     "download_hd_spending": "Unlocking…",
     "generate_another": "Generate another scene",
-    "upload_new_photo": "Upload a new photo"
+    "upload_new_photo": "Upload a new photo",
+    "aspect_ratio_mismatch_note": "Original image cropped for comparison"
   },
   "paywall": {
     "title": "Unlock HD Download",

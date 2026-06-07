@@ -181,7 +181,8 @@
     "download_hd_credit": "1 кредит",
     "download_hd_spending": "Открываем…",
     "generate_another": "Другая сцена",
-    "upload_new_photo": "Загрузить новое фото"
+    "upload_new_photo": "Загрузить новое фото",
+    "aspect_ratio_mismatch_note": "Исходное изображение обрезано для сравнения"
   },
   "paywall": {
     "title": "Разблокировать HD загрузку",

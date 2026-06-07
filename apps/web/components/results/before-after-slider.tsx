@@ -123,7 +123,7 @@ export function BeforeAfterSlider({
             src={afterSrc}
             alt=""
             draggable={false}
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
           />
         ) : (
           <div className="absolute inset-0 bg-bg-elevated animate-pulse" />

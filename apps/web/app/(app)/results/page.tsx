@@ -53,12 +53,14 @@ export default function ResultsPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollFailuresRef = useRef(0)
 
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  const [aspectRatioMismatch, setAspectRatioMismatch] = useState(false)
+
   // Edit flow state
   const [editPrompt, setEditPrompt] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [editError, setEditError] = useState(false)
   const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null)
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
 
   // Derived from shared session — re-derives whenever session changes, so a
   // post-edit or post-purchase refreshSession() updates the UI without a
@@ -79,6 +81,21 @@ export default function ResultsPage() {
   // Text overlay (live CSS preview + persisted server-side at HD download time)
   const [overlay, setOverlay] = useState<OverlayState>({ template: null, text: '', position: 'bottom' })
   const overlayDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!uploadPreview) { setAspectRatioMismatch(false); return }
+    const storedRatio = sessionStorage.getItem('leve_aspect_ratio') ?? '1:1'
+    const parts = storedRatio.split(':').map(Number)
+    const W = parts[0] ?? 1
+    const H = parts[1] ?? 1
+    const targetRatio = W / H
+    const img = new Image()
+    img.onload = () => {
+      const uploadRatio = img.naturalWidth / img.naturalHeight
+      setAspectRatioMismatch(Math.abs(uploadRatio - targetRatio) / targetRatio > 0.05)
+    }
+    img.src = uploadPreview
+  }, [uploadPreview])
 
   useEffect(() => {
     const id = sessionStorage.getItem('leve_job_id')
@@ -469,6 +486,11 @@ export default function ResultsPage() {
               </div>
             )}
           </div>
+          {aspectRatioMismatch && uploadPreview && (
+            <p className="text-[11px] text-text-muted text-center">
+              {t('aspect_ratio_mismatch_note')}
+            </p>
+          )}
           {session !== null && !verified && (
             <div className="bg-bg-surface border border-border-default rounded-[12px] p-4 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-accent-subtle flex items-center justify-center shrink-0">

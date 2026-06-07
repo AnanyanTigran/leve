@@ -181,7 +181,8 @@
     "download_hd_credit": "1 կրեդիտ",
     "download_hd_spending": "Բացում…",
     "generate_another": "Այլ տեսարան",
-    "upload_new_photo": "Բեռնել նոր լուսանկար"
+    "upload_new_photo": "Բեռնել նոր լուսանկար",
+    "aspect_ratio_mismatch_note": "Բնօրինակ պատկերը կտրված է համեմատության համար"
   },
   "paywall": {
     "title": "Ակտիվացնել HD ներբեռնումը",
