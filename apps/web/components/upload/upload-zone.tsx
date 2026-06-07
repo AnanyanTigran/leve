@@ -270,6 +270,12 @@ export function UploadZone() {
   return (
     <div className="flex flex-col flex-1">
       <main className="page-funnel lg:page-content flex-1 overflow-y-auto flex flex-col py-4 gap-4">
+        {error && (
+          <div className="flex items-center gap-2 px-1">
+            <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0" />
+            <span className="text-[13px] text-[#DC2626]">{error}</span>
+          </div>
+        )}
         <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8 lg:items-start flex-1 flex flex-col lg:flex-none">
 
           {/* Upload zone */}
@@ -323,7 +329,7 @@ export function UploadZone() {
                     onClick={(e) => { e.stopPropagation(); inputRef.current?.click() }}
                     className="shrink-0 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg text-[12px] text-white font-medium transition-colors"
                   >
-                    Change
+                    {t('change')}
                   </button>
                 </div>
               </>
@@ -404,13 +410,6 @@ export function UploadZone() {
             })}
           </div>
         </div>
-
-        {error && (
-          <div className="flex items-center gap-2 px-1">
-            <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0" />
-            <span className="text-[13px] text-[#DC2626]">{error}</span>
-          </div>
-        )}
 
         <div className="flex flex-col items-center gap-1 py-2">
           <p className="flex items-center gap-1.5 text-[12px] text-text-muted">

@@ -331,7 +331,14 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
       )}
 
       {paywallState === 'processing' && (
-        <div className="flex flex-col items-center justify-center py-14 gap-5 px-4 pb-10">
+        <div className="relative flex flex-col items-center justify-center py-14 gap-5 px-4 pb-10">
+          <button
+            onClick={handleClose}
+            className="absolute top-0 right-3 w-10 h-10 flex items-center justify-center rounded-full hover:bg-bg-elevated transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5 text-text-secondary" />
+          </button>
           <div className="w-16 h-16 rounded-full border-4 border-bg-elevated border-t-accent animate-spin" />
           <div className="text-center">
             <p className="text-[17px] font-semibold text-text-primary">
@@ -396,7 +403,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
               {t('retry')}
             </button>
             <button
-              className="btn-secondary"
+              className="btn-secondary btn-full"
               onClick={() => setPaywallState('pricing')}
             >
               {t('choose_method')}

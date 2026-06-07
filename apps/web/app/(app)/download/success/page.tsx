@@ -82,11 +82,11 @@ export default function DownloadSuccessPage() {
     const jobId = sessionStorage.getItem('leve_job_id')
     if (!jobId) return
 
-    apiFetch(`/api/download/preview-url?jobId=${jobId}`)
+    apiFetch(`/api/download/url?jobId=${jobId}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data?.data?.previewUrls?.[0]) {
-          setPreviewUrl(data.data.previewUrls[0])
+        if (data?.data?.url) {
+          setPreviewUrl(data.data.url)
         }
       })
       .catch(() => {})

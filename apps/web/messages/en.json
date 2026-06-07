@@ -113,7 +113,8 @@
     "error_validation_failed": "Couldn't check the photo right now — please try again in a moment",
     "error_upload_failed": "Upload failed — please try again",
     "error_rate_limit": "Too many uploads — please wait an hour and try again",
-    "category_prompt": "What are you photographing?"
+    "category_prompt": "What are you photographing?",
+    "change": "Change"
   },
   "templates": {
     "title": "Choose template",

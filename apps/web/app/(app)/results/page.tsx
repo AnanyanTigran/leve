@@ -413,11 +413,13 @@ export default function ResultsPage() {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-bg-base">
-      <AppHeader
-        variant="app"
-        showBack={false}
-        title={t('title')}
-      />
+      {!paywallOpen && (
+        <AppHeader
+          variant="app"
+          showBack={false}
+          title={t('title')}
+        />
+      )}
 
       <main className="page-content flex-1 pb-16">
         <div className="py-4 flex flex-col gap-4">

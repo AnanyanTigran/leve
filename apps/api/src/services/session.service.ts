@@ -9,6 +9,7 @@ import {
   FREE_CREDITS_ON_VERIFY,
 } from '../lib/session.types'
 import { UserService } from './user.service'
+import { prisma } from '../lib/prisma'
 
 export class SessionService {
   static async create(): Promise<LeveSession> {
@@ -81,6 +82,17 @@ export class SessionService {
     const session = await SessionService.get(sessionId)
     if (!session) throw new Error('session_not_found')
 
+    // Capture the user's previous session ID before upsert overwrites it,
+    // so we can restore generation history from that session below.
+    let previousSessionId: string | null = null
+    try {
+      const where = identifierType === 'phone' ? { phone: identifier } : { email: identifier }
+      const existingUser = await prisma.user.findUnique({ where, select: { lastSessionId: true } })
+      previousSessionId = existingUser?.lastSessionId ?? null
+    } catch (err) {
+      logger.warn({ err, sessionId }, '[SessionService] pre-upsert user lookup failed — history restore skipped')
+    }
+
     // The OTHER identifier already attached to this session (if any) is the
     // signal that two User rows might belong to the same person. Pass it down
     // so upsertOnVerify can merge instead of forking.
@@ -112,6 +124,30 @@ export class SessionService {
     session.brandName = user.brandName
     session.favoriteSceneId = user.favoriteSceneId
     session.lastActiveAt = Date.now()
+
+    // Restore generation history from the user's previous session so re-login
+    // with the same phone/email doesn't lose their job history.
+    if (isReturning && previousSessionId && previousSessionId !== sessionId) {
+      try {
+        const previousJobs = await prisma.generationJob.findMany({
+          where: { sessionId: previousSessionId },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: { id: true },
+        })
+        if (previousJobs.length > 0) {
+          const prevJobIds = previousJobs.map((j: { id: string }) => j.id)
+          const currentHistory = Array.isArray(session.generationHistory) ? session.generationHistory : []
+          const merged = [
+            ...currentHistory,
+            ...prevJobIds.filter((id: string) => !currentHistory.includes(id)),
+          ].slice(0, 50)
+          session.generationHistory = merged
+        }
+      } catch (err) {
+        logger.warn({ err, sessionId, previousSessionId }, '[SessionService] history restore failed — non-fatal')
+      }
+    }
 
     await redis.set(
       SESSION_KEY(sessionId),
