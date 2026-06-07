@@ -245,6 +245,7 @@
     "generate_another": "Generate another scene",
     "upload_new_photo": "Upload a new photo",
     "crop_title": "Position the crop",
+    "crop_quality_warning": "This crop may reduce image quality",
     "download_failed": "Download failed — please try again",
     "image_not_loaded": "Image could not be loaded",
     "go_to_history": "Go to History",

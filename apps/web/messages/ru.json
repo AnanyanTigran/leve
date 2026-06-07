@@ -245,6 +245,7 @@
     "generate_another": "Другая сцена",
     "upload_new_photo": "Загрузить новое фото",
     "crop_title": "Выберите область кадра",
+    "crop_quality_warning": "Этот кадр может снизить качество изображения",
     "download_failed": "Ошибка загрузки",
     "image_not_loaded": "Изображение не загрузилось",
     "go_to_history": "Перейти в историю",

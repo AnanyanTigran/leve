@@ -245,6 +245,7 @@
     "generate_another": "Այլ տեսարան",
     "upload_new_photo": "Բեռնել նոր լուսանկար",
     "crop_title": "Տեղադրեք կտրման տիրույթը",
+    "crop_quality_warning": "Այս կտրումը կարող է նվազեցնել պատկերի որակը",
     "download_failed": "Ներբեռնումը ձախողվեց",
     "image_not_loaded": "Նկարը չբեռնվեց",
     "go_to_history": "Գնալ պատմություն",
