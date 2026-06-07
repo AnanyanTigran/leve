@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+echo "Running pre-push checks..."
+
+npm run typecheck --workspace=apps/web || { echo "Web typecheck failed"; exit 1; }
+npm run typecheck --workspace=apps/api || { echo "API typecheck failed"; exit 1; }
+npm run lint --workspace=apps/web     || { echo "Web lint failed"; exit 1; }
+npm run lint --workspace=apps/api     || { echo "API lint failed"; exit 1; }
+npm run build --workspace=apps/web    || { echo "Web build failed"; exit 1; }
