@@ -267,7 +267,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
                       {t('best_value')}
                     </span>
                   )}
-                  <p className="text-[15px] font-semibold text-text-primary">
+                  <p className={cn('text-[15px] font-semibold text-text-primary', isBestValue && 'pr-24')}>
                     {label} —{' '}
                     {pkg.isMonthly
                       ? t('images_month', { count: pkg.images })

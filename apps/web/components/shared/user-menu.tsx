@@ -81,7 +81,7 @@ export function UserMenu() {
   // Skeleton while the session hook hydrates so the header doesn't flicker
   // between sign-in CTA and avatar on first paint.
   if (status === 'loading' || status === 'idle') {
-    return <div className="w-12 h-12 rounded-full bg-bg-elevated animate-pulse" />
+    return <div className="w-9 h-9 rounded-full bg-bg-elevated animate-pulse" />
   }
 
   if (!session?.isVerified) return null
@@ -116,7 +116,7 @@ export function UserMenu() {
         aria-label={t('open_menu')}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center font-semibold text-[14px] hover:bg-accent-hover transition-colors"
+        className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center font-semibold text-[14px] hover:bg-accent-hover transition-colors"
       >
         {initial || <User className="w-4 h-4" strokeWidth={2} />}
       </button>
