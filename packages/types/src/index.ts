@@ -27,11 +27,23 @@ export const PRODUCT_CATEGORIES = [
   'jewelry_accessories',
   'fashion_clothing',
   'food_cafe',
-  'marketplace_export',
+  'electronics_gadgets',
+  'home_decor',
+  'toys_children',
   'custom',
 ] as const
 
 export type ProductCategory = typeof PRODUCT_CATEGORIES[number]
+
+export type MarketplacePlatform = 'wildberries' | 'ozon'
+
+export interface MarketplaceSettings {
+  platform: MarketplacePlatform | null
+  // When platform is set, these override user scene and ratio choices at generation time
+  forceSceneId: 'wb_white_strict' | 'pure_white_studio' | null
+  forceAspectRatio: AspectRatio | null
+  forcePaddingChip: boolean // auto-applies 85% fill compliance padding
+}
 
 // Platform export targets
 export type ExportPlatform =
