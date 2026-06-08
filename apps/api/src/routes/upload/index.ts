@@ -65,8 +65,10 @@ export async function registerUploadRoute(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'upload_error', requestId })
       }
 
-      // Validate
-      const validation = await validateImage(fileBuffer)
+      // Validate — pass extension so HEIC files misidentified as video/mp4
+      // by Chrome/Mac (shared container format) are corrected by extension.
+      const originalExtension = originalFilename.split('.').pop()?.toLowerCase()
+      const validation = await validateImage(fileBuffer, originalExtension)
       if (!validation.valid) {
         app.log.warn({ requestId, error: validation.error }, 'image validation failed')
         return reply.status(422).send({

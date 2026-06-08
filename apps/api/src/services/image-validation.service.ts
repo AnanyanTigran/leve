@@ -56,7 +56,7 @@ export interface ValidationResult {
   convertedBuffer?: Buffer
 }
 
-export async function validateImage(buffer: Buffer): Promise<ValidationResult> {
+export async function validateImage(buffer: Buffer, originalExtension?: string): Promise<ValidationResult> {
   // 1. File size
   if (buffer.byteLength > MAX_BYTES) {
     return { valid: false, error: 'file_too_large' }
@@ -64,15 +64,31 @@ export async function validateImage(buffer: Buffer): Promise<ValidationResult> {
 
   // 2. Magic bytes — do NOT trust extension or Content-Type header
   const fileType = await fileTypeFromBuffer(buffer)
-  if (!fileType || !ALLOWED_MIME_TYPES.has(fileType.mime)) {
+
+  // HEIC/HEIF files from Chrome on Mac are often misidentified as video/mp4
+  // because HEIC uses the same ISOBMFF container (ftyp brand 'mif1'/'msf1').
+  // If fileType says video/* but the original extension is .heic or .heif,
+  // trust the extension — it's an iPhone photo, not a video.
+  const effectiveMime = (() => {
+    if (!fileType) return null
+    if (
+      fileType.mime.startsWith('video/') &&
+      (originalExtension === 'heic' || originalExtension === 'heif')
+    ) {
+      return 'image/heic'
+    }
+    return fileType.mime
+  })()
+
+  if (!effectiveMime || !ALLOWED_MIME_TYPES.has(effectiveMime)) {
     return { valid: false, error: 'invalid_file_type' }
   }
 
   // 2a. Transcode HEIC/HEIF/AVIF/TIFF to JPEG so downstream Sharp ops,
   // Rekognition, and Kontext receive a format they can read.
-  const needsConversion = CONVERT_TO_JPEG_MIMES.has(fileType.mime)
+  const needsConversion = CONVERT_TO_JPEG_MIMES.has(effectiveMime)
   let workingBuffer = buffer
-  let workingMime = fileType.mime
+  let workingMime = effectiveMime
   let convertedBuffer: Buffer | undefined
 
   if (needsConversion) {
