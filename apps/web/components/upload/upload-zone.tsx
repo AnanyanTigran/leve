@@ -275,12 +275,6 @@ export function UploadZone() {
   return (
     <div className="flex flex-col flex-1">
       <main className="page-funnel lg:page-content flex-1 overflow-y-auto flex flex-col py-4 gap-4">
-        {error && (
-          <div className="flex items-center gap-2 px-1">
-            <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0" />
-            <span className="text-[13px] text-[#DC2626]">{error}</span>
-          </div>
-        )}
         <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8 lg:items-start flex-1 flex flex-col lg:flex-none">
 
           {/* Upload zone */}
@@ -296,6 +290,8 @@ export function UploadZone() {
                 ? 'border-0'
                 : isDragging
                 ? 'border-[1.5px] border-solid border-accent bg-accent-subtle cursor-pointer'
+                : error
+                ? 'border-[1.5px] border-dashed border-[#DC2626]/40 bg-[#DC2626]/5 cursor-pointer'
                 : 'border-[1.5px] border-dashed border-border-default bg-bg-base cursor-pointer',
             ].join(' ')}
           >
@@ -340,17 +336,29 @@ export function UploadZone() {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[520px] gap-3 text-center p-8">
-                <UploadCloud
-                  className={`w-12 h-12 transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-muted'}`}
-                />
-                <div className="flex flex-col items-center">
-                  <span className={`text-[16px] font-semibold transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-primary'}`}>
-                    {t('tap_to_upload')}
-                  </span>
-                  <span className="text-[14px] text-text-muted mt-1">{t('drag_drop')}</span>
-                </div>
-                <hr className="w-16 border-border-default my-2" />
-                <span className="text-[12px] text-text-muted">{t('file_types')}</span>
+                {error ? (
+                  <>
+                    <AlertCircle className="w-12 h-12 text-[#DC2626]" strokeWidth={1.5} />
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-[15px] font-semibold text-[#DC2626]">{error}</span>
+                      <span className="text-[13px] text-text-muted mt-1">{t('tap_to_upload')}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud
+                      className={`w-12 h-12 transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-muted'}`}
+                    />
+                    <div className="flex flex-col items-center">
+                      <span className={`text-[16px] font-semibold transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-primary'}`}>
+                        {t('tap_to_upload')}
+                      </span>
+                      <span className="text-[14px] text-text-muted mt-1">{t('drag_drop')}</span>
+                    </div>
+                    <hr className="w-16 border-border-default my-2" />
+                    <span className="text-[12px] text-text-muted">{t('file_types')}</span>
+                  </>
+                )}
               </div>
             )}
 
