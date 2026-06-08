@@ -107,11 +107,6 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         }
       }
 
-      // ── Gate 3: Verified user credit check ───────────────────────────────────
-      if (session.isVerified && session.creditsRemaining <= 0) {
-        return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
-      }
-
       // Custom text is now treated purely as a scene-description hint to the
       // model. Text-on-image (price tag / SALE / etc.) lives on the results
       // page via POST /api/jobs/:jobId/overlay and is composited at HD
@@ -139,7 +134,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
           status: 'queued',
           uploadS3Key: uploadKey,
           compiledPrompt,
-          creditsCost: session.isVerified ? 1 : 0,
+          creditsCost: 0,
           requestId,
         },
       })

@@ -38,21 +38,6 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
   })
   await setJobPhase(jobId, 'processing')
 
-  // Deduct 1 credit BEFORE calling provider
-  // Anonymous users (isVerified=false) have anon generation budget tracked separately
-  if (isVerified) {
-    const credited = await SessionService.deductCredit(sessionId)
-    if (!credited) {
-      await prisma.generationJob.update({
-        where: { id: jobId },
-        data: { status: 'failed', errorCode: 'insufficient_credits' },
-      })
-      return
-    }
-  }
-  // Note: anonymous generation deducts from anon_generations_used counter (not credits)
-  // That counter is tracked in the session object, not here
-
   try {
     await setJobPhase(jobId, 'generating')
     const output = await runGeneration({
@@ -81,13 +66,10 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     const qualityGatePassed = longerSide >= minExpected
 
     if (!qualityGatePassed) {
-      logger.error({ requestId, jobId, width, height, longerSide, minExpected }, '[preview worker] quality gate failed — refunding credit')
-      if (isVerified) {
-        await SessionService.refundCredit(sessionId)
-      }
+      logger.error({ requestId, jobId, width, height, longerSide, minExpected }, '[preview worker] quality gate failed')
       await prisma.generationJob.update({
         where: { id: jobId },
-        data: { status: isVerified ? 'credit_refunded' : 'failed', errorCode: 'quality_gate_failed', qualityGatePassed: false },
+        data: { status: 'failed', errorCode: 'quality_gate_failed', qualityGatePassed: false },
       })
       await clearJobPhase(jobId)
       return
@@ -139,14 +121,10 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
 
     logger.error({ requestId, jobId, errorCode, isFinalAttempt, attemptsMade: job.attemptsMade }, '[preview worker] failed')
 
-    if (isVerified && isFinalAttempt) {
-      await SessionService.refundCredit(sessionId)
-    }
-
     await prisma.generationJob.update({
       where: { id: jobId },
       data: {
-        status: isFinalAttempt ? (isVerified ? 'credit_refunded' : 'failed') : 'queued',
+        status: isFinalAttempt ? 'failed' : 'queued',
         errorCode: isFinalAttempt ? errorCode : null,
       },
     })
