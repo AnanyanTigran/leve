@@ -25,7 +25,9 @@ const CATEGORY_TO_TAB: Record<string, string> = {
   jewelry_accessories: 'retail',
   fashion_clothing: 'retail',
   food_cafe: 'beauty',
-  marketplace_export: 'marketplace',
+  electronics_gadgets: 'retail',
+  home_decor: 'retail',
+  toys_children: 'retail',
   custom: 'all',
 }
 

@@ -108,9 +108,7 @@ export default function SceneSelectionPage() {
 
     // Default aspect ratio per category (verified status + favoriteSceneId
     // come from the shared session hook, no per-page fetch needed).
-    if (cat === 'marketplace_export') {
-      setAspectRatio('3:4')
-    } else if (cat === 'beauty_cosmetics' || cat === 'fashion_clothing') {
+    if (cat === 'beauty_cosmetics' || cat === 'fashion_clothing') {
       setAspectRatio('4:5')
     }
 
@@ -324,7 +322,9 @@ export default function SceneSelectionPage() {
       jewelry_accessories: t('cat_jewelry'),
       fashion_clothing: t('cat_fashion'),
       food_cafe: t('cat_food'),
-      marketplace_export: t('cat_marketplace'),
+      electronics_gadgets: t('cat_electronics'),
+      home_decor: t('cat_home_decor'),
+      toys_children: t('cat_toys'),
       custom: t('cat_custom'),
     }
     return map[category] ?? category

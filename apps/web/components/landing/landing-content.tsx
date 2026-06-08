@@ -74,8 +74,8 @@ export function LandingContent() {
               {t('subtext')}
             </p>
 
-            {/* Category cards — 1 col mobile, 2 col desktop */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-8">
+            {/* Category cards — 2 col mobile (4 rows × 2), 2 col desktop */}
+            <div className="grid grid-cols-2 gap-3 mt-8">
               {CATEGORY_ITEMS.map((cat) => {
                 const Icon = cat.icon
                 return (

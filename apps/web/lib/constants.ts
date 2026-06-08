@@ -5,16 +5,18 @@ import type {
   CategorySceneMap,
   AspectRatioOption,
 } from '@leve/types'
-import { Sparkles, Gem, Shirt, Coffee, Package, Wand2 } from 'lucide-react'
+import { Sparkles, Gem, Shirt, Coffee, Wand2, Cpu, Home, Smile } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export const CATEGORY_ITEMS: { id: ProductCategory; icon: LucideIcon; tKey: string }[] = [
-  { id: 'beauty_cosmetics',   icon: Sparkles, tKey: 'category_beauty' },
-  { id: 'jewelry_accessories', icon: Gem,     tKey: 'category_jewelry' },
-  { id: 'fashion_clothing',   icon: Shirt,    tKey: 'category_fashion' },
-  { id: 'food_cafe',          icon: Coffee,   tKey: 'category_food' },
-  { id: 'marketplace_export', icon: Package,  tKey: 'category_marketplace' },
-  { id: 'custom',             icon: Wand2,    tKey: 'category_custom' },
+  { id: 'beauty_cosmetics',    icon: Sparkles, tKey: 'category_beauty' },
+  { id: 'jewelry_accessories', icon: Gem,      tKey: 'category_jewelry' },
+  { id: 'fashion_clothing',    icon: Shirt,    tKey: 'category_fashion' },
+  { id: 'food_cafe',           icon: Coffee,   tKey: 'category_food' },
+  { id: 'electronics_gadgets', icon: Cpu,      tKey: 'category_electronics' },
+  { id: 'home_decor',          icon: Home,     tKey: 'category_home_decor' },
+  { id: 'toys_children',       icon: Smile,    tKey: 'category_toys' },
+  { id: 'custom',              icon: Wand2,    tKey: 'category_custom' },
 ]
 
 export const DEFAULT_LOCALE = 'en' as const
@@ -393,6 +395,62 @@ export const SCENES: Scene[] = [
     thumbnailGradient: 'linear-gradient(135deg, #e8d4b8, #c8a888)',
     bestFor: 'Beauty, jewelry, small accessories',
   },
+
+  // ── New scenes (2026-06) ─────────────────────────────────────────────────────
+  {
+    id: 'acrylic_reflect',
+    group: 'lifestyle_surfaces',
+    name: 'Acrylic Reflect',
+    nameHY: 'Ակրիլային մակերես',
+    nameRU: 'Акриловая поверхность',
+    thumbnailGradient: 'linear-gradient(135deg, #f0f4f8, #dde8f0)',
+    bestFor: 'Perfume, serums, premium cosmetics',
+  },
+  {
+    id: 'mirror_acrylic',
+    group: 'lifestyle_surfaces',
+    name: 'Mirror Surface',
+    nameHY: 'Հայելային մակերես',
+    nameRU: 'Зеркальная поверхность',
+    thumbnailGradient: 'linear-gradient(135deg, #e8eef4, #c8d8e8)',
+    bestFor: 'Jewelry, rings, gemstones',
+  },
+  {
+    id: 'stone_texture',
+    group: 'lifestyle_surfaces',
+    name: 'Natural Stone',
+    nameHY: 'Բնական քար',
+    nameRU: 'Натуральный камень',
+    thumbnailGradient: 'linear-gradient(135deg, #c8c0b8, #a8a098)',
+    bestFor: 'Jewelry, artisan, food',
+  },
+  {
+    id: 'dark_stone',
+    group: 'lifestyle_surfaces',
+    name: 'Dark Stone',
+    nameHY: 'Մուգ քար',
+    nameRU: 'Тёмный сланец',
+    thumbnailGradient: 'linear-gradient(135deg, #3a3530, #201c18)',
+    bestFor: 'Gourmet food, chocolate, premium',
+  },
+  {
+    id: 'tech_desk_setup',
+    group: 'environment',
+    name: 'Tech Desk',
+    nameHY: 'Տեխ սեղան',
+    nameRU: 'Тех-стол',
+    thumbnailGradient: 'linear-gradient(135deg, #1a2030, #0a1020)',
+    bestFor: 'Electronics, gadgets, accessories',
+  },
+  {
+    id: 'styled_shelf',
+    group: 'environment',
+    name: 'Styled Shelf',
+    nameHY: 'Դարակ',
+    nameRU: 'Стилизованная полка',
+    thumbnailGradient: 'linear-gradient(135deg, #e8e0d4, #d4c8b8)',
+    bestFor: 'Home decor, candles, vases',
+  },
 ]
 
 // ─── Category → Default Scene IDs ─────────────────────────────────────────────
@@ -402,6 +460,7 @@ export const CATEGORY_SCENE_MAP: CategorySceneMap = {
   beauty_cosmetics: [
     'marble_luxury',
     'vanity_table',
+    'acrylic_reflect',
     'handheld_lifestyle',
     'bathroom_shelf',
     'apricot_warm',
@@ -411,13 +470,16 @@ export const CATEGORY_SCENE_MAP: CategorySceneMap = {
   ],
   jewelry_accessories: [
     'black_studio',
+    'mirror_acrylic',
     'velvet_dark',
     'marble_luxury',
     'silk_white',
     'handheld_lifestyle',
+    'gray_gradient',
     'soft_shadow_studio',
     'apricot_warm',
     'editorial_dark',
+    'stone_texture',
   ],
   fashion_clothing: [
     'light_wood',
@@ -425,27 +487,52 @@ export const CATEGORY_SCENE_MAP: CategorySceneMap = {
     'pure_white_studio',
     'cafe_table',
     'outdoor_garden',
+    'linen_fabric',
     'colored_pop',
-    'editorial_dark',
     'terrazzo',
   ],
   food_cafe: [
     'kitchen_counter',
     'dark_wood',
     'coffee_jezve',
+    'dark_stone',
     'cafe_table',
     'ingredients_flat_lay',
     'light_wood',
     'outdoor_garden',
     'summer_fresh',
   ],
-  marketplace_export: [
-    'wb_white_strict',
+  electronics_gadgets: [
+    'gray_gradient',
+    'tech_desk_setup',
+    'black_studio',
+    'pure_white_studio',
+    'office_desk',
+    'neon_glow',
+    'light_box',
+    'soft_shadow_studio',
+    'concrete_industrial',
+  ],
+  home_decor: [
+    'light_wood',
+    'styled_shelf',
+    'bed_pillows',
+    'marble_luxury',
+    'linen_fabric',
+    'outdoor_garden',
+    'soft_shadow_studio',
+    'terrazzo',
+    'dark_wood',
+  ],
+  toys_children: [
     'pure_white_studio',
     'soft_shadow_studio',
-    'gray_gradient',
+    'outdoor_garden',
+    'light_wood',
+    'spring_bloom',
+    'linen_fabric',
+    'colored_pop',
     'light_box',
-    'black_studio',
   ],
   custom: [], // empty = show all scenes with no filtering
 }
@@ -517,10 +604,23 @@ export const CATEGORY_CHIPS: Record<ProductCategory, RefinementChip[]> = {
     { id: 'food_cutlery',       group: 'category_specific', label: 'With cutlery',      labelHY: 'Գդալ-պատառաքաղ',labelRU: 'С посудой' },
     { id: 'food_top',           group: 'category_specific', label: 'Top-down flat lay', labelHY: 'Վերևից',         labelRU: 'Вид сверху' },
   ],
-  marketplace_export: [
-    { id: 'market_padding',     group: 'category_specific', label: '15% padding',       labelHY: '15% դատարկ',    labelRU: '15% отступ' },
-    { id: 'market_fill',        group: 'category_specific', label: 'Product fills 85%', labelHY: 'Լրացում 85%',   labelRU: 'Заполнение 85%' },
-    { id: 'market_noprops',     group: 'category_specific', label: 'No props',          labelHY: 'Առանց ռեկվիզիտ',labelRU: 'Без реквизита' },
+  electronics_gadgets: [
+    { id: 'elec_packshot',  group: 'category_specific', label: 'Clean packshot',   labelHY: 'Մաքուր կադր',      labelRU: 'Чистый пакшот' },
+    { id: 'elec_glow',      group: 'category_specific', label: 'LED glow',         labelHY: 'LED լույս',        labelRU: 'LED-свечение' },
+    { id: 'elec_cable',     group: 'category_specific', label: 'With cable',       labelHY: 'Մալուխով',         labelRU: 'С кабелем' },
+    { id: 'elec_dark_bg',   group: 'category_specific', label: 'Dark background',  labelHY: 'Մուգ ֆոն',        labelRU: 'Тёмный фон' },
+  ],
+  home_decor: [
+    { id: 'decor_plant',    group: 'category_specific', label: 'With plant',       labelHY: 'Բույսով',          labelRU: 'С растением' },
+    { id: 'decor_candle',   group: 'category_specific', label: 'With candle',      labelHY: 'Մոմով',            labelRU: 'Со свечой' },
+    { id: 'decor_flatlay',  group: 'category_specific', label: 'Flat lay',         labelHY: 'Հարթ կոմպոզ',     labelRU: 'Флэтлэй' },
+    { id: 'decor_natural',  group: 'category_specific', label: 'Natural elements', labelHY: 'Բնական',           labelRU: 'Натуральные элементы' },
+  ],
+  toys_children: [
+    { id: 'toy_flatlay',    group: 'category_specific', label: 'Flat lay',         labelHY: 'Հարթ կոմպոզ',     labelRU: 'Флэтлэй' },
+    { id: 'toy_pastel',     group: 'category_specific', label: 'Pastel tones',     labelHY: 'Փափուկ գույներ',  labelRU: 'Пастельные тона' },
+    { id: 'toy_colorful',   group: 'category_specific', label: 'Colorful',         labelHY: 'Գունավոր',        labelRU: 'Яркий' },
+    { id: 'toy_white_bg',   group: 'category_specific', label: 'White background', labelHY: 'Սպիտակ ֆոն',     labelRU: 'Белый фон' },
   ],
   custom: [],
 }
