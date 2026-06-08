@@ -15,11 +15,11 @@ const SCENE_PROMPTS: Record<string, string> = {
 
   // Contact shadow is the single most useful "ground the product" cue.
   soft_shadow_studio:
-    'Replace the background with a clean white studio surface and add a soft natural contact shadow directly beneath the product. Light with diffused overhead studio softbox lighting.',
+    'Replace the background with a clean white studio surface and add a soft natural contact shadow directly beneath the product. Light with diffused overhead studio softbox lighting. Place the product on a clean white matte surface.',
 
   // Gradient backdrop — explicit fade direction reduces banding.
   gray_gradient:
-    'Replace the background with a smooth light-gray seamless studio gradient that fades slightly darker near the bottom. Add a subtle soft drop shadow beneath the product.',
+    'Replace the background with a smooth light-gray seamless studio gradient that fades slightly darker near the bottom. Add a subtle soft drop shadow beneath the product. Place the product on the gradient surface. Add a subtle soft drop shadow beneath it, as in professional packshot photography.',
 
   // Lightbox = shadowless wraparound. "Catalog photography" anchors style.
   light_box:
@@ -27,7 +27,7 @@ const SCENE_PROMPTS: Record<string, string> = {
 
   // Dark luxury — rim light is the highest-value cue for editorial moods.
   black_studio:
-    'Replace the background with a deep matte-black studio backdrop. Add a single soft rim light grazing the product edges for a dramatic luxury editorial mood.',
+    'Replace the background with a deep matte-black studio backdrop as used in luxury perfume advertising. Add a single soft rim light grazing the product edges for a dramatic luxury editorial mood. Add a faint reflected highlight on the dark surface directly beneath the product.',
 
   // ─── Lifestyle Surfaces ────────────────────────────────────────────────────
   // "Replace the surface beneath the product" is more precise than "place on" —
@@ -36,25 +36,25 @@ const SCENE_PROMPTS: Record<string, string> = {
     'Replace the surface beneath the product with polished white marble featuring delicate gray veining. Light with soft natural daylight from the upper left. Softly blur the background with a shallow depth of field.',
 
   dark_wood:
-    'Replace the surface beneath the product with a dark walnut wood tabletop showing visible natural grain. Light the scene with warm ambient indoor lighting for a cozy editorial atmosphere.',
+    'Replace the surface beneath the product with a dark walnut wood tabletop showing visible natural grain. Light the scene with warm ambient indoor lighting for a warm editorial atmosphere. Replace the background behind the product with a softly blurred dark interior wall.',
 
   light_wood:
-    'Replace the surface beneath the product with a light oak wooden tabletop showing visible natural grain. Light the scene with bright soft morning daylight in a Scandinavian minimal aesthetic.',
+    'Replace the surface beneath the product with a light oak wooden tabletop showing visible natural grain. Light the scene with bright soft morning daylight in a Scandinavian minimal aesthetic. Replace the background behind the product with a softly blurred bright white or cream wall.',
 
   concrete_industrial:
-    'Replace the surface beneath the product with raw textured concrete showing subtle imperfections. Light with a single directional side light for an urban industrial editorial feel.',
+    'Replace the surface beneath the product with raw textured concrete showing subtle imperfections. Light with a single directional side light for an urban industrial editorial feel. Replace the background behind the product with a softly blurred concrete or raw brick wall.',
 
   linen_fabric:
     'Replace the surface beneath the product with softly draped natural linen fabric, including gentle folds and wrinkles. Light with soft diffused daylight for an organic lifestyle aesthetic.',
 
   velvet_dark:
-    'Replace the surface beneath the product with deep dark velvet that softly absorbs light. Add a single rim light grazing the product edges, surrounded by rich shadow for a luxury editorial mood.',
+    'Replace the surface beneath the product with deep dark velvet that softly absorbs light, with visible short pile texture. Add a single rim light grazing the product edges, surrounded by rich shadow for a luxury editorial mood.',
 
   silk_white:
-    'Replace the surface beneath the product with smooth white silk fabric featuring elegant gentle folds. Light with soft diffused light for a refined luxury feel.',
+    'Replace the surface beneath the product with smooth white silk fabric featuring elegant gentle folds. Light with soft diffused light for a refined luxury feel. Replace the background behind the product with a softly blurred neutral light gray.',
 
   terrazzo:
-    'Replace the surface beneath the product with a pastel-toned terrazzo composite featuring scattered colored chips. Light with bright even modern lighting for a clean contemporary aesthetic.',
+    'Replace the surface beneath the product with polished terrazzo stone surface with scattered aggregate chips in muted pastels — cream, dusty pink, sage, and soft blue — with a visible glossy polish finish. Light with bright even modern lighting for a clean contemporary aesthetic.',
 
   // ─── Environment ───────────────────────────────────────────────────────────
   // Each environment names the foreground surface AND a softly blurred
@@ -67,19 +67,19 @@ const SCENE_PROMPTS: Record<string, string> = {
     'Replace the surface beneath the product with a clean white bathroom shelf. Add a softly blurred white tile wall behind it and a folded towel out of focus to one side. Use soft natural light coming through a nearby window.',
 
   kitchen_counter:
-    'Replace the surface beneath the product with a clean light kitchen countertop. Add fresh herbs and a few cooking ingredients softly blurred in the background. Light the scene with bright morning daylight.',
+    'Replace the surface beneath the product with a clean light kitchen countertop. Add contextually appropriate props softly blurred in the background. Light the scene with bright morning daylight.',
 
   vanity_table:
-    'Replace the surface beneath the product with a wooden makeup vanity. Add a softly blurred mirror behind it. Light the scene with warm soft beauty lighting from vanity bulbs.',
+    'Replace the surface beneath the product with a wooden makeup vanity. Add a softly blurred mirror behind it. Light the scene with warm soft beauty lighting from vanity bulbs surrounding the mirror, casting a diffused beauty-studio glow.',
 
   cafe_table:
     'Replace the surface beneath the product with a small wooden cafe table. Keep a warm cafe interior softly blurred behind it. Light the scene with warm ambient indoor lighting and gentle window-light highlights.',
 
   outdoor_garden:
-    'Replace the surface beneath the product with a wooden garden table. Add green plants and leaves softly blurred behind it. Light the scene with bright natural sunlight for a fresh outdoor feel.',
+    'Replace the surface beneath the product with a wooden garden terrace table. Add lush green foliage and a softly blurred garden terrace behind the product. Light the scene with bright natural sunlight for a fresh outdoor feel.',
 
   office_desk:
-    'Replace the surface beneath the product with a clean modern minimal office desk. Add a softly blurred laptop and notebook behind it. Light with bright soft professional daylight.',
+    'Replace the surface beneath the product with a clean modern minimal office desk. Add softly blurred minimal office elements in the background. Light with bright soft professional daylight.',
 
   bed_pillows:
     'Replace the surface beneath the product with crisp white bedding. Add softly arranged pillows around it. Light the scene with soft morning sunlight filtering through sheer curtains for a cozy lifestyle feel.',
@@ -97,36 +97,36 @@ const SCENE_PROMPTS: Record<string, string> = {
     'Surround the product with fresh spring flowers and soft cherry blossom petals in pastel pinks and whites. Light with bright airy daylight for a seasonal spring feel.',
 
   autumn_warm:
-    'Replace the surface beneath the product with a wooden surface scattered with autumn leaves in red, orange, and gold tones. Light with warm golden afternoon sunlight for a cozy autumn atmosphere.',
+    'Replace the surface beneath the product with a dark wood surface scattered with autumn leaves in red, orange, and gold tones. Surround the product with additional softly blurred falling leaves. Light with warm golden afternoon sunlight for a cozy autumn atmosphere.',
 
   summer_fresh:
-    'Replace the surface beneath the product with a bright clean surface. Arrange ice cubes, fresh water droplets, and citrus slices around it. Light with bright crisp daylight for a vibrant summer feel.',
+    'Replace the surface beneath the product with a cool white marble or light tile surface. Arrange ice cubes, fresh water droplets, and citrus slices around it. Light with bright crisp daylight for a vibrant summer feel.',
 
-  // Marketing scene — explicit empty area for the post-composite text overlay.
+  // Marketing scene — text composited post-generation via sharp, not via Kontext.
   sale_promo:
-    'Replace the background with a vibrant solid colored backdrop. Light with bold dynamic studio lighting and leave a clean empty area on the left side of the frame for promotional text overlay.',
+    'Replace the background with a bold deep red seamless studio backdrop. Light the product with crisp even commercial studio softbox lighting. Keep the composition centered.',
 
   // ─── Creative ──────────────────────────────────────────────────────────────
   // "Make the product appear to float" — instructional framing for the effect.
   floating_levitation:
-    'Make the product appear to float in mid-air against a clean soft light-gray gradient background. Add a soft dramatic contact shadow on the surface directly beneath it.',
+    'Make the product appear to float in mid-air against a clean soft light-gray gradient background. Add a soft dramatic contact shadow on the surface directly beneath it. Keep the product in its exact same position, scale, and orientation. Only remove the surface beneath it and replace the background.',
 
   // High-speed water — "frozen motion" + "commercial beverage photography"
   // gives Kontext the strongest reference style.
   splash_water:
-    'Surround the product with dynamic frozen splashes of clear water suspended in mid-air. Use crisp high-speed studio lighting that captures the water motion as in commercial beverage photography.',
+    'Surround the product with dynamic frozen splashes of clear water suspended in mid-air. Use crisp high-speed studio lighting that captures the water motion as in commercial beverage photography. Keep the product itself completely dry and visually unchanged — the water only surrounds it.',
 
   ingredients_flat_lay:
     'Compose the scene as a flat lay shot from directly overhead, with the product centered and surrounded by its natural ingredients. Use soft even top-down lighting.',
 
   neon_glow:
-    'Replace the surface beneath the product with a dark surface. Cast vivid neon light reflections in pink, cyan, and purple across the background. Use a moody cyberpunk editorial aesthetic.',
+    'Replace the surface beneath the product with a dark surface. Cast vivid neon light reflections in pink, cyan, and purple across the background. Use a moody cyberpunk editorial aesthetic. Cast the neon reflections only on the background and the surface around the product, not on the product itself.',
 
   minimal_pastel:
-    'Replace the background with a soft single-tone pastel seamless backdrop. Light with even soft minimal studio lighting for a clean modern composition.',
+    'Replace the background with a soft warm cream seamless studio backdrop. Light with even soft minimal studio lighting for a clean modern composition.',
 
   editorial_dark:
-    'Transform the scene into a moody dark editorial setting with deep shadows and a single dramatic key light from the side. Use a high-contrast luxury brand aesthetic.',
+    'Replace the background with a deep dark editorial setting with rich shadows. Add a single hard key light from the upper left casting dramatic deep shadows across the scene. Use a high-contrast luxury brand aesthetic.',
 
   // ─── Additions (2026-06) ───────────────────────────────────────────────────
   // Backed by competitor research (Pebblely top templates, Photoroom
@@ -135,24 +135,44 @@ const SCENE_PROMPTS: Record<string, string> = {
 
   // Solid vibrant color backdrop — Pebblely's most-used template type.
   colored_pop:
-    'Replace the background with a vibrant solid bright color such as deep coral, sage green, or sky blue. Light the product with crisp even studio softbox lighting for a bold modern aesthetic.',
+    'Replace the background with a vibrant solid bright color in deep coral-red. Light the product with crisp even studio softbox lighting for a bold modern aesthetic.',
 
   // Armenian apricot — national symbolic color (Pantone 1235 family).
   // Flatters skincare, jewelry, and warm-toned product palettes.
   apricot_warm:
-    'Replace the background with a warm seamless apricot-peach gradient that fades slightly darker near the bottom. Light with soft diffused warm studio lighting.',
+    'Replace the background with a warm seamless apricot-peach gradient that fades slightly darker near the bottom. Light with soft diffused warm studio lighting. Place the product on the apricot surface with a very soft warm contact shadow beneath it.',
 
   // Armenian copper jezve coffee context — culturally specific cafe scene.
   coffee_jezve:
-    'Replace the surface beneath the product with a small wooden cafe table. Add a small Armenian copper coffee jezve and a tiny cup of black coffee beside the product, with a warm cafe interior softly blurred behind. Light the scene with warm ambient indoor lighting.',
+    'Replace the surface beneath the product with a small wooden cafe table. Add a small Armenian copper coffee jezve and a tiny cup of black coffee beside the product, with a warm cafe interior softly blurred behind. Light the scene with warm ambient indoor lighting. Keep the jezve and coffee cup visually distinct and clearly separate from the product being photographed.',
 
-  // Wildberries-compliant packshot: neutral white, 15% padding, 70% fill.
+  // Wildberries-compliant packshot: pure white (RGB 255,255,255), 15% padding, 85% fill.
   wb_white_strict:
-    'Replace the background with a clean neutral white seamless backdrop. Light with even shadowless commercial softbox lighting. Leave approximately 15 percent empty padding around the product. Compose the product to fill approximately 70 percent of the frame, perfectly centered.',
+    'Replace the background with a pure white seamless backdrop (RGB 255,255,255). Light with even shadowless commercial softbox lighting. Leave approximately 15 percent empty padding around the product. Compose the product to fill approximately 85 percent of the frame, perfectly centered.',
 
-  // Best-converting lifestyle framing without a full model — "in hand".
+  // Lifestyle hand framing — product stays locked, hand enters from bottom edge.
   handheld_lifestyle:
-    "Show the product as if gently held in a person’s hand, with only the hand visible and the rest of the frame softly blurred. Light with soft natural daylight from the side. Use a shallow depth of field for a candid lifestyle feel.",
+    'Replace the background and surface with a softly blurred warm lifestyle setting. Keep the product in exactly its current position, scale, and orientation. Add a partially visible human hand entering the lower edge of the frame as if gently holding the product from below — the hand must not obscure or alter the product itself.',
+
+  // ─── New scenes (2026-06) ───────────────────────────────────────────────────
+
+  acrylic_reflect:
+    'Replace the surface beneath the product with a polished clear acrylic or glass sheet. Add a clean subtle mirror reflection of the product on the surface directly beneath it. Light with soft diffused studio lighting to enhance the reflection without glare. Replace the background with a soft neutral light gray.',
+
+  mirror_acrylic:
+    'Replace the surface beneath the product with a polished white acrylic mirror surface. Add a clean symmetrical reflection of the product below it. Light with soft even diffused studio lighting that enhances the reflection and adds depth. Replace the background with a clean neutral white or pale gray.',
+
+  stone_texture:
+    'Replace the surface beneath the product with a natural stone or slate surface showing visible texture and grain. Light with cool soft directional side light for a refined organic feel. Replace the background behind the product with a softly blurred neutral stone-toned wall.',
+
+  dark_stone:
+    'Replace the surface beneath the product with a dark slate or black stone surface showing natural texture. Light with a single directional side light source creating rich deep shadows for a premium moody editorial aesthetic. Replace the background behind the product with a softly blurred very dark wall.',
+
+  tech_desk_setup:
+    'Replace the surface beneath the product with a clean minimal dark desk surface. Add softly blurred cool-toned ambient elements in the background — suggesting a modern tech workspace. Light with crisp cool professional daylight from above and a subtle blue ambient fill from the side. Replace the background with a deep dark blue-gray.',
+
+  styled_shelf:
+    'Replace the surface beneath the product with a clean light wood or white shelf surface. Add a softly blurred neutral wall behind it with a small out-of-focus green plant to one side. Light with soft warm natural window light from the left. The overall scene should feel like a curated home interior styled corner.',
 }
 
 // ─── Chip Prompt Fragments ─────────────────────────────────────────────────────
@@ -237,6 +257,24 @@ const CHIP_PROMPTS: Record<string, string> = {
   market_padding:      'Leave approximately 15 percent empty padding around the product to meet marketplace requirements.',
   market_fill:         'Compose the product to fill approximately 85 percent of the frame, perfectly centered.',
   market_noprops:      'Keep the background completely clean with no props or decorative elements.',
+
+  // Electronics chips
+  elec_packshot:  'Compose as a clean commercial packshot with even shadowless lighting.',
+  elec_glow:      'Add a subtle LED blue or green light glow reflecting on the surface around the product.',
+  elec_cable:     'Place a neatly coiled matching cable beside the product.',
+  elec_dark_bg:   'Use a deep dark background to make the product stand out with high contrast.',
+
+  // Home decor chips
+  decor_plant:    'Place a small green potted plant beside the product out of focus.',
+  decor_candle:   'Place an elegant unlit candle beside the product as a styling accent.',
+  decor_flatlay:  'Arrange the composition as a flat lay viewed from slightly above.',
+  decor_natural:  'Add natural organic elements — dried branches, stones, or raw linen — around the product.',
+
+  // Toys & children chips
+  toy_flatlay:    'Arrange the composition as a flat lay with the product centered from above.',
+  toy_pastel:     'Use soft pastel tones throughout the background and surface.',
+  toy_colorful:   'Use a bright vibrant background color that complements the product.',
+  toy_white_bg:   'Use a clean pure white background suitable for marketplace listings.',
 }
 
 // Chip ID → group. Server-side mapping so we do not need to ship the FE
@@ -268,6 +306,15 @@ const CHIP_GROUPS: Record<string, 'lighting' | 'angle' | 'mood' | 'accent' | 'ca
   food_cutlery: 'category', food_top: 'category',
 
   market_padding: 'category', market_fill: 'category', market_noprops: 'category',
+
+  elec_packshot: 'category', elec_glow: 'category',
+  elec_cable: 'category', elec_dark_bg: 'category',
+
+  decor_plant: 'category', decor_candle: 'category',
+  decor_flatlay: 'category', decor_natural: 'category',
+
+  toy_flatlay: 'category', toy_pastel: 'category',
+  toy_colorful: 'category', toy_white_bg: 'category',
 }
 
 // ─── Product Preservation Constraint (trails the prompt) ──────────────────────
