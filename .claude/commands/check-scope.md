@@ -12,11 +12,12 @@ Verify whether a feature or task is in V1 scope before implementing it.
 - Photo upload (JPEG, PNG, WEBP, max 20MB) — anonymous allowed, no OTP needed
 - Image validation (type, size, dimensions, content moderation)
 - 2 free anonymous watermarked generations before OTP wall
-- 6 product category cards (Beauty, Jewelry, Fashion, Food, Marketplace, Custom)
+- 8 product category cards (Beauty, Jewelry, Fashion, Food, Electronics, Home Decor, Toys, Custom)
+- Marketplace compliance mode (WB/Ozon toggle) — replaces marketplace_export category
 - Phone OR email OTP registration — required before HD download (NOT before generation)
 - 2 free HD download credits granted on OTP verification
-- 30-scene library across 5 groups (Studio, Lifestyle Surfaces, Environment, Seasonal, Creative)
-- Category → scene filtering (6-8 relevant scenes first, "Show all" expands to 30)
+- 36-scene library across 5 groups (Studio, Lifestyle Surfaces, Environment, Seasonal, Creative)
+- Category → scene filtering (6-8 relevant scenes first, "Show all" expands to 36)
 - 4 universal refinement chip groups (Lighting, Angle, Mood, Format/aspect ratio)
 - Category-specific refinement chips
 - Aspect ratio picker BEFORE generation (1:1, 4:5, 3:4, 9:16, 16:9)
