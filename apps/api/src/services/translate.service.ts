@@ -3,6 +3,7 @@ import {
   TranslateTextCommand,
 } from '@aws-sdk/client-translate'
 import { validateEnv } from '../config/env'
+import { logger } from '../lib/logger'
 
 const env = validateEnv()
 
@@ -26,7 +27,7 @@ export async function translateToEnglish(text: string): Promise<string> {
   if (!text.trim()) return text
 
   if (env.AWS_TRANSLATE_ENABLED !== 'true') {
-    console.debug('[Translate] disabled — returning original text')
+    logger.debug('[translate] disabled — returning original text')
     return text
   }
 
@@ -48,15 +49,12 @@ export async function translateToEnglish(text: string): Promise<string> {
 
     if (!translated) return text
 
-    console.debug('[Translate] translated', {
-      original: text.slice(0, 30),
-      translated: translated.slice(0, 30),
-    })
+    logger.debug({ original: text.slice(0, 30), translated: translated.slice(0, 30) }, '[translate] translated')
 
     return translated
   } catch (err) {
     // Fail open — generation quality may be slightly lower but nothing breaks
-    console.error('[Translate] failed — using original text', err)
+    logger.error({ err }, '[translate] failed — using original text')
     return text
   }
 }
