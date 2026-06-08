@@ -20,7 +20,7 @@ const PHASE_PROGRESS: Record<WorkerPhase, number> = {
 }
 
 const POLL_FAILURE_OFFLINE_THRESHOLD = 3
-const DONE_ANIMATION_MS = 300
+const DONE_ANIMATION_MS = 50
 
 function isWorkerPhase(v: string | undefined): v is WorkerPhase {
   return v === 'queued' || v === 'processing' || v === 'generating' || v === 'finalizing' || v === 'done'
@@ -83,6 +83,7 @@ export function ProcessingScreen() {
           const target = PHASE_PROGRESS[key]
           setProgressFraction((prev) => Math.max(prev, target))
           setPhase((prev) => (prev === key ? prev : key))
+          if (key === 'generating') router.prefetch('/results')
         }
 
         if (status === 'done') {
@@ -91,6 +92,7 @@ export function ProcessingScreen() {
           setProgressFraction(1)
           setIsDone(true)
           sessionStorage.removeItem('leve_job_dispatched_at')
+          sessionStorage.setItem('leve_job_done', '1')
           setTimeout(() => router.push('/results'), DONE_ANIMATION_MS)
           return
         }

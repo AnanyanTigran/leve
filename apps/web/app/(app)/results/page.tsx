@@ -117,6 +117,26 @@ export default function ResultsPage() {
     setUploadPreview(hasValidUpload ? storedPreview : null)
     setJobId(id)
     setGuarded(true)
+
+    const alreadyDone = sessionStorage.getItem('leve_job_done') === '1'
+    if (alreadyDone) {
+      sessionStorage.removeItem('leve_job_done')
+      setJobStatus('done')
+      const ctl = new AbortController()
+      const timeoutId = setTimeout(() => ctl.abort(), PREVIEW_URL_TIMEOUT_MS)
+      fetchPreviewUrlWithTimeout(id, ctl.signal)
+        .then(urlData => {
+          if (urlData.success && urlData.data?.previewUrls?.[0]) {
+            setGeneratedImageUrl(urlData.data.previewUrls[0])
+            setPreviewUrlError(false)
+          } else {
+            setPreviewUrlError(true)
+          }
+        })
+        .catch(() => setPreviewUrlError(true))
+        .finally(() => clearTimeout(timeoutId))
+      return () => ctl.abort()
+    }
   }, [router])
 
   // Detect return from payment redirect and open paywall in processing state
@@ -495,7 +515,7 @@ export default function ResultsPage() {
           <div className="relative">
             <BeforeAfterSlider
               beforeSrc={previousImageUrl ?? uploadPreview}
-              afterSrc={generatedImageUrl}
+              afterSrc={generatedImageUrl ?? uploadPreview}
               aspectRatio={sliderAspectRatio}
             />
             {/* Edit phase overlay — visible during editing, pointer-events none
