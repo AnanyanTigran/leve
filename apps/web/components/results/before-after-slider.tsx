@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { AspectRatio } from '@leve/types'
@@ -22,6 +22,28 @@ export function BeforeAfterSlider({
   const [sliderPosition, setSliderPosition] = useState(30)
   const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Crossfade state: currentAfterSrc is visible, incomingAfterSrc loads silently
+  const [currentAfterSrc, setCurrentAfterSrc] = useState<string | null>(afterSrc ?? null)
+  const [incomingAfterSrc, setIncomingAfterSrc] = useState<string | null>(null)
+  const [isCrossfading, setIsCrossfading] = useState(false)
+  const currentAfterSrcRef = useRef<string | null>(afterSrc ?? null)
+  const crossfadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!afterSrc) return
+    if (afterSrc === currentAfterSrcRef.current) return
+    if (!currentAfterSrcRef.current) {
+      currentAfterSrcRef.current = afterSrc
+      setCurrentAfterSrc(afterSrc)
+      return
+    }
+    setIncomingAfterSrc(afterSrc)
+  }, [afterSrc])
+
+  useEffect(() => {
+    return () => { if (crossfadeTimerRef.current) clearTimeout(crossfadeTimerRef.current) }
+  }, [])
 
   const [W, H] = aspectRatio.split(':').map(Number)
 
@@ -117,16 +139,38 @@ export function BeforeAfterSlider({
         className="absolute inset-0 bg-bg-elevated"
         style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
       >
-        {afterSrc ? (
+        {currentAfterSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={afterSrc}
+            src={currentAfterSrc}
             alt=""
             draggable={false}
             className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
+            style={{ opacity: isCrossfading ? 0 : 1, transition: 'opacity 450ms ease-in-out' }}
           />
         ) : (
           <div className="absolute inset-0 bg-bg-elevated animate-pulse" />
+        )}
+        {incomingAfterSrc && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={incomingAfterSrc}
+            alt=""
+            draggable={false}
+            onLoad={() => {
+              setIsCrossfading(true)
+              const incoming = incomingAfterSrc
+              crossfadeTimerRef.current = setTimeout(() => {
+                currentAfterSrcRef.current = incoming
+                setCurrentAfterSrc(incoming)
+                setIncomingAfterSrc(null)
+                setIsCrossfading(false)
+                crossfadeTimerRef.current = null
+              }, 450)
+            }}
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
+            style={{ opacity: isCrossfading ? 1 : 0, transition: 'opacity 450ms ease-in-out' }}
+          />
         )}
         <span
           className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none pointer-events-none"
