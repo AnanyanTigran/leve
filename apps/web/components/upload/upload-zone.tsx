@@ -96,6 +96,7 @@ export function UploadZone() {
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isRetrying, setIsRetrying] = useState(false)
 
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(() => {
     if (typeof window === 'undefined') return null
@@ -160,7 +161,9 @@ export function UploadZone() {
   }, [fileState])
 
   const handleContinue = useCallback(async () => {
-    if (!fileState || !selectedCategory) return
+    if (!fileState || !selectedCategory || isUploading) return
+    setIsUploading(true)
+    setError(null)
 
     const existingJobId = sessionStorage.getItem('leve_job_id')
     const existingPreview = sessionStorage.getItem('leve_upload_preview')
@@ -176,9 +179,7 @@ export function UploadZone() {
       sessionStorage.removeItem('leve_aspect_ratio')
     }
 
-    setIsUploading(true)
-    setError(null)
-
+    let navigating = false
     try {
       // Generate compressed preview for the scene selection page. HEIC/TIFF
       // can't decode in canvas — server transcodes to JPEG anyway, so we just
@@ -201,7 +202,9 @@ export function UploadZone() {
       }).catch(() => null)
 
       if (!res || !res.ok) {
+        setIsRetrying(true)
         await new Promise<void>((resolve) => setTimeout(resolve, 1000))
+        setIsRetrying(false)
         res = await apiFetch('/api/upload', {
           method: 'POST',
           body: formData,
@@ -256,12 +259,14 @@ export function UploadZone() {
       }
 
       router.push('/templates')
+      navigating = true
     } catch {
       setError(t('error_upload_failed'))
     } finally {
-      setIsUploading(false)
+      setIsRetrying(false)
+      if (!navigating) setIsUploading(false)
     }
-  }, [fileState, selectedCategory, router, t])
+  }, [fileState, selectedCategory, isUploading, router, t])
 
   const categoryPrompt = t('category_prompt')
 
@@ -433,7 +438,7 @@ export function UploadZone() {
             {isUploading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                {tCommon('loading')}
+                {isRetrying ? tCommon('retrying') : tCommon('loading')}
               </div>
             ) : (
               tCommon('continue')

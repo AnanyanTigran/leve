@@ -6,7 +6,8 @@
     "skip": "Skip for now",
     "cancel": "Cancel",
     "done": "Done",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "retrying": "Retrying..."
   },
   "user_menu": {
     "open_menu": "Open account menu",
