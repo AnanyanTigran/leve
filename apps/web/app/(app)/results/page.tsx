@@ -16,6 +16,7 @@ import { apiFetch } from '@/lib/api-client'
 import type { AspectRatio } from '@leve/types'
 
 type JobStatus = 'queued' | 'processing' | 'done' | 'failed' | 'credit_refunded' | null
+type EditPhase = 'idle' | 'queued' | 'processing' | 'finalizing' | 'done'
 
 // Stop polling silently in the background after this many consecutive failures —
 // surface a "Reconnecting…" hint to the user instead.
@@ -58,7 +59,7 @@ export default function ResultsPage() {
 
   // Edit flow state
   const [editPrompt, setEditPrompt] = useState('')
-  const [isEditing, setIsEditing] = useState(false)
+  const [editPhase, setEditPhase] = useState<EditPhase>('idle')
   const [editError, setEditError] = useState(false)
   const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null)
 
@@ -75,8 +76,9 @@ export default function ResultsPage() {
   // directly from the sticky CTA instead of being routed through the paywall.
   const hasCredits = session !== null && session.creditsRemaining > 0
 
-  // Refs so the polling closure reads current edit state without being in its dep array
-  const editStateRef = useRef({ isEditing: false, previousImageUrl: null as string | null })
+  // Refs so polling closures read current edit state without stale closure issues
+  const editPhaseRef = useRef<EditPhase>('idle')
+  const previousImageUrlRef = useRef<string | null>(null)
 
   // Text overlay (live CSS preview + persisted server-side at HD download time)
   const [overlay, setOverlay] = useState<OverlayState>({ template: null, text: '', position: 'bottom' })
@@ -165,13 +167,13 @@ export default function ResultsPage() {
       try {
         const res = await apiFetch(`/api/generate/status/${jobId}`)
         if (res.status === 404) {
-          if (pollRef.current) clearInterval(pollRef.current)
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
           sessionStorage.removeItem('leve_job_id')
           router.replace('/')
           return
         }
         if (res.status === 401 || res.status === 403) {
-          if (pollRef.current) clearInterval(pollRef.current)
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
           router.replace('/register')
           return
         }
@@ -182,10 +184,24 @@ export default function ResultsPage() {
         pollFailuresRef.current = 0
         if (isReconnecting) setIsReconnecting(false)
 
-        setJobStatus(data.data.status)
+        const status: JobStatus = data.data.status
+        setJobStatus(status)
 
-        if (data.data.status === 'done') {
-          if (pollRef.current) clearInterval(pollRef.current)
+        // Advance edit phase when the job transitions from queued → processing
+        if (editPhaseRef.current === 'queued' && status === 'processing') {
+          editPhaseRef.current = 'processing'
+          setEditPhase('processing')
+        }
+
+        if (status === 'done') {
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+
+          const isEditMode = editPhaseRef.current !== 'idle'
+          if (isEditMode) {
+            editPhaseRef.current = 'finalizing'
+            setEditPhase('finalizing')
+          }
+
           const ctl = new AbortController()
           const timeoutId = setTimeout(() => ctl.abort(), PREVIEW_URL_TIMEOUT_MS)
           try {
@@ -201,11 +217,22 @@ export default function ResultsPage() {
           } finally {
             clearTimeout(timeoutId)
           }
-          // Snapshot the last successful selection so the templates page can
-          // offer a "Use my last setup" quick action on the next upload.
-          // Skipped for iterative edits — the iterative prompt isn't useful
-          // to replay against a different upload.
-          if (!editStateRef.current.isEditing) {
+
+          if (isEditMode) {
+            editPhaseRef.current = 'done'
+            setEditPhase('done')
+            setTimeout(() => {
+              editPhaseRef.current = 'idle'
+              setEditPhase('idle')
+              setEditPrompt('')
+              setPreviousImageUrl(null)
+              previousImageUrlRef.current = null
+            }, 600)
+          } else {
+            // Snapshot the last successful selection so the templates page can
+            // offer a "Use my last setup" quick action on the next upload.
+            // Skipped for iterative edits — the iterative prompt isn't useful
+            // to replay against a different upload.
             const sceneId = sessionStorage.getItem('leve_scene_id')
             const chips = sessionStorage.getItem('leve_selected_chips')
             const ratio = sessionStorage.getItem('leve_aspect_ratio')
@@ -215,28 +242,17 @@ export default function ResultsPage() {
             if (ratio)   sessionStorage.setItem('leve_last_aspect_ratio', ratio)
             if (custom !== null) sessionStorage.setItem('leve_last_custom_text', custom)
           }
-          if (editStateRef.current.isEditing) {
-            setEditPrompt('')
-            setIsEditing(false)
-            editStateRef.current.isEditing = false
-            // Clear the loading placeholder so beforeSrc falls back to
-            // uploadPreview (original product photo) rather than staying
-            // pinned to the prior generation after a successful edit.
-            setPreviousImageUrl(null)
-            editStateRef.current.previousImageUrl = null
-            void refreshSession()
-          }
         }
 
-        if (data.data.status === 'failed' || data.data.status === 'credit_refunded') {
-          if (pollRef.current) clearInterval(pollRef.current)
-          if (editStateRef.current.isEditing) {
-            setGeneratedImageUrl(editStateRef.current.previousImageUrl)
+        if (status === 'failed' || status === 'credit_refunded') {
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+          if (editPhaseRef.current !== 'idle') {
+            setGeneratedImageUrl(previousImageUrlRef.current)
             setPreviousImageUrl(null)
-            editStateRef.current.previousImageUrl = null
+            previousImageUrlRef.current = null
             setEditError(true)
-            setIsEditing(false)
-            editStateRef.current.isEditing = false
+            editPhaseRef.current = 'idle'
+            setEditPhase('idle')
           }
         }
       } catch {
@@ -250,15 +266,23 @@ export default function ResultsPage() {
 
     poll()
     pollRef.current = setInterval(poll, 2000)
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current)
+        pollRef.current = null
+      }
+    }
   }, [jobId, jobStatus, paywallInitialState, router, isReconnecting])
 
-  // When a job finishes (initial or after an edit), pull fresh session +
+  // When a job finishes (initial generation only), pull fresh session +
   // download-grant state. canEdit is derived from session.creditsRemaining /
   // anon budget, hasGrant gates the sticky download CTA.
+  // Edits reuse the original job's grant — skipping the re-fetch avoids a
+  // brief loading flicker on the download CTA after each iterative edit.
   useEffect(() => {
     if (jobStatus !== 'done' || !jobId) return
     void refreshSession()
+    if (editPhaseRef.current !== 'idle') return
     setHasGrant(null)
     const ctl = new AbortController()
     apiFetch(`/api/download/check?jobId=${jobId}`, { signal: ctl.signal })
@@ -366,7 +390,7 @@ export default function ResultsPage() {
   }
 
   async function handleEditSubmit() {
-    if (!editPrompt.trim() || !jobId || isEditing) return
+    if (!editPrompt.trim() || !jobId || editPhase !== 'idle') return
 
     const currentImage = generatedImageUrl
     const uploadKey = sessionStorage.getItem('leve_upload_key') ?? ''
@@ -375,12 +399,10 @@ export default function ResultsPage() {
     const aspectRatio = (sessionStorage.getItem('leve_aspect_ratio') ?? '1:1') as AspectRatio
 
     setEditError(false)
-    setIsEditing(true)
-    editStateRef.current.isEditing = true
+    editPhaseRef.current = 'queued'
+    setEditPhase('queued')
     setPreviousImageUrl(currentImage)
-    editStateRef.current.previousImageUrl = currentImage
-    setGeneratedImageUrl(null)
-    setJobStatus(null)
+    previousImageUrlRef.current = currentImage
 
     const result = await generate({
       uploadKey,
@@ -396,18 +418,19 @@ export default function ResultsPage() {
 
     if (!result) {
       // useGenerate sets its own error state; restore image and mark edit as failed
-      setGeneratedImageUrl(currentImage)
+      editPhaseRef.current = 'idle'
+      setEditPhase('idle')
       setPreviousImageUrl(null)
-      editStateRef.current.previousImageUrl = null
+      previousImageUrlRef.current = null
       setJobStatus('done')
-      setIsEditing(false)
-      editStateRef.current.isEditing = false
       setEditError(true)
       return
     }
 
+    // Set jobId first, then reset status — React 18 batches both; polling
+    // effect sees the correct new jobId when it re-fires.
     setJobId(result.jobId)
-    // polling effect will restart since jobId changed and jobStatus is null
+    setJobStatus(null)
   }
 
   if (!guarded) {
@@ -418,7 +441,7 @@ export default function ResultsPage() {
     )
   }
 
-  if (jobStatus === 'failed' && !editStateRef.current.isEditing) {
+  if (jobStatus === 'failed' && editPhaseRef.current === 'idle') {
     return (
       <div className="flex flex-col h-[100dvh] items-center justify-center bg-bg-base gap-4 px-6">
         <p className="text-text-primary text-[18px] font-semibold text-center">
@@ -474,6 +497,37 @@ export default function ResultsPage() {
               afterSrc={generatedImageUrl}
               aspectRatio={sliderAspectRatio}
             />
+            {/* Edit phase overlay — visible during editing, pointer-events none
+                so the slider handle remains interactive underneath. */}
+            {editPhase !== 'idle' && (
+              <div
+                className="absolute inset-x-0 bottom-0 pointer-events-none z-20 flex flex-col justify-end px-4 pb-4 pt-12"
+                style={{
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 60%, transparent 100%)',
+                  borderRadius: '0 0 12px 12px',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  {editPhase === 'done' ? (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+                      <path d="M3 8l3.5 3.5L13 4.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <div className="flex gap-[3px] items-center shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: '200ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: '400ms' }} />
+                    </div>
+                  )}
+                  <span className="text-white text-[13px] font-medium select-none">
+                    {editPhase === 'queued' && t('edit_phase_queued')}
+                    {editPhase === 'processing' && t('edit_phase_processing')}
+                    {editPhase === 'finalizing' && t('edit_phase_finalizing')}
+                    {editPhase === 'done' && t('edit_phase_done')}
+                  </span>
+                </div>
+              </div>
+            )}
             {/* Live text-overlay preview — purely CSS, no server roundtrip.
                 The HD download composites the same text deterministically. */}
             {overlay.template && overlay.text.trim().length > 0 && generatedImageUrl && (
@@ -530,7 +584,7 @@ export default function ResultsPage() {
                     onChange={e => setEditPrompt(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleEditSubmit() }}
                     placeholder={t('edit_placeholder')}
-                    disabled={isEditing}
+                    disabled={editPhase !== 'idle'}
                     className="w-full h-12 rounded-[10px] border border-border-default bg-bg-elevated px-3 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-strong disabled:opacity-50"
                   />
                   {editError && (
@@ -538,10 +592,15 @@ export default function ResultsPage() {
                   )}
                   <button
                     onClick={handleEditSubmit}
-                    disabled={isEditing || !editPrompt.trim()}
-                    className="btn-primary btn-full disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={editPhase !== 'idle' || !editPrompt.trim()}
+                    className="btn-primary btn-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    {isEditing ? t('edit_regenerating') : t('edit_submit')}
+                    {editPhase !== 'idle' ? (
+                      <>
+                        <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        <span>{t('edit_regenerating')}</span>
+                      </>
+                    ) : t('edit_submit')}
                   </button>
                 </>
               ) : (
