@@ -21,6 +21,8 @@ export default function PaymentCallbackPage() {
       return
     }
 
+    router.prefetch('/download/success')
+
     const poll = async (): Promise<boolean> => {
       try {
         const res = await apiFetch(`/api/payments/status/${orderId}`)
@@ -41,7 +43,7 @@ export default function PaymentCallbackPage() {
           sessionStorage.removeItem('leve_order_initiated_at')
           sessionStorage.removeItem('leve_payment_provider')
           setState('success')
-          setTimeout(() => router.push('/download/success'), 1500)
+          setTimeout(() => router.push('/download/success'), 600)
           return true
         }
 
