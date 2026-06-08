@@ -134,6 +134,32 @@ export default function SceneSelectionPage() {
         if (bestId) setAspectRatio(bestId)
       }
     }
+
+    // Restore scene/chips/customText/aspectRatio saved before the OTP redirect.
+    // The OTP sheet navigates away (router.push('/register')), unmounting this
+    // page; on return the payload here re-hydrates the user's prior selection.
+    const pendingGenerate = sessionStorage.getItem('leve_pending_generate')
+    if (pendingGenerate) {
+      try {
+        const p = JSON.parse(pendingGenerate) as {
+          sceneId?: string
+          chips?: unknown
+          customText?: unknown
+          aspectRatio?: string
+          category?: string
+        }
+        if (p.sceneId) {
+          const scene = getSceneById(p.sceneId)
+          if (scene) setSelectedScene(scene)
+        }
+        if (Array.isArray(p.chips)) setSelectedChips(p.chips.filter((c: unknown) => typeof c === 'string'))
+        if (typeof p.customText === 'string') setCustomText(p.customText)
+        if (p.aspectRatio) setAspectRatio(p.aspectRatio as AspectRatio)
+        sessionStorage.removeItem('leve_pending_generate')
+      } catch {
+        sessionStorage.removeItem('leve_pending_generate')
+      }
+    }
   }, [router])
 
   // Sync favoriteSceneId from the shared session once it lands.
@@ -264,6 +290,8 @@ export default function SceneSelectionPage() {
     })
 
     if (!result) return // error handled by useGenerate hook
+
+    sessionStorage.removeItem('leve_pending_generate')
 
     // Save scene to session for results/processing pages
     sessionStorage.setItem('leve_scene_id', selectedScene.id)

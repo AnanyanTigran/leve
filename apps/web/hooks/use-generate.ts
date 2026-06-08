@@ -61,6 +61,13 @@ export function useGenerate() {
         if (!res.ok) {
           // Map API error codes to typed errors
           if (res.status === 403 && data.errorCode === 'anon_limit_reached') {
+            sessionStorage.setItem('leve_pending_generate', JSON.stringify({
+              sceneId: params.sceneId,
+              chips: params.selectedChips,
+              customText: params.customText,
+              aspectRatio: params.aspectRatio,
+              category: params.category,
+            }))
             setError('otp_required')
             return null
           }
