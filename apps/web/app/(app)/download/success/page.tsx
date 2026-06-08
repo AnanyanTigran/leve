@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe } from 'lucide-react'
+import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe, Share2, Copy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 import { apiFetch } from '@/lib/api-client'
@@ -40,6 +40,9 @@ const PLATFORM_ORDER: ExportPlatform[] = [
   'list_am',
 ]
 
+type ShareState = 'idle' | 'loading' | 'success' | 'error'
+type CopyState = 'idle' | 'success'
+
 const ASPECT_RATIO_VALUES: Record<AspectRatio, number> = {
   '1:1': 1,
   '4:5': 4 / 5,
@@ -61,6 +64,11 @@ export default function DownloadSuccessPage() {
   const [previewTimedOut, setPreviewTimedOut] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [cropOpen, setCropOpen] = useState(false)
+  const [shareState, setShareState] = useState<ShareState>('idle')
+  const [copyState, setCopyState] = useState<CopyState>('idle')
+  const [supportsShare, setSupportsShare] = useState(false)
+  const [supportsClipboard, setSupportsClipboard] = useState(false)
+  const blobRef = useRef<Blob | null>(null)
   const { checked, isVerified } = useVerifiedGuard()
 
   const sourceAspectRatio = (() => {
@@ -99,6 +107,26 @@ export default function DownloadSuccessPage() {
     }, 10000)
     return () => clearTimeout(timer)
   }, [previewUrl])
+
+  // Detect share/clipboard capabilities after hydration to avoid SSR mismatch
+  useEffect(() => {
+    try {
+      const testFile = new File([], 'test.jpg', { type: 'image/jpeg' })
+      setSupportsShare(!!navigator.canShare && navigator.canShare({ files: [testFile] }))
+    } catch {
+      setSupportsShare(false)
+    }
+    setSupportsClipboard(!!navigator.clipboard)
+  }, [])
+
+  // Preload the image blob so the share call stays within the user-gesture window
+  useEffect(() => {
+    if (!previewUrl || !supportsShare) return
+    fetch(previewUrl)
+      .then((r) => r.blob())
+      .then((blob) => { blobRef.current = blob })
+      .catch(() => {})
+  }, [previewUrl, supportsShare])
 
   const primaryButtonLabel = selectedPlatform === 'original_hd'
     ? t('download_btn')
@@ -152,6 +180,42 @@ export default function DownloadSuccessPage() {
     } finally {
       if (blobUrl) URL.revokeObjectURL(blobUrl)
       setIsDownloading(false)
+    }
+  }
+
+  async function handleShare() {
+    if (!previewUrl) return
+    setShareState('loading')
+    try {
+      const blob: Blob = blobRef.current ?? await fetch(previewUrl).then((r) => r.blob())
+      blobRef.current = blob
+      const file = new File([blob], 'leve-studio.jpg', { type: 'image/jpeg' })
+      // Empty string title prevents iOS from sharing text instead of the image
+      await navigator.share({ files: [file], title: '' })
+      setShareState('success')
+      setTimeout(() => setShareState('idle'), 2000)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setShareState('idle')
+        return
+      }
+      setShareState('error')
+      setTimeout(() => setShareState('idle'), 2000)
+      // On any error except NotAllowedError, fall back to standard download
+      if (!(err instanceof Error && err.name === 'NotAllowedError')) {
+        void triggerDownload()
+      }
+    }
+  }
+
+  async function handleCopyLink() {
+    if (!previewUrl) return
+    try {
+      await navigator.clipboard.writeText(previewUrl)
+      setCopyState('success')
+      setTimeout(() => setCopyState('idle'), 2000)
+    } catch {
+      // Silently fail — clipboard permission denied
     }
   }
 
@@ -245,6 +309,33 @@ export default function DownloadSuccessPage() {
         </button>
         {downloadError && (
           <p className="text-[13px] text-[#DC2626] text-center mt-2">{downloadError}</p>
+        )}
+
+        {/* Share (mobile/tablet) or Copy link (desktop) — only when image is ready */}
+        {previewUrl && supportsShare && (
+          <button
+            onClick={() => void handleShare()}
+            disabled={shareState === 'loading'}
+            className={cn(
+              'btn-secondary btn-full h-12 text-[15px] mt-2 gap-2',
+              shareState === 'loading' && 'opacity-50 cursor-not-allowed',
+            )}
+          >
+            <Share2 className="w-[18px] h-[18px]" />
+            {shareState === 'idle' && t('share_btn')}
+            {shareState === 'loading' && t('share_loading')}
+            {shareState === 'success' && t('share_success')}
+            {shareState === 'error' && t('share_error')}
+          </button>
+        )}
+        {previewUrl && !supportsShare && supportsClipboard && (
+          <button
+            onClick={() => void handleCopyLink()}
+            className="btn-secondary btn-full h-12 text-[15px] mt-2 gap-2"
+          >
+            <Copy className="w-[18px] h-[18px]" />
+            {copyState === 'idle' ? t('copy_link') : t('copied')}
+          </button>
         )}
 
         {/* Platform picker */}

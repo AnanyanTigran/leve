@@ -258,7 +258,13 @@
     "download_failed": "Download failed — please try again",
     "image_not_loaded": "Image could not be loaded",
     "go_to_history": "Go to History",
-    "downloading": "Downloading..."
+    "downloading": "Downloading...",
+    "share_btn": "Share",
+    "share_loading": "Preparing...",
+    "share_success": "Shared ✓",
+    "share_error": "Share failed",
+    "copy_link": "Copy link",
+    "copied": "Copied!"
   },
   "refinement": {
     "refine_optional": "Refine (optional)",

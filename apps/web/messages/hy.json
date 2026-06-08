@@ -258,7 +258,13 @@
     "download_failed": "Ներբեռնումը ձախողվեց",
     "image_not_loaded": "Նկարը չբեռնվեց",
     "go_to_history": "Գնալ պատմություն",
-    "downloading": "Ներբեռնվում է..."
+    "downloading": "Ներբեռնվում է...",
+    "share_btn": "Կիսվել",
+    "share_loading": "Պատրաստվում է...",
+    "share_success": "Կիսված ✓",
+    "share_error": "Կիսվելը ձախողվեց",
+    "copy_link": "Պատճենել հղումը",
+    "copied": "Պատճենված!"
   },
   "refinement": {
     "refine_optional": "Հավելյալ կարգավորումներ",
