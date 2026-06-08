@@ -102,14 +102,16 @@ export default function ResultsPage() {
     if (!id) { router.replace('/'); return }
 
     const storedPreview = sessionStorage.getItem('leve_upload_preview')
-    const uploadSessionId = sessionStorage.getItem('leve_upload_session_id')
-    const jobUploadSessionId = sessionStorage.getItem('leve_job_upload_session_id')
-    const pairingValid = uploadSessionId === jobUploadSessionId
 
-    // Only show before/after when the upload and job are from the same flow.
-    // If mismatched (user uploaded a new image without regenerating), hide the
-    // stale upload preview so the before side is empty rather than misleading.
-    setUploadPreview(pairingValid ? storedPreview : null)
+    // Trust the preview when the upload key is present. Timestamp equality
+    // (uploadSessionId === jobUploadSessionId) caused false negatives: the
+    // ?? '' fallback in useGenerate produced '' when the ID was transiently
+    // null, and null === '' is false. Staleness is covered by the 2h TTL on
+    // the templates page; upload-zone clears the job ID on every new upload.
+    const hasValidUpload =
+      Boolean(sessionStorage.getItem('leve_upload_key')) &&
+      Boolean(storedPreview)
+    setUploadPreview(hasValidUpload ? storedPreview : null)
     setJobId(id)
     setGuarded(true)
   }, [router])
@@ -217,6 +219,11 @@ export default function ResultsPage() {
             setEditPrompt('')
             setIsEditing(false)
             editStateRef.current.isEditing = false
+            // Clear the loading placeholder so beforeSrc falls back to
+            // uploadPreview (original product photo) rather than staying
+            // pinned to the prior generation after a successful edit.
+            setPreviousImageUrl(null)
+            editStateRef.current.previousImageUrl = null
             void refreshSession()
           }
         }
@@ -321,8 +328,9 @@ export default function ResultsPage() {
       })
       const data = await res.json().catch(() => null)
       if (res.ok && data?.success) {
-        setHasGrant(true)
-        void refreshSession()
+        void refreshSession() // fire-and-forget — navigating immediately
+        router.push('/download/success')
+        return
       } else if (res.status === 402) {
         // Race: credit was spent elsewhere between render and click.
         void refreshSession()
