@@ -51,6 +51,7 @@ export default function ResultsPage() {
   // True while POST /api/download/spend-credit is in flight, so the sticky
   // CTA can show a loading state and ignore double clicks.
   const [isSpendingCredit, setIsSpendingCredit] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollFailuresRef = useRef(0)
 
@@ -342,7 +343,7 @@ export default function ResultsPage() {
   // Spends the credit server-side, creates a DownloadGrant, then refreshes
   // the local session + grant state so the CTA flips to "Download HD".
   async function handleSpendCredit() {
-    if (!jobId || isSpendingCredit) return
+    if (!jobId || isSpendingCredit || isNavigating) return
     setIsSpendingCredit(true)
     try {
       const res = await apiFetch('/api/download/spend-credit', {
@@ -352,7 +353,7 @@ export default function ResultsPage() {
       })
       const data = await res.json().catch(() => null)
       if (res.ok && data?.success) {
-        void refreshSession() // fire-and-forget — navigating immediately
+        setIsNavigating(true)
         router.push('/download/success')
         return
       } else if (res.status === 402) {
@@ -448,7 +449,7 @@ export default function ResultsPage() {
           {t('generation_failed')}
         </p>
         <p className="text-text-secondary text-[14px] text-center">{t('generation_failed_sub')}</p>
-        <button onClick={() => router.push('/templates')} className="btn-primary">
+        <button onClick={() => { setIsNavigating(true); router.push('/templates') }} className="btn-primary">
           {t('try_again')}
         </button>
       </div>
@@ -563,7 +564,7 @@ export default function ResultsPage() {
                 <p className="text-[12px] text-text-muted">{t('save_designs_sub')}</p>
               </div>
               <button
-                onClick={() => router.push('/register')}
+                onClick={() => { setIsNavigating(true); router.push('/register') }}
                 className="text-[12px] text-accent font-semibold shrink-0"
               >
                 {t('add_phone')}
@@ -619,14 +620,16 @@ export default function ResultsPage() {
           <div className="flex flex-col gap-2 pt-2">
             <button
               type="button"
-              onClick={() => router.push('/templates')}
+              onClick={() => { setIsNavigating(true); router.push('/templates') }}
+              disabled={isNavigating}
               className="btn-secondary btn-full"
             >
               {t('generate_another')}
             </button>
             <button
               type="button"
-              onClick={() => router.push('/')}
+              onClick={() => { setIsNavigating(true); router.push('/') }}
+              disabled={isNavigating}
               className="text-[13px] text-text-muted hover:text-text-secondary font-semibold py-2"
             >
               {t('upload_new_photo')}
@@ -645,7 +648,8 @@ export default function ResultsPage() {
               <div className="h-12 rounded-[12px] bg-bg-elevated animate-pulse" />
             ) : hasGrant ? (
               <button
-                onClick={() => router.push('/download/success')}
+                onClick={() => { setIsNavigating(true); router.push('/download/success') }}
+                disabled={isNavigating}
                 className="btn-primary btn-full h-12 text-[15px] font-semibold"
               >
                 {t('download_hd')}
@@ -653,7 +657,7 @@ export default function ResultsPage() {
             ) : hasCredits ? (
               <button
                 onClick={handleSpendCredit}
-                disabled={isSpendingCredit}
+                disabled={isSpendingCredit || isNavigating}
                 className="btn-primary btn-full h-12 text-[15px] font-semibold disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSpendingCredit ? (
