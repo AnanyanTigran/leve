@@ -200,29 +200,40 @@ export class UserService {
     })
   }
 
-  // Called when a generation job completes successfully.
+  // Called when a credit is spent on HD download. Uses GREATEST to floor at 0
+  // so concurrent spend-credit calls from multiple sessions can never push the
+  // DB value negative, even if the Redis pre-check was racing.
   static async recordGeneration(
     identifier: string,
     identifierType: 'phone' | 'email',
   ): Promise<void> {
     if (!identifier) return
 
-    const where = identifierType === 'phone'
-      ? { phone: identifier }
-      : { email: identifier }
-
-    await prisma.user.update({
-      where,
-      data: {
-        creditsRemaining: { decrement: 1 },
-        totalCreditsUsed: { increment: 1 },
-        generationCount: { increment: 1 },
-      },
-    }).catch((err: unknown) => {
+    try {
+      if (identifierType === 'phone') {
+        await prisma.$executeRaw`
+          UPDATE "User"
+          SET "creditsRemaining" = GREATEST("creditsRemaining" - 1, 0),
+              "totalCreditsUsed"  = "totalCreditsUsed" + 1,
+              "generationCount"   = "generationCount" + 1
+          WHERE phone = ${identifier}
+          AND "creditsRemaining" > 0
+        `
+      } else {
+        await prisma.$executeRaw`
+          UPDATE "User"
+          SET "creditsRemaining" = GREATEST("creditsRemaining" - 1, 0),
+              "totalCreditsUsed"  = "totalCreditsUsed" + 1,
+              "generationCount"   = "generationCount" + 1
+          WHERE email = ${identifier}
+          AND "creditsRemaining" > 0
+        `
+      }
+    } catch (err: unknown) {
       // Non-fatal for the user request but must be alerted — silent drift here causes wrong credit restore on session re-verification
       logger.error({ err }, '[UserService] recordGeneration DB sync failed')
       Sentry.captureException(err)
-    })
+    }
   }
 
   // Called on session recovery — returns DB credit balance to restore into Redis

@@ -433,21 +433,41 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.send({ success: true, data: { hasGrant: true }, requestId })
       }
 
+      // Resolve user identity once — used for DB pre-check, DB sync, and Redis sync below
+      const identifier = session.phone ?? session.email
+      const identifierType: 'phone' | 'email' = session.phone ? 'phone' : 'email'
+
+      // DB pre-check: prevents stale Redis from over-spending when the same user
+      // has multiple active sessions. Each session holds its own Redis key seeded
+      // from the same DB value — spending from both simultaneously would
+      // decrement the DB twice. Checking the authoritative DB value first stops
+      // the second spend before it reaches Redis.
+      if (identifier) {
+        const dbUser = await UserService.getByIdentifier(identifier, identifierType)
+        if (!dbUser || dbUser.creditsRemaining <= 0) {
+          return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
+        }
+      }
+
       const deducted = await SessionService.deductCredit(session.sessionId)
       if (!deducted) {
         return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
       }
 
-      // Mirror to the User DB row so credits survive session expiry. Failure
-      // here is non-fatal — Redis is the source of truth for the active
-      // session — but must be alerted so drift can be reconciled.
-      const identifier = session.phone ?? session.email
-      const identifierType: 'phone' | 'email' = session.phone ? 'phone' : 'email'
+      // Mirror to DB and sync this session's Redis key so the UI reflects the
+      // updated balance without waiting for re-verification.
       if (identifier) {
         await UserService.recordGeneration(identifier, identifierType).catch((err: unknown) => {
           app.log.error({ err, requestId, sessionId: session.sessionId }, 'spend-credit DB sync failed')
           Sentry.captureException(err)
         })
+        // Fetch the post-deduction DB balance and write it back into this
+        // session's Redis key. Other sessions self-correct on next promoteToVerified.
+        const updatedUser = await UserService.getByIdentifier(identifier, identifierType).catch(() => null)
+        if (updatedUser) {
+          session.creditsRemaining = updatedUser.creditsRemaining
+          await SessionService.update(session).catch(() => {})
+        }
       }
 
       let transaction
