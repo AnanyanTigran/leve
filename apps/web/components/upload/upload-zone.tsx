@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle, ImageIcon } from 'lucide-react'
@@ -98,10 +98,16 @@ export function UploadZone() {
   const [isUploading, setIsUploading] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
 
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(() => {
-    if (typeof window === 'undefined') return null
-    return sessionStorage.getItem('leve_category') as ProductCategory | null
-  })
+  // Start null (matches SSR), then sync from sessionStorage after hydration.
+  // If we read sessionStorage in the lazy initializer the server renders null
+  // while the client hydrates with a stored value — a mismatch that leaves
+  // React's internal state ahead of the DOM, making the pre-selected category
+  // appear unresponsive until something else triggers a re-render.
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(null)
+  useEffect(() => {
+    const saved = sessionStorage.getItem('leve_category') as ProductCategory | null
+    if (saved) setSelectedCategory(saved)
+  }, [])
 
   const handleCategorySelect = useCallback((cat: ProductCategory) => {
     setSelectedCategory(cat)
@@ -334,14 +340,6 @@ export function UploadZone() {
                     {t('change')}
                   </button>
                 </div>
-                {error && (
-                  <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
-                    <div className="flex items-start gap-2 px-3 py-2.5 bg-[#1a0000]/80 backdrop-blur-sm border border-[#DC2626]/40 rounded-[10px]">
-                      <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
-                      <span className="text-[13px] text-[#FF6B6B] font-medium leading-snug">{error}</span>
-                    </div>
-                  </div>
-                )}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[520px] gap-3 text-center p-8">
@@ -394,6 +392,14 @@ export function UploadZone() {
             </span>
           ))}
         </div>
+
+        {/* Error — outside the image box, between upload zone and categories */}
+        {error && (
+          <div className="flex items-start gap-2 px-3 py-2.5 bg-[#DC2626]/10 border border-[#DC2626]/30 rounded-[10px]">
+            <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+            <span className="text-[13px] text-[#DC2626] font-medium leading-snug">{error}</span>
+          </div>
+        )}
 
         {/* Category picker */}
         <div className="flex flex-col gap-2">
