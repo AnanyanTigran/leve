@@ -456,18 +456,34 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       // Mirror to DB and sync this session's Redis key so the UI reflects the
       // updated balance without waiting for re-verification.
+      //
+      // recordGeneration returns:
+      //   true  — DB decremented; sync Redis to fresh DB balance
+      //   false — DB was already 0 (race: another session won between pre-check
+      //           and this call); refund Redis and reject so no grant is created
+      //   null  — DB error; non-fatal, proceed with Redis as authoritative
       if (identifier) {
-        await UserService.recordGeneration(identifier, identifierType).catch((err: unknown) => {
-          app.log.error({ err, requestId, sessionId: session.sessionId }, 'spend-credit DB sync failed')
-          Sentry.captureException(err)
-        })
-        // Fetch the post-deduction DB balance and write it back into this
-        // session's Redis key. Other sessions self-correct on next promoteToVerified.
-        const updatedUser = await UserService.getByIdentifier(identifier, identifierType).catch(() => null)
-        if (updatedUser) {
-          session.creditsRemaining = updatedUser.creditsRemaining
-          await SessionService.update(session).catch(() => {})
+        const decremented = await UserService.recordGeneration(identifier, identifierType)
+
+        if (decremented === false) {
+          // Race condition: another concurrent session consumed the last credit
+          // between our DB pre-check and this DB decrement. Refund the Redis
+          // deduction so the session credit count stays consistent, then reject.
+          await SessionService.refundCredit(session.sessionId).catch(() => {})
+          return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
         }
+
+        if (decremented === true) {
+          // DB was decremented. Sync this session's Redis key to the new DB
+          // balance. Other sessions self-correct on next promoteToVerified.
+          const updatedUser = await UserService.getByIdentifier(identifier, identifierType).catch(() => null)
+          if (updatedUser) {
+            session.creditsRemaining = updatedUser.creditsRemaining
+            await SessionService.update(session).catch(() => {})
+          }
+        }
+        // decremented === null: DB error logged inside recordGeneration.
+        // Redis deduction stands; proceed to create the grant.
       }
 
       let transaction

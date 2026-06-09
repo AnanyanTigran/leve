@@ -203,36 +203,43 @@ export class UserService {
   // Called when a credit is spent on HD download. Uses GREATEST to floor at 0
   // so concurrent spend-credit calls from multiple sessions can never push the
   // DB value negative, even if the Redis pre-check was racing.
+  //
+  // Returns:
+  //   true  — DB row was decremented (1 row affected)
+  //   false — DB was already at 0 when the UPDATE ran (0 rows affected); another
+  //           session consumed the last credit in the race window between the
+  //           pre-check and this call
+  //   null  — DB connection/query error; caller should treat as non-fatal and
+  //           proceed with Redis as the authoritative source of truth
   static async recordGeneration(
     identifier: string,
     identifierType: 'phone' | 'email',
-  ): Promise<void> {
-    if (!identifier) return
+  ): Promise<boolean | null> {
+    if (!identifier) return null
 
     try {
-      if (identifierType === 'phone') {
-        await prisma.$executeRaw`
-          UPDATE "User"
-          SET "creditsRemaining" = GREATEST("creditsRemaining" - 1, 0),
-              "totalCreditsUsed"  = "totalCreditsUsed" + 1,
-              "generationCount"   = "generationCount" + 1
-          WHERE phone = ${identifier}
-          AND "creditsRemaining" > 0
-        `
-      } else {
-        await prisma.$executeRaw`
-          UPDATE "User"
-          SET "creditsRemaining" = GREATEST("creditsRemaining" - 1, 0),
-              "totalCreditsUsed"  = "totalCreditsUsed" + 1,
-              "generationCount"   = "generationCount" + 1
-          WHERE email = ${identifier}
-          AND "creditsRemaining" > 0
-        `
-      }
+      const affected: number = identifierType === 'phone'
+        ? await prisma.$executeRaw`
+            UPDATE "User"
+            SET "creditsRemaining" = GREATEST("creditsRemaining" - 1, 0),
+                "totalCreditsUsed"  = "totalCreditsUsed" + 1,
+                "generationCount"   = "generationCount" + 1
+            WHERE phone = ${identifier}
+            AND "creditsRemaining" > 0
+          `
+        : await prisma.$executeRaw`
+            UPDATE "User"
+            SET "creditsRemaining" = GREATEST("creditsRemaining" - 1, 0),
+                "totalCreditsUsed"  = "totalCreditsUsed" + 1,
+                "generationCount"   = "generationCount" + 1
+            WHERE email = ${identifier}
+            AND "creditsRemaining" > 0
+          `
+      return affected > 0
     } catch (err: unknown) {
-      // Non-fatal for the user request but must be alerted — silent drift here causes wrong credit restore on session re-verification
       logger.error({ err }, '[UserService] recordGeneration DB sync failed')
       Sentry.captureException(err)
+      return null
     }
   }
 
