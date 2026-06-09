@@ -23,6 +23,7 @@ model User {
   lastSeenAt            DateTime  @updatedAt
 
   generationJobs GenerationJob[]
+  downloadGrants DownloadGrant[]
 
   @@index([phone])
   @@index([email])
@@ -104,6 +105,7 @@ model OtpRecord {
 model DownloadGrant {
   id               String    @id @default(cuid())
   sessionId        String
+  userId           String?
   jobId            String
   transactionId    String
   hdS3Key          String
@@ -113,8 +115,10 @@ model DownloadGrant {
 
   job         GenerationJob @relation(fields: [jobId], references: [id])
   transaction Transaction   @relation(fields: [transactionId], references: [id])
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([transactionId, jobId])
   @@index([sessionId])
   @@index([jobId])
+  @@index([userId])
 }

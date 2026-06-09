@@ -16,6 +16,7 @@ export class SessionService {
     const now = Date.now()
     const session: LeveSession = {
       sessionId: nanoid(),
+      userId: null,
       phone: null,
       email: null,
       identifierType: null,
@@ -54,6 +55,7 @@ export class SessionService {
     }
 
     // Backfill defaults for sessions created before this migration
+    session.userId = session.userId ?? null
     session.identifierType = session.identifierType ?? null
     session.brandName = session.brandName ?? null
     session.favoriteSceneId = session.favoriteSceneId ?? null
@@ -116,6 +118,7 @@ export class SessionService {
     session.phone = user.phone
     session.email = user.email
 
+    session.userId = user.id
     session.identifierType = identifierType
     session.isVerified = true
     session.creditsRemaining = restoredCredits

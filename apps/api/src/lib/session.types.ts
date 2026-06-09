@@ -1,5 +1,6 @@
 export interface LeveSession {
   sessionId: string
+  userId: string | null
   phone: string | null
   email: string | null
   identifierType: 'phone' | 'email' | null
