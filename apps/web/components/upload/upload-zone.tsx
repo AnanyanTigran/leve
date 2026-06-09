@@ -336,29 +336,17 @@ export function UploadZone() {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[520px] gap-3 text-center p-8">
-                {error ? (
-                  <>
-                    <AlertCircle className="w-12 h-12 text-error" strokeWidth={1.5} />
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[15px] font-semibold text-error">{error}</span>
-                      <span className="text-[13px] text-text-muted mt-1">{t('tap_to_upload')}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <UploadCloud
-                      className={`w-12 h-12 transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-muted'}`}
-                    />
-                    <div className="flex flex-col items-center">
-                      <span className={`text-[16px] font-semibold transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-primary'}`}>
-                        {t('tap_to_upload')}
-                      </span>
-                      <span className="text-[14px] text-text-muted mt-1">{t('drag_drop')}</span>
-                    </div>
-                    <hr className="w-16 border-border-default my-2" />
-                    <span className="text-[12px] text-text-muted">{t('file_types')}</span>
-                  </>
-                )}
+                <UploadCloud
+                  className={`w-12 h-12 transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-muted'}`}
+                />
+                <div className="flex flex-col items-center">
+                  <span className={`text-[16px] font-semibold transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-primary'}`}>
+                    {t('tap_to_upload')}
+                  </span>
+                  <span className="text-[14px] text-text-muted mt-1">{t('drag_drop')}</span>
+                </div>
+                <hr className="w-16 border-border-default my-2" />
+                <span className="text-[12px] text-text-muted">{t('file_types')}</span>
               </div>
             )}
 
@@ -370,6 +358,14 @@ export function UploadZone() {
               className="hidden"
             />
           </div>
+
+          {/* Error message — shown whether or not a file is selected */}
+          {error && (
+            <div className="flex items-start gap-2 px-3 py-2.5 bg-[#DC2626]/10 border border-[#DC2626]/30 rounded-[10px]">
+              <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+              <span className="text-[13px] text-[#DC2626] font-medium">{error}</span>
+            </div>
+          )}
 
           {/* Desktop tips panel */}
           <div className="hidden lg:flex lg:flex-col bg-bg-surface border border-border-default rounded-[12px] p-6 self-start lg:sticky lg:top-4">
@@ -401,7 +397,7 @@ export function UploadZone() {
         {/* Category picker */}
         <div className="flex flex-col gap-2">
           <p className="text-[13px] text-text-muted font-medium">{categoryPrompt}</p>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             {CATEGORY_ITEMS.map((item) => {
               const Icon = item.icon
               return (
@@ -410,7 +406,7 @@ export function UploadZone() {
                   type="button"
                   onClick={() => handleCategorySelect(item.id)}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[48px]',
+                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[36px]',
                     selectedCategory === item.id
                       ? 'bg-accent text-white border-accent'
                       : 'bg-bg-elevated text-text-secondary border-border-default hover:border-border-hover',
