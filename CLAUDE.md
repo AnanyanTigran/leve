@@ -120,6 +120,16 @@ Kontext is image-to-image — it takes the user's actual product photo as input 
 - Secondary CTA: `border border-[#2A2A2A]`, no fill, white text
 - Loading states: always animated (skeleton shimmer or artistic progression). Never a blank screen.
 
+## Theming
+
+- App supports dark (default) and light modes
+- Dark is the primary/default theme
+- Use CSS variables for all colors — never hardcode hex values in components
+- Theme applied via `data-theme="dark"` or `data-theme="light"` on the root element
+- Accent #D64C1A works in both themes — do not change per theme
+- All components must render correctly in both themes
+- ThemeToggle exists intentionally — do not remove it
+
 ---
 
 ## Using Claude Design (claude.ai) for This Project

@@ -80,3 +80,11 @@ Refer to the design tokens in CLAUDE.md. Key rules:
 - No `any` TypeScript type
 - No components over 200 lines — split them
 - No importing from `@/app/` in components — components must be app-agnostic
+
+## Theming Rules
+
+- NEVER hardcode color hex values in components
+- Always use CSS variable classes: bg-[var(--bg-base)], text-[var(--text-primary)] etc
+- Both themes must be tested for every new component
+- ThemeToggle exists intentionally — do not remove it
+- Light mode accent subtle: #FDF0EC (warm white tint, not generic gray)
