@@ -7,6 +7,8 @@ import {
   ANON_FREE_GENERATIONS,
   FREE_DAILY_GENERATION_SOFT_CAP,
 } from '../../lib/session.types'
+import { UserService } from '../../services/user.service'
+import { SessionService } from '../../services/session.service'
 
 const env = validateEnv()
 
@@ -20,6 +22,32 @@ export async function registerSessionInit(app: FastifyInstance) {
     async (request, reply) => {
       const requestId = nanoid(10)
       const s = request.session
+
+      // For verified sessions: always read creditsRemaining from Neon DB.
+      // The Redis blob is only updated for the session that made the spend-credit
+      // call — sibling sessions on other devices hold stale values indefinitely.
+      // Neon is the authoritative source; this single indexed SELECT costs
+      // sub-millisecond and /me is only called on page load and tab focus.
+      if (s.isVerified && (s.phone || s.email)) {
+        try {
+          const identifier = s.phone ?? s.email!
+          const identifierType: 'phone' | 'email' = s.phone ? 'phone' : 'email'
+          const dbUser = await UserService.getByIdentifier(identifier, identifierType)
+          if (dbUser !== null && dbUser.creditsRemaining !== s.creditsRemaining) {
+            s.creditsRemaining = dbUser.creditsRemaining
+            // Update the Redis blob so subsequent reads within this session
+            // are consistent — fire-and-forget, non-fatal if it fails
+            void SessionService.update(s).catch((err) =>
+              app.log.warn({ err }, '[session/me] Redis sync after DB read failed — non-fatal')
+            )
+          }
+        } catch (err) {
+          // Non-fatal: serve the cached Redis value if the DB read fails.
+          // This is a read path only — no mutations happen here.
+          app.log.warn({ err }, '[session/me] creditsRemaining DB read failed — serving cached value')
+        }
+      }
+
       const today = new Date().toISOString().split('T')[0]
       const dailyGenerationsUsed =
         s.dailyGenerationsDate === today ? (s.dailyGenerationsUsed ?? 0) : 0
