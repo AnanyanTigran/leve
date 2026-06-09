@@ -504,6 +504,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         await prisma.downloadGrant.create({
           data: {
             sessionId: session.sessionId,
+            userId: session.userId ?? null,
             jobId,
             transactionId: transaction.id,
             hdS3Key: job.hdS3Key,

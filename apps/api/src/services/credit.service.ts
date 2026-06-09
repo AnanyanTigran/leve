@@ -50,6 +50,7 @@ export async function grantCreditsAndCreateDownloadGrant(
     await prisma.downloadGrant.create({
       data: {
         sessionId,
+        userId: session?.userId ?? null,
         jobId,
         transactionId,
         hdS3Key: input.hdS3Key,
