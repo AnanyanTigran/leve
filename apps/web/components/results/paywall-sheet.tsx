@@ -201,7 +201,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
             </div>
             <button
               onClick={handleClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-elevated ml-3 shrink-0"
+              className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-bg-elevated ml-3 shrink-0"
             >
               <X className="w-4 h-4 text-text-secondary" />
             </button>
@@ -301,7 +301,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
               onClick={() => handlePayment('idram')}
               disabled={isLoading}
               className={cn(
-                'btn-primary btn-full h-13',
+                'btn-primary btn-full h-12',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
             >
@@ -334,7 +334,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
         <div className="relative flex flex-col items-center justify-center py-14 gap-5 px-4 pb-10">
           <button
             onClick={handleClose}
-            className="absolute top-0 right-3 w-10 h-10 flex items-center justify-center rounded-full hover:bg-bg-elevated transition-colors"
+            className="absolute top-0 right-3 w-12 h-12 flex items-center justify-center rounded-full hover:bg-bg-elevated transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5 text-text-secondary" />
@@ -357,10 +357,10 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
       {paywallState === 'success' && (
         <div className="flex flex-col items-center justify-center py-14 gap-5 px-4 pb-10">
           <div
-            className="w-16 h-16 rounded-full bg-[#F0FDF4] flex items-center justify-center"
+            className="w-16 h-16 rounded-full bg-success-subtle flex items-center justify-center"
             style={{ animation: 'scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both' }}
           >
-            <CheckCircle size={32} className="text-[#16A34A]" />
+            <CheckCircle size={32} className="text-success" />
           </div>
           <div className="text-center">
             <p className="text-[18px] font-semibold text-text-primary">
@@ -384,8 +384,8 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
 
       {paywallState === 'failed' && (
         <div className="flex flex-col items-center justify-center py-14 gap-5 px-4 pb-10">
-          <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center">
-            <XCircle size={32} className="text-[#DC2626]" />
+          <div className="w-16 h-16 rounded-full bg-error-subtle flex items-center justify-center">
+            <XCircle size={32} className="text-error" />
           </div>
           <div className="text-center">
             <p className="text-[18px] font-semibold text-text-primary">

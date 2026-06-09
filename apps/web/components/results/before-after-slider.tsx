@@ -173,8 +173,7 @@ export function BeforeAfterSlider({
           />
         )}
         <span
-          className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none pointer-events-none"
-          style={{ background: '#D64C1A' }}
+          className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none pointer-events-none bg-[var(--accent)]"
         >
           {t('after')}
         </span>
@@ -193,7 +192,7 @@ export function BeforeAfterSlider({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="absolute z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white"
+        className="absolute z-20 w-12 h-12 rounded-full flex items-center justify-center bg-white"
         style={{
           left: `${sliderPosition}%`,
           top: '50%',

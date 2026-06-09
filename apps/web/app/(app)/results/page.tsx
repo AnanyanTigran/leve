@@ -504,14 +504,14 @@ export default function ResultsPage() {
             </div>
           )}
           {previewUrlError && (
-            <div className="px-4 py-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px] flex items-center justify-between gap-3">
-              <p className="text-[13px] text-[#DC2626] font-medium">
+            <div className="px-4 py-3 bg-error-subtle border border-[var(--color-error)]/30 rounded-[10px] flex items-center justify-between gap-3">
+              <p className="text-[13px] text-error font-medium">
                 {t('preview_load_failed')}
               </p>
               <button
                 type="button"
                 onClick={handleRetryPreviewUrl}
-                className="text-[13px] text-[#DC2626] font-semibold underline"
+                className="text-[13px] text-error font-semibold underline"
               >
                 {t('preview_load_retry')}
               </button>
@@ -668,7 +668,7 @@ export default function ResultsPage() {
             (BottomNav's height) so it never overlaps the nav. The gradient
             fade lets content scroll behind it. */}
         {!paywallOpen && (
-          <div className="sticky bottom-16 z-40 -mx-4 px-4 pb-3 pt-6 bg-gradient-to-t from-bg-base from-50% to-transparent safe-bottom">
+          <div className="sticky bottom-16 z-40 -mx-4 px-4 pb-3 pt-3 bg-bg-base border-t border-border-default safe-bottom">
             {hasGrant === null ? (
               <div className="h-12 rounded-[12px] bg-bg-elevated animate-pulse" />
             ) : hasGrant ? (

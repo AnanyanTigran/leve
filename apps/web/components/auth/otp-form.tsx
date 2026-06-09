@@ -133,7 +133,7 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
               'w-10 h-12 text-center text-[20px] font-semibold text-text-primary',
               'bg-bg-elevated border-2 rounded-[10px] outline-none transition-colors',
               error
-                ? 'border-[#DC2626]'
+                ? 'border-error'
                 : digit
                   ? 'border-accent'
                   : 'border-border-default focus:border-accent'
@@ -155,10 +155,10 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
       </p>
 
       {incomplete && (
-        <p className="text-[13px] text-[#DC2626] text-center">{t('otp_incomplete')}</p>
+        <p className="text-[13px] text-error text-center">{t('otp_incomplete')}</p>
       )}
       {error && !incomplete && (
-        <p className="text-[13px] text-[#DC2626] text-center">{t('otp_invalid')}</p>
+        <p className="text-[13px] text-error text-center">{t('otp_invalid')}</p>
       )}
 
       <button

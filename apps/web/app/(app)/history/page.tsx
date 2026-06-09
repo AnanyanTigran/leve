@@ -135,8 +135,8 @@ export default function HistoryPage() {
                 ) : (
                   <div className="absolute inset-0 animate-pulse bg-bg-elevated" />
                 )}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                  <p className="text-[11px] text-white font-medium truncate">
+                <div className="absolute bottom-0 left-0 right-0 bg-bg-elevated border-t border-border-default p-2">
+                  <p className="text-[11px] text-text-primary font-medium truncate">
                     {(() => {
                       const scene = SCENES.find((s) => s.id === job.templateId)
                       return scene

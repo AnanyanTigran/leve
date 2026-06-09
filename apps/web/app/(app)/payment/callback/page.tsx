@@ -87,8 +87,8 @@ export default function PaymentCallbackPage() {
   if (state === 'success') {
     return (
       <div className="flex flex-col items-center justify-center h-[100dvh] bg-bg-base px-6">
-        <div className="w-16 h-16 rounded-full bg-[#F0FDF4] flex items-center justify-center mb-5">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" className="w-8 h-8">
+        <div className="w-16 h-16 rounded-full bg-success-subtle flex items-center justify-center mb-5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" strokeWidth="2.5" className="w-8 h-8">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
@@ -105,8 +105,8 @@ export default function PaymentCallbackPage() {
   if (state === 'failed' || state === 'timeout') {
     return (
       <div className="flex flex-col items-center justify-center h-[100dvh] bg-bg-base px-6">
-        <div className="w-16 h-16 rounded-full bg-[#FEF2F2] flex items-center justify-center mb-5">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" className="w-8 h-8">
+        <div className="w-16 h-16 rounded-full bg-error-subtle flex items-center justify-center mb-5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" strokeWidth="2" className="w-8 h-8">
             <circle cx="12" cy="12" r="10" />
             <line x1="15" y1="9" x2="9" y2="15" />
             <line x1="9" y1="9" x2="15" y2="15" />

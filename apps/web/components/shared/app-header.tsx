@@ -33,7 +33,7 @@ export function AppHeader({
         ) : showBack ? (
           <Link
             href={backHref}
-            className="flex items-center justify-center w-11 h-11 -ml-2 rounded-md transition-colors hover:bg-bg-elevated active:scale-95"
+            className="flex items-center justify-center w-12 h-12 -ml-2 rounded-md transition-colors hover:bg-bg-elevated active:scale-95"
             aria-label="Go back"
           >
             <ChevronLeft className="w-6 h-6 text-text-primary" />

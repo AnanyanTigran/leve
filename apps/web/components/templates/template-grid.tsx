@@ -133,11 +133,11 @@ export function TemplateGrid() {
                     <CheckCircle className="w-4 h-4 text-white" />
                   </div>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent min-h-[72px] flex flex-col justify-end">
-                  <span className="text-[10px] text-white/70 uppercase tracking-wide leading-none mb-1">
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-bg-elevated border-t border-border-default min-h-[72px] flex flex-col justify-end">
+                  <span className="text-[10px] text-text-muted uppercase tracking-wide leading-none mb-1">
                     {template.category}
                   </span>
-                  <span className="text-[13px] text-white font-semibold leading-tight">
+                  <span className="text-[13px] text-text-primary font-semibold leading-tight">
                     {t(`names.${template.nameKey}`)}
                   </span>
                 </div>

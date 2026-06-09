@@ -134,11 +134,7 @@ export function ProcessingScreen() {
             to the source image AR. Subtle accent glow + drop shadow. The
             shimmer sweep only runs while we're still generating. */}
         <div
-          className={`relative rounded-[20px] overflow-hidden bg-bg-elevated ${isDone ? 'processing-done-scale' : ''}`}
-          style={{
-            boxShadow:
-              '0 25px 60px -15px rgba(214, 76, 26, 0.25), 0 10px 25px -5px rgba(0,0,0,0.4)',
-          }}
+          className={`relative rounded-[20px] overflow-hidden bg-bg-elevated processing-card-shadow ${isDone ? 'processing-done-scale' : ''}`}
         >
           {uploadPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
