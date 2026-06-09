@@ -17,10 +17,10 @@ import { CATEGORY_ITEMS, SCENES, CREDIT_PACKAGES } from '@/lib/constants'
 const CDN = process.env.NEXT_PUBLIC_CDN_URL ?? ''
 
 const SHOWCASE_CARDS = [
-  { id: 'jewelry',  label: 'Jewelry',   labelHY: 'Զardelər',     labelRU: 'Ювелирные украшения', beforeImage: `${CDN}/assets/showcase/jewelry-before.jpg`,   afterImage: `${CDN}/assets/showcase/jewelry-after.jpg` },
-  { id: 'cosmetics',label: 'Cosmetics', labelHY: 'Kosmetika',    labelRU: 'Косметика',           beforeImage: `${CDN}/assets/showcase/cosmetics-before.jpg`, afterImage: `${CDN}/assets/showcase/cosmetics-after.jpg` },
-  { id: 'food',     label: 'Food',      labelHY: 'Snund',        labelRU: 'Еда',                 beforeImage: `${CDN}/assets/showcase/food-before.jpg`,      afterImage: `${CDN}/assets/showcase/food-after.jpg` },
-  { id: 'fashion',  label: 'Fashion',   labelHY: 'Moda',         labelRU: 'Мода',                beforeImage: `${CDN}/assets/showcase/fashion-before.jpg`,   afterImage: `${CDN}/assets/showcase/fashion-after.jpg` },
+  { id: 'jewelry',  label: 'Jewelry',   labelHY: 'Զardelər',     labelRU: 'Ювелирные украшения', beforeImage: `${CDN}/showcase/jewelry-before.webp`,   afterImage: `${CDN}/showcase/jewelry-after.jpg` },
+  { id: 'cosmetics',label: 'Cosmetics', labelHY: 'Kosmetika',    labelRU: 'Косметика',           beforeImage: `${CDN}/showcase/beauty-before.webp`, afterImage: `${CDN}/showcase/beauty-after.jpg` },
+  { id: 'food',     label: 'Food',      labelHY: 'Snund',        labelRU: 'Еда',                 beforeImage: `${CDN}/showcase/food-before.webp`,      afterImage: `${CDN}/showcase/food-after.jpg` },
+  { id: 'fashion',  label: 'Fashion',   labelHY: 'Moda',         labelRU: 'Мода',                beforeImage: `${CDN}/showcase/fashion-before.avif`,   afterImage: `${CDN}/showcase/fashion-after.jpg` },
 ]
 
 const SCENE_VARIETY_IDS = [
@@ -306,7 +306,7 @@ export function LandingContent() {
                 <div className="aspect-square bg-bg-elevated rounded-2xl flex flex-col items-center justify-center gap-3">
                   <ImageOff className="w-8 h-8 text-text-muted" />
                   <p className="text-sm font-ui text-text-muted text-center px-6">
-                    Add showcase images to S3 assets/showcase/
+                    Add showcase images to S3 showcase/
                   </p>
                 </div>
               ) : (
