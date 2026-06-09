@@ -111,6 +111,7 @@
     "tip3": "Avoid busy backgrounds",
     "tip4": "Minimum 800×800px resolution",
     "error_type": "Only JPEG, PNG, WEBP, or HEIC files are supported",
+    "error_invalid_image": "This photo couldn't be read — please try a different file",
     "error_size": "File too large — max 20MB",
     "error_resolution_too_low": "Photo too small — please use at least 512×512px",
     "error_resolution_too_high": "Photo too large — please use under 8000×8000px",

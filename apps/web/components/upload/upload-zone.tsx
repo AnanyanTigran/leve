@@ -216,7 +216,7 @@ export function UploadZone() {
       if (!res.ok) {
         const code = typeof json?.error === 'string' ? json.error : null
         const ERROR_MAP: Record<string, string> = {
-          invalid_file_type: t('error_type'),
+          invalid_file_type: t('error_invalid_image'),
           file_too_large: t('error_size'),
           resolution_too_low: t('error_resolution_too_low'),
           resolution_too_high: t('error_resolution_too_high'),
@@ -273,8 +273,9 @@ export function UploadZone() {
   const canContinue = fileState !== null && error === null && !isUploading && selectedCategory !== null
 
   return (
-    <div className="flex flex-col flex-1">
-      <main className="page-funnel lg:page-content flex-1 overflow-y-auto flex flex-col py-4 gap-4">
+    <div className="flex flex-col flex-1 min-h-0">
+      <main className="flex-1 overflow-y-auto">
+        <div className="page-funnel lg:page-content py-4 flex flex-col gap-4">
         <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8 lg:items-start flex-1 flex flex-col lg:flex-none">
 
           {/* Upload zone */}
@@ -333,6 +334,14 @@ export function UploadZone() {
                     {t('change')}
                   </button>
                 </div>
+                {error && (
+                  <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
+                    <div className="flex items-start gap-2 px-3 py-2.5 bg-[#1a0000]/80 backdrop-blur-sm border border-[#DC2626]/40 rounded-[10px]">
+                      <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                      <span className="text-[13px] text-[#FF6B6B] font-medium leading-snug">{error}</span>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[520px] gap-3 text-center p-8">
@@ -358,14 +367,6 @@ export function UploadZone() {
               className="hidden"
             />
           </div>
-
-          {/* Error message — shown whether or not a file is selected */}
-          {error && (
-            <div className="flex items-start gap-2 px-3 py-2.5 bg-[#DC2626]/10 border border-[#DC2626]/30 rounded-[10px]">
-              <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
-              <span className="text-[13px] text-[#DC2626] font-medium">{error}</span>
-            </div>
-          )}
 
           {/* Desktop tips panel */}
           <div className="hidden lg:flex lg:flex-col bg-bg-surface border border-border-default rounded-[12px] p-6 self-start lg:sticky lg:top-4">
@@ -397,7 +398,7 @@ export function UploadZone() {
         {/* Category picker */}
         <div className="flex flex-col gap-2">
           <p className="text-[13px] text-text-muted font-medium">{categoryPrompt}</p>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex gap-2 flex-wrap">
             {CATEGORY_ITEMS.map((item) => {
               const Icon = item.icon
               return (
@@ -425,6 +426,7 @@ export function UploadZone() {
             <ShieldCheck size={14} />
             {t('privacy_note')}
           </p>
+        </div>
         </div>
       </main>
 
