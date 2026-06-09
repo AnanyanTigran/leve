@@ -295,6 +295,14 @@ leve/
 - Generate requestId (nanoid) for every request. Log with every AI call.
 - All Armenian/Russian/English strings in `/lib/i18n/` — never hardcoded.
 
+### Localization Rules
+- EVERY user-visible string in a component must use `useTranslations()`
+- Never hardcode English copy in JSX — no exceptions
+- New translation keys always go in all 3 files: `en.json`, `hy.json`, `ru.json`
+- Use the nearest existing namespace (`landing`, `results`, `paywall`, etc.)
+- Armenian (`hy`) and Russian (`ru`) translations must be real — never copy English as a placeholder
+- Component that needs translations: add `useTranslations()` at the top, never pass strings as props from a parent just to avoid adding keys
+
 ---
 
 ## Common Mistakes to Avoid
