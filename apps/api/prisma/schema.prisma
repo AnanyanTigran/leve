@@ -22,6 +22,8 @@ model User {
   createdAt             DateTime  @default(now())
   lastSeenAt            DateTime  @updatedAt
 
+  generationJobs GenerationJob[]
+
   @@index([phone])
   @@index([email])
 }
@@ -54,6 +56,7 @@ model Transaction {
 model GenerationJob {
   id               String    @id @default(cuid())
   sessionId        String
+  userId           String?
   bullJobId        String?   @unique
   templateId       String
   intent           String    // "product_photo"|"lifestyle"|"marketplace"
@@ -74,9 +77,11 @@ model GenerationJob {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   downloadGrants DownloadGrant[]
 
   @@index([sessionId])
+  @@index([userId])
   @@index([status])
 }
 

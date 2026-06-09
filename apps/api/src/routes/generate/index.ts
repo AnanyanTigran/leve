@@ -5,6 +5,7 @@ import { prisma } from '../../lib/prisma'
 import { previewQueue, PRIORITIES } from '../../lib/queues'
 import { compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
 import { translateToEnglish } from '../../services/translate.service'
+import { UserService } from '../../services/user.service'
 import {
   ANON_FREE_GENERATIONS,
   FREE_DAILY_GENERATION_SOFT_CAP,
@@ -127,9 +128,19 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
 
       app.log.info({ requestId }, 'prompt compiled')
 
+      // Resolve userId so history queries can span sessions for the same user
+      let userId: string | null = null
+      if (session.isVerified && (session.phone || session.email)) {
+        const ident = session.phone ?? session.email!
+        const identType: 'phone' | 'email' = session.phone ? 'phone' : 'email'
+        const user = await UserService.getByIdentifier(ident, identType).catch(() => null)
+        if (user) userId = user.id
+      }
+
       const job = await prisma.generationJob.create({
         data: {
           sessionId: session.sessionId,
+          userId,
           templateId: sceneId,
           intent,
           category,
@@ -289,23 +300,53 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
       const requestId = nanoid(10)
       const session = request.session
 
-      const jobs = await prisma.generationJob.findMany({
-        where: {
-          sessionId: session.sessionId,
-          status: { in: ['done', 'credit_refunded'] },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 50,
-        select: {
-          id: true,
-          templateId: true,
-          category: true,
-          status: true,
-          previewS3Keys: true,
-          hdS3Key: true,
-          createdAt: true,
-        },
-      })
+      const SELECT = {
+        id: true,
+        templateId: true,
+        category: true,
+        status: true,
+        previewS3Keys: true,
+        hdS3Key: true,
+        createdAt: true,
+      } as const
+
+      const WHERE_STATUS = { in: ['done', 'credit_refunded'] }
+
+      // Primary query: find all jobs linked to this user across all sessions
+      let jobs: Array<{
+        id: string
+        templateId: string
+        category: string
+        status: string
+        previewS3Keys: string[]
+        hdS3Key: string | null
+        createdAt: Date
+      }> = []
+
+      const identifier = session.phone ?? session.email
+      const identifierType: 'phone' | 'email' = session.phone ? 'phone' : 'email'
+
+      if (identifier) {
+        const user = await UserService.getByIdentifier(identifier, identifierType).catch(() => null)
+        if (user) {
+          jobs = await prisma.generationJob.findMany({
+            where: { userId: user.id, status: WHERE_STATUS },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+            select: SELECT,
+          })
+        }
+      }
+
+      // Fallback for older jobs that predate the userId field
+      if (jobs.length === 0) {
+        jobs = await prisma.generationJob.findMany({
+          where: { sessionId: session.sessionId, status: WHERE_STATUS },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: SELECT,
+        })
+      }
 
       return reply.send({
         success: true,
