@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { UploadCloud, X, AlertCircle, ShieldCheck, CheckCircle, ImageIcon } from 'lucide-react'
@@ -98,10 +98,16 @@ export function UploadZone() {
   const [isUploading, setIsUploading] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
 
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(() => {
-    if (typeof window === 'undefined') return null
-    return sessionStorage.getItem('leve_category') as ProductCategory | null
-  })
+  // Start null (matches SSR), then sync from sessionStorage after hydration.
+  // If we read sessionStorage in the lazy initializer the server renders null
+  // while the client hydrates with a stored value — a mismatch that leaves
+  // React's internal state ahead of the DOM, making the pre-selected category
+  // appear unresponsive until something else triggers a re-render.
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | null>(null)
+  useEffect(() => {
+    const saved = sessionStorage.getItem('leve_category') as ProductCategory | null
+    if (saved) setSelectedCategory(saved)
+  }, [])
 
   const handleCategorySelect = useCallback((cat: ProductCategory) => {
     setSelectedCategory(cat)
@@ -216,7 +222,7 @@ export function UploadZone() {
       if (!res.ok) {
         const code = typeof json?.error === 'string' ? json.error : null
         const ERROR_MAP: Record<string, string> = {
-          invalid_file_type: t('error_type'),
+          invalid_file_type: t('error_invalid_image'),
           file_too_large: t('error_size'),
           resolution_too_low: t('error_resolution_too_low'),
           resolution_too_high: t('error_resolution_too_high'),
@@ -273,8 +279,9 @@ export function UploadZone() {
   const canContinue = fileState !== null && error === null && !isUploading && selectedCategory !== null
 
   return (
-    <div className="flex flex-col flex-1">
-      <main className="page-funnel lg:page-content flex-1 overflow-y-auto flex flex-col py-4 gap-4">
+    <div className="flex flex-col flex-1 min-h-0">
+      <main className="flex-1 overflow-y-auto">
+        <div className="page-funnel lg:page-content py-4 flex flex-col gap-4">
         <div className="lg:grid lg:grid-cols-[1fr_280px] lg:gap-8 lg:items-start flex-1 flex flex-col lg:flex-none">
 
           {/* Upload zone */}
@@ -336,29 +343,17 @@ export function UploadZone() {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[520px] gap-3 text-center p-8">
-                {error ? (
-                  <>
-                    <AlertCircle className="w-12 h-12 text-error" strokeWidth={1.5} />
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[15px] font-semibold text-error">{error}</span>
-                      <span className="text-[13px] text-text-muted mt-1">{t('tap_to_upload')}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <UploadCloud
-                      className={`w-12 h-12 transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-muted'}`}
-                    />
-                    <div className="flex flex-col items-center">
-                      <span className={`text-[16px] font-semibold transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-primary'}`}>
-                        {t('tap_to_upload')}
-                      </span>
-                      <span className="text-[14px] text-text-muted mt-1">{t('drag_drop')}</span>
-                    </div>
-                    <hr className="w-16 border-border-default my-2" />
-                    <span className="text-[12px] text-text-muted">{t('file_types')}</span>
-                  </>
-                )}
+                <UploadCloud
+                  className={`w-12 h-12 transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-muted'}`}
+                />
+                <div className="flex flex-col items-center">
+                  <span className={`text-[16px] font-semibold transition-colors duration-150 ${isDragging ? 'text-accent' : 'text-text-primary'}`}>
+                    {t('tap_to_upload')}
+                  </span>
+                  <span className="text-[14px] text-text-muted mt-1">{t('drag_drop')}</span>
+                </div>
+                <hr className="w-16 border-border-default my-2" />
+                <span className="text-[12px] text-text-muted">{t('file_types')}</span>
               </div>
             )}
 
@@ -398,6 +393,14 @@ export function UploadZone() {
           ))}
         </div>
 
+        {/* Error — outside the image box, between upload zone and categories */}
+        {error && (
+          <div className="flex items-start gap-2 px-3 py-2.5 bg-[#DC2626]/10 border border-[#DC2626]/30 rounded-[10px]">
+            <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+            <span className="text-[13px] text-[#DC2626] font-medium leading-snug">{error}</span>
+          </div>
+        )}
+
         {/* Category picker */}
         <div className="flex flex-col gap-2">
           <p className="text-[13px] text-text-muted font-medium">{categoryPrompt}</p>
@@ -410,7 +413,7 @@ export function UploadZone() {
                   type="button"
                   onClick={() => handleCategorySelect(item.id)}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[48px]',
+                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[36px]',
                     selectedCategory === item.id
                       ? 'bg-accent text-white border-accent'
                       : 'bg-bg-elevated text-text-secondary border-border-default hover:border-border-hover',
@@ -429,6 +432,7 @@ export function UploadZone() {
             <ShieldCheck size={14} />
             {t('privacy_note')}
           </p>
+        </div>
         </div>
       </main>
 
