@@ -12,6 +12,7 @@ import {
 } from '../../lib/session.types'
 import { checkAnonIpGenerationLimit } from '../../lib/rate-limit'
 import { getJobPhase, setJobPhase } from '../../lib/job-phase'
+import { sessionOwnsJob } from '../../lib/ownership'
 
 const UPLOAD_KEY_PATTERN =
   /^uploads\/[a-zA-Z0-9_-]{10,50}\/[0-9]{10,16}-original\.(jpeg|jpg|png|webp)$/
@@ -228,9 +229,8 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
       const { jobId } = request.params as { jobId: string }
       const session = request.session
 
-      const job = await prisma.generationJob.findUnique({ where: { id: jobId } })
-
-      if (!job || job.sessionId !== session.sessionId) {
+      const { owns, job } = await sessionOwnsJob(jobId, session)
+      if (!owns || !job) {
         return reply.status(404).send({ success: false, error: 'not_found', requestId })
       }
 
@@ -274,8 +274,8 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
-      const job = await prisma.generationJob.findUnique({ where: { id: jobId } })
-      if (!job || job.sessionId !== session.sessionId) {
+      const { owns, job } = await sessionOwnsJob(jobId, session)
+      if (!owns || !job) {
         return reply.status(404).send({ success: false, error: 'not_found', requestId })
       }
 

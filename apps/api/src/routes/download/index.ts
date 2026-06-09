@@ -8,6 +8,7 @@ import { applyTextOverlayToS3Image } from '../../lib/text-overlay'
 import { SessionService } from '../../services/session.service'
 import { UserService } from '../../services/user.service'
 import { Sentry } from '../../lib/sentry'
+import { sessionOwnsJob, sessionHasGrant } from '../../lib/ownership'
 
 // Resolve the actual S3 key to serve for a job's HD download. If the user
 // configured a text overlay on /results, composite it onto the HD output
@@ -68,12 +69,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
       }
 
-      const grant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: session.sessionId },
-        include: { job: true },
-      })
-
-      if (!grant) {
+      const { hasGrant, grant } = await sessionHasGrant(jobId, session)
+      if (!hasGrant || !grant) {
         return reply.status(403).send({ success: false, error: 'access_denied', requestId })
       }
 
@@ -151,12 +148,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       const { jobId, platform } = parsed.data
 
-      const grant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: session.sessionId },
-        include: { job: true },
-      })
-
-      if (!grant) {
+      const { hasGrant, grant } = await sessionHasGrant(jobId, session)
+      if (!hasGrant || !grant) {
         return reply.status(403).send({ success: false, error: 'access_denied', requestId })
       }
 
@@ -231,12 +224,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
       }
 
-      const grant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: session.sessionId },
-        include: { job: true },
-      })
-
-      if (!grant) {
+      const { hasGrant, grant } = await sessionHasGrant(jobId, session)
+      if (!hasGrant || !grant) {
         return reply.status(403).send({ success: false, error: 'access_denied', requestId })
       }
 
@@ -326,12 +315,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
           }
         : undefined
 
-      const grant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: session.sessionId },
-        include: { job: true },
-      })
-
-      if (!grant) {
+      const { hasGrant, grant } = await sessionHasGrant(jobId, session)
+      if (!hasGrant || !grant) {
         return reply.status(403).send({ success: false, error: 'access_denied', requestId })
       }
 
@@ -409,8 +394,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       }
       const { jobId } = parsed.data
 
-      const job = await prisma.generationJob.findUnique({ where: { id: jobId } })
-      if (!job || job.sessionId !== session.sessionId) {
+      const { owns, job } = await sessionOwnsJob(jobId, session)
+      if (!owns || !job) {
         return reply.status(404).send({ success: false, error: 'not_found', requestId })
       }
 
@@ -425,11 +410,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       // Short-circuit when a grant already exists for this job — avoids
       // double-spending if the FE retries after a slow response.
-      const existingGrant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: session.sessionId },
-        select: { id: true },
-      })
-      if (existingGrant) {
+      const existingGrantResult = await sessionHasGrant(jobId, session)
+      if (existingGrantResult.hasGrant) {
         return reply.send({ success: true, data: { hasGrant: true }, requestId })
       }
 
@@ -541,12 +523,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
       }
 
-      const grant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: session.sessionId },
-        include: { job: true },
-      })
-
-      if (!grant) {
+      const { hasGrant, grant } = await sessionHasGrant(jobId, session)
+      if (!hasGrant || !grant) {
         return reply.status(403).send({ success: false, error: 'access_denied', requestId })
       }
 
@@ -592,13 +570,11 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       if (!jobId) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
       }
-      const grant = await prisma.downloadGrant.findFirst({
-        where: { jobId, sessionId: request.session.sessionId },
-        select: { id: true },
-      })
+      const session = request.session
+      const { hasGrant } = await sessionHasGrant(jobId, session)
       return reply.send({
         success: true,
-        data: { hasGrant: Boolean(grant) },
+        data: { hasGrant },
         requestId,
       })
     },
@@ -618,9 +594,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
       }
 
-      const job = await prisma.generationJob.findUnique({ where: { id: jobId } })
-
-      if (!job || job.sessionId !== session.sessionId) {
+      const { owns, job } = await sessionOwnsJob(jobId, session)
+      if (!owns || !job) {
         return reply.status(404).send({ success: false, error: 'not_found', requestId })
       }
 
