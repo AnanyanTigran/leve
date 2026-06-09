@@ -111,22 +111,32 @@ export default function DownloadSuccessPage() {
   // Detect share/clipboard capabilities after hydration to avoid SSR mismatch
   useEffect(() => {
     try {
-      const testFile = new File([], 'test.jpg', { type: 'image/jpeg' })
-      setSupportsShare(!!navigator.canShare && navigator.canShare({ files: [testFile] }))
+      if (navigator.share) {
+        const testFile = new File([''], 'test.jpg', { type: 'image/jpeg' })
+        if (navigator.canShare) {
+          setSupportsShare(navigator.canShare({ files: [testFile] }))
+        } else {
+          // Browser has navigator.share but no canShare — assume file sharing works
+          setSupportsShare(true)
+        }
+      }
     } catch {
       setSupportsShare(false)
     }
     setSupportsClipboard(!!navigator.clipboard)
   }, [])
 
-  // Preload the image blob so the share call stays within the user-gesture window
+  // Preload the image blob via proxy so the share call stays within the user-gesture window.
+  // Uses the server-side proxy endpoint instead of the CloudFront URL directly to avoid CORS.
   useEffect(() => {
-    if (!previewUrl || !supportsShare) return
-    fetch(previewUrl)
+    if (!supportsShare) return
+    const jobId = sessionStorage.getItem('leve_job_id')
+    if (!jobId) return
+    fetch(`/api/download/proxy?jobId=${encodeURIComponent(jobId)}`)
       .then((r) => r.blob())
       .then((blob) => { blobRef.current = blob })
       .catch(() => {})
-  }, [previewUrl, supportsShare])
+  }, [supportsShare])
 
   const primaryButtonLabel = selectedPlatform === 'original_hd'
     ? t('download_btn')
@@ -184,10 +194,12 @@ export default function DownloadSuccessPage() {
   }
 
   async function handleShare() {
-    if (!previewUrl) return
+    if (shareState !== 'idle') return
     setShareState('loading')
     try {
-      const blob: Blob = blobRef.current ?? await fetch(previewUrl).then((r) => r.blob())
+      const jobId = sessionStorage.getItem('leve_job_id')
+      if (!jobId) throw new Error('no job id')
+      const blob: Blob = blobRef.current ?? await fetch(`/api/download/proxy?jobId=${encodeURIComponent(jobId)}`).then((r) => r.blob())
       blobRef.current = blob
       const file = new File([blob], 'leve-studio.jpg', { type: 'image/jpeg' })
       // Empty string title prevents iOS from sharing text instead of the image
@@ -201,17 +213,12 @@ export default function DownloadSuccessPage() {
       }
       setShareState('error')
       setTimeout(() => setShareState('idle'), 2000)
-      // On any error except NotAllowedError, fall back to standard download
-      if (!(err instanceof Error && err.name === 'NotAllowedError')) {
-        void triggerDownload()
-      }
     }
   }
 
   async function handleCopyLink() {
-    if (!previewUrl) return
     try {
-      await navigator.clipboard.writeText(previewUrl)
+      await navigator.clipboard.writeText(window.location.href)
       setCopyState('success')
       setTimeout(() => setCopyState('idle'), 2000)
     } catch {
