@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
+import Image from 'next/image'
 import { motion, useInView } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -12,6 +13,18 @@ import { useSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
 import { CATEGORY_ITEMS } from '@/lib/constants'
+
+const CDN = process.env.NEXT_PUBLIC_CDN_URL ?? ''
+
+const SHOWCASE_BEFORE = `${CDN}/assets/showcase/before.jpg`
+const SHOWCASE_AFTER = `${CDN}/assets/showcase/after.jpg`
+
+const SHOWCASE_CARDS = [
+  { id: 'beauty',   src: `${CDN}/assets/showcase/beauty.jpg`,   alt: 'beauty' },
+  { id: 'jewelry',  src: `${CDN}/assets/showcase/jewelry.jpg`,  alt: 'jewelry' },
+  { id: 'fashion',  src: `${CDN}/assets/showcase/fashion.jpg`,  alt: 'fashion' },
+  { id: 'food',     src: `${CDN}/assets/showcase/food.jpg`,     alt: 'food' },
+]
 
 const STEPS = [1, 2, 3] as const
 
@@ -164,10 +177,31 @@ export function LandingContent() {
               transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
             >
               <BeforeAfterSlider
-                beforeSrc={null}
-                afterSrc={null}
+                beforeSrc={SHOWCASE_BEFORE}
+                afterSrc={SHOWCASE_AFTER}
                 aspectRatio="1:1"
               />
+            </motion.div>
+
+            {/* Showcase cards grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.35 }}
+              className="grid grid-cols-2 gap-3 mt-6"
+            >
+              {SHOWCASE_CARDS.map((card, i) => (
+                <div key={card.id} className="relative aspect-square rounded-[12px] overflow-hidden bg-bg-elevated">
+                  <Image
+                    src={card.src}
+                    alt={card.alt}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 50vw, 280px"
+                    priority={i === 0}
+                  />
+                </div>
+              ))}
             </motion.div>
           </div>
         </section>

@@ -9,6 +9,12 @@ const nextConfig = {
     buildActivity: false,
     appIsrStatus: false,
   },
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'cdn.leve.am' },
+      { protocol: 'https', hostname: '*.cloudfront.net' },
+    ],
+  },
   async rewrites() {
     return [
       {
