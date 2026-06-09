@@ -205,6 +205,11 @@ export default function ResultsPage() {
         pollFailuresRef.current = 0
         if (isReconnecting) setIsReconnecting(false)
 
+        // Restore upload key for cross-session job editing
+        if (data.data.uploadS3Key && !sessionStorage.getItem('leve_upload_key')) {
+          sessionStorage.setItem('leve_upload_key', data.data.uploadS3Key)
+        }
+
         const status: JobStatus = data.data.status
         setJobStatus(status)
 

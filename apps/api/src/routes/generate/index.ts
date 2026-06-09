@@ -129,14 +129,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
 
       app.log.info({ requestId }, 'prompt compiled')
 
-      // Resolve userId so history queries can span sessions for the same user
-      let userId: string | null = null
-      if (session.isVerified && (session.phone || session.email)) {
-        const ident = session.phone ?? session.email!
-        const identType: 'phone' | 'email' = session.phone ? 'phone' : 'email'
-        const user = await UserService.getByIdentifier(ident, identType).catch(() => null)
-        if (user) userId = user.id
-      }
+      const userId = session.userId ?? null
 
       const job = await prisma.generationJob.create({
         data: {
@@ -245,6 +238,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
           phase: phase ?? job.status,
           previewS3Keys: job.previewS3Keys,
           hdS3Key: job.hdS3Key,
+          uploadS3Key: job.uploadS3Key,
           provider: job.provider,
           errorCode: job.errorCode ?? null,
         },
@@ -307,6 +301,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         status: true,
         previewS3Keys: true,
         hdS3Key: true,
+        uploadS3Key: true,
         createdAt: true,
       } as const
 
@@ -320,6 +315,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         status: string
         previewS3Keys: string[]
         hdS3Key: string | null
+        uploadS3Key: string
         createdAt: Date
       }> = []
 

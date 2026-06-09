@@ -17,6 +17,7 @@ interface HistoryJob {
   status: string
   previewS3Keys: string[]
   hdS3Key: string | null
+  uploadS3Key: string | null
   createdAt: string
 }
 
@@ -117,6 +118,9 @@ export default function HistoryPage() {
                 key={job.id}
                 onClick={() => {
                   sessionStorage.setItem('leve_job_id', job.id)
+                  if (job.uploadS3Key) {
+                    sessionStorage.setItem('leve_upload_key', job.uploadS3Key)
+                  }
                   router.push('/results')
                 }}
                 className="relative aspect-square rounded-[12px] overflow-hidden bg-bg-elevated"
