@@ -18,9 +18,10 @@
   },
   "landing": {
     "eyebrow": "AI product photography",
-    "headline_1": "Your product.",
-    "headline_2": "Studio quality.",
-    "subtext": "Choose your category, upload a photo, and get 4 studio-quality images in 30 seconds.",
+    "headline_1": "Studio-quality product photos in 30 seconds",
+    "headline_2": "",
+    "hero_trust_line": "Free to try — no account needed",
+    "subtext": "Upload any product photo. Choose from 30+ scenes. Get 4 studio-quality variations in 30 seconds.",
     "category_beauty": "Beauty & Cosmetics",
     "category_beauty_sub": "Skincare, makeup, perfume",
     "category_jewelry": "Jewelry & Accessories",

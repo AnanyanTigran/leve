@@ -5,17 +5,17 @@ import type {
   CategorySceneMap,
   AspectRatioOption,
 } from '@leve/types'
-import { Sparkles, Gem, Shirt, Coffee, Wand2, Cpu, Home, Smile } from 'lucide-react'
+import { Sparkles, Gem, Shirt, UtensilsCrossed, Wand2, Monitor, Home, Star } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export const CATEGORY_ITEMS: { id: ProductCategory; icon: LucideIcon; tKey: string }[] = [
   { id: 'beauty_cosmetics',    icon: Sparkles, tKey: 'category_beauty' },
   { id: 'jewelry_accessories', icon: Gem,      tKey: 'category_jewelry' },
   { id: 'fashion_clothing',    icon: Shirt,    tKey: 'category_fashion' },
-  { id: 'food_cafe',           icon: Coffee,   tKey: 'category_food' },
-  { id: 'electronics_gadgets', icon: Cpu,      tKey: 'category_electronics' },
-  { id: 'home_decor',          icon: Home,     tKey: 'category_home_decor' },
-  { id: 'toys_children',       icon: Smile,    tKey: 'category_toys' },
+  { id: 'food_cafe',           icon: UtensilsCrossed, tKey: 'category_food' },
+  { id: 'electronics_gadgets', icon: Monitor,         tKey: 'category_electronics' },
+  { id: 'home_decor',          icon: Home,            tKey: 'category_home_decor' },
+  { id: 'toys_children',       icon: Star,            tKey: 'category_toys' },
   { id: 'custom',              icon: Wand2,    tKey: 'category_custom' },
 ]
 

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion, useInView } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, CheckCircle } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { BeforeAfterSlider } from '@/components/results/before-after-slider'
@@ -98,8 +98,6 @@ export function LandingContent() {
               className="font-display font-semibold text-[40px] leading-[1.05] text-text-primary lg:text-[48px] text-balance text-center lg:text-center"
             >
               {t('headline_1')}
-              <br />
-              {t('headline_2')}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 24 }}
@@ -110,10 +108,38 @@ export function LandingContent() {
               {t('subtext')}
             </motion.p>
 
-            {/* Category cards — stagger 0.08s per card, scroll-triggered */}
+            {/* Hero CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.35 }}
+              className="flex justify-center mt-6"
+            >
+              <motion.button
+                type="button"
+                onClick={handleCTAClick}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="btn-primary inline-flex px-12 text-base"
+                style={{ minWidth: '220px' }}
+              >
+                {t('cta_button')}
+              </motion.button>
+            </motion.div>
+            <motion.p
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.4 }}
+              className="text-sm font-ui text-text-muted mt-2 text-center"
+            >
+              {t('hero_trust_line')}
+            </motion.p>
+
+            {/* Category cards — stagger 0.06s per card, scroll-triggered */}
             <motion.div
               ref={categoriesRef}
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
               initial="hidden"
               animate={categoriesInView ? 'show' : 'hidden'}
               className="grid grid-cols-2 gap-3 mt-8"
@@ -127,24 +153,19 @@ export function LandingContent() {
                     type="button"
                     onClick={() => handleCategorySelect(cat.id)}
                     className={cn(
-                      'flex items-center w-full min-h-[72px] py-4 px-4 rounded-[12px] border transition-all duration-100',
+                      'flex flex-col items-center justify-center w-full min-h-[100px] py-4 px-3 rounded-[12px] border transition-all duration-100',
                       'bg-bg-surface border-border-default',
                       'active:scale-[0.98]',
                       'hover:border-accent hover:bg-accent-subtle'
                     )}
                   >
-                    <div className="flex items-center justify-center w-10 h-10 rounded-[8px] bg-accent-subtle shrink-0">
-                      <Icon className="w-5 h-5 text-accent" strokeWidth={1.75} />
-                    </div>
-                    <div className="flex flex-col items-start ml-3 min-w-0">
-                      <span className="font-ui font-semibold text-base text-text-primary leading-tight">
-                        {t(cat.tKey)}
-                      </span>
-                      <span className="font-ui text-[13px] text-text-muted leading-tight mt-0.5">
-                        {t(`${cat.tKey}_sub`)}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-text-muted ml-auto shrink-0" />
+                    <Icon className="w-6 h-6 text-accent mb-2" strokeWidth={1.75} />
+                    <span className="font-ui font-semibold text-[13px] text-text-primary leading-tight text-center">
+                      {t(cat.tKey)}
+                    </span>
+                    <span className="font-ui text-[11px] text-text-muted leading-tight mt-0.5 text-center px-1">
+                      {t(`${cat.tKey}_sub`)}
+                    </span>
                   </motion.button>
                 )
               })}
