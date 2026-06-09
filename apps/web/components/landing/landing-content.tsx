@@ -1,32 +1,40 @@
 'use client'
 
+import { useRef } from 'react'
+import { motion, useInView } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, CheckCircle } from 'lucide-react'
 import { AppHeader } from '@/components/shared/app-header'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
+import { BeforeAfterSlider } from '@/components/results/before-after-slider'
 import { useSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
 import { CATEGORY_ITEMS } from '@/lib/constants'
 
-const SHOWCASE_CARDS = [
-  { category: 'Jewelry', template: 'Jewelry Luxury', leftBg: '#E8E8E8', rightBg: 'linear-gradient(135deg, #f0ebe4, #e2d5c8)' },
-  { category: 'Beauty', template: 'Luxury Cosmetics', leftBg: '#E8E8E8', rightBg: 'linear-gradient(135deg, #fef0eb, #fad5c4)' },
-  { category: 'Marketplace', template: 'Wildberries Standard', leftBg: '#E8E8E8', rightBg: '#FAFAFA' },
-] as const
-
 const STEPS = [1, 2, 3] as const
+
+const staggerChild = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
+}
 
 export function LandingContent() {
   const router = useRouter()
   const t = useTranslations('landing')
   const { session, status } = useSession()
-  // Hide the inline "Sign in" link once we know the user is verified —
-  // AppHeader now renders <UserMenu /> in that same slot. While the session
-  // is hydrating we keep the link hidden too, to avoid a flicker from
-  // sign-in → avatar on first paint for returning users.
   const showSignIn = status === 'ready' && !session?.isVerified
+
+  const categoriesRef = useRef<HTMLDivElement>(null)
+  const showcaseRef = useRef<HTMLElement>(null)
+  const stepsRef = useRef<HTMLElement>(null)
+  const ctaRef = useRef<HTMLElement>(null)
+
+  const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.1 })
+  const showcaseInView = useInView(showcaseRef, { once: true, amount: 0.2 })
+  const stepsInView = useInView(stepsRef, { once: true, amount: 0.2 })
+  const ctaInView = useInView(ctaRef, { once: true, amount: 0.3 })
 
   function handleCategorySelect(categoryId: ProductCategory) {
     sessionStorage.setItem('leve_category', categoryId)
@@ -38,7 +46,7 @@ export function LandingContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-bg-base">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-base)]">
       <AppHeader
         variant="landing"
         showLangSwitcher
@@ -59,28 +67,50 @@ export function LandingContent() {
       />
 
       <main className="flex-1">
-        {/* SECTION 1 — Hero */}
-        <section className="px-4 pt-12 pb-8 lg:pt-16">
-          <div className="mb-8 lg:mb-12 lg:text-center w-full max-w-[560px] lg:max-w-[680px] mx-auto">
-            <p className="text-sm font-ui font-medium text-accent uppercase tracking-[0.15em] mb-3 text-center lg:text-center">
+        {/* SECTION 1 — Hero (bg-base) */}
+        <section className="bg-[var(--bg-base)] px-4 pt-12 pb-8 lg:pt-16">
+          <div className="mb-8 lg:mb-12 w-full max-w-[560px] lg:max-w-[680px] mx-auto">
+            <motion.p
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0 }}
+              className="text-sm font-ui font-medium text-accent uppercase tracking-[0.15em] mb-3 text-center lg:text-center"
+            >
               {t('eyebrow')}
-            </p>
-            <h1 className="font-display font-semibold text-[40px] leading-[1.05] text-text-primary lg:text-[48px] text-balance text-center lg:text-center">
+            </motion.p>
+            <motion.h1
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+              className="font-display font-semibold text-[40px] leading-[1.05] text-text-primary lg:text-[48px] text-balance text-center lg:text-center"
+            >
               {t('headline_1')}
               <br />
               {t('headline_2')}
-            </h1>
-            <p className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg lg:mx-auto text-center lg:text-center">
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
+              className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg lg:mx-auto text-center lg:text-center"
+            >
               {t('subtext')}
-            </p>
+            </motion.p>
 
-            {/* Category cards — 2 col mobile (4 rows × 2), 2 col desktop */}
-            <div className="grid grid-cols-2 gap-3 mt-8">
+            {/* Category cards — stagger 0.08s per card, scroll-triggered */}
+            <motion.div
+              ref={categoriesRef}
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+              initial="hidden"
+              animate={categoriesInView ? 'show' : 'hidden'}
+              className="grid grid-cols-2 gap-3 mt-8"
+            >
               {CATEGORY_ITEMS.map((cat) => {
                 const Icon = cat.icon
                 return (
-                  <button
+                  <motion.button
                     key={cat.id}
+                    variants={staggerChild}
                     type="button"
                     onClick={() => handleCategorySelect(cat.id)}
                     className={cn(
@@ -102,71 +132,72 @@ export function LandingContent() {
                       </span>
                     </div>
                     <ChevronRight className="w-5 h-5 text-text-muted ml-auto shrink-0" />
-                  </button>
+                  </motion.button>
                 )
               })}
-            </div>
-
-            <p className="text-center text-[12px] text-text-muted mt-4 font-ui">
-              {t('trusted_by')}
-            </p>
+            </motion.div>
           </div>
         </section>
 
-        {/* SECTION 3 — Before/After showcase */}
-        <section className="px-4 py-16">
-          <div className="max-w-[960px] mx-auto">
-            <h2 className="font-display font-semibold text-[28px] text-text-primary text-center mb-3">
+        {/* SECTION 2 — Before/After showcase (bg-surface) */}
+        <section ref={showcaseRef} className="bg-[var(--bg-surface)] px-4 py-16">
+          <div className="max-w-[540px] mx-auto">
+            <motion.h2
+              initial={{ opacity: 0, y: 24 }}
+              animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="font-display font-semibold text-[28px] text-text-primary text-center mb-3"
+            >
               {t('showcase_title')}
-            </h2>
-            <p className="font-ui text-base text-text-secondary text-center mb-8">
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 24 }}
+              animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+              className="font-ui text-base text-text-secondary text-center mb-8"
+            >
               {t('showcase_subtitle')}
-            </p>
-
-            <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth gap-4 pb-2 no-scrollbar md:grid md:grid-cols-3 md:overflow-x-visible md:pb-0">
-              {SHOWCASE_CARDS.map((card) => (
-                <div
-                  key={card.template}
-                  className="snap-start shrink-0 w-[85vw] md:w-auto bg-bg-surface border border-border-default rounded-md overflow-hidden"
-                >
-                  <div className="relative flex h-[180px]">
-                    <div className="relative flex-1" style={{ backgroundColor: card.leftBg }}>
-                      <span className="absolute top-2 left-2 bg-white text-text-muted text-[11px] font-ui px-2 py-1 rounded-[10px]">
-                        {t('before')}
-                      </span>
-                    </div>
-                    <div className="w-px bg-white" />
-                    <div
-                      className={`relative flex-1${card.category === 'Marketplace' ? ' border border-border-default' : ''}`}
-                      style={{ background: card.rightBg }}
-                    >
-                      <span className="absolute top-2 right-2 bg-accent text-white text-[11px] font-ui px-2 py-1 rounded-[10px]">
-                        {t('after')}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <p className="text-xs font-ui text-text-muted">{card.category}</p>
-                    <p className="text-sm font-ui font-semibold text-text-primary mt-0.5">{card.template}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 32 }}
+              animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
+            >
+              <BeforeAfterSlider
+                beforeSrc={null}
+                afterSrc={null}
+                aspectRatio="1:1"
+              />
+            </motion.div>
           </div>
         </section>
 
-        {/* SECTION 4 — How it works */}
-        <section className="bg-bg-base px-4 py-16">
+        {/* SECTION 3 — How it works (bg-base) */}
+        <section ref={stepsRef} className="bg-[var(--bg-base)] px-4 py-16">
           <div className="max-w-[720px] mx-auto">
-            <h2 className="font-display font-semibold text-[28px] text-text-primary text-center mb-12">
+            <motion.h2
+              initial={{ opacity: 0, y: 24 }}
+              animate={stepsInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="font-display font-semibold text-[28px] text-text-primary text-center mb-12"
+            >
               {t('steps_title')}
-            </h2>
+            </motion.h2>
 
-            <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4">
+            <motion.div
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
+              initial="hidden"
+              animate={stepsInView ? 'show' : 'hidden'}
+              className="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4"
+            >
               <div className="hidden md:block absolute top-4 left-[calc(16.67%+16px)] right-[calc(16.67%+16px)] h-px bg-border-default" />
               {STEPS.map((num) => (
-                <div key={num} className="flex flex-col items-center text-center">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full border border-border-strong bg-bg-base mb-4 relative z-10">
+                <motion.div
+                  key={num}
+                  variants={staggerChild}
+                  className="flex flex-col items-center text-center"
+                >
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full border border-border-strong bg-[var(--bg-base)] mb-4 relative z-10">
                     <span className="font-ui font-semibold text-[16px] text-text-primary">{num}</span>
                   </div>
                   <h3 className="font-ui font-semibold text-[16px] text-text-primary mb-2">
@@ -175,14 +206,14 @@ export function LandingContent() {
                   <p className="font-ui text-sm text-text-secondary leading-relaxed">
                     {t(`step${num}_desc`)}
                   </p>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        {/* SECTION 5 — Marketplace callout */}
-        <section className="bg-bg-base py-12 px-4">
+        {/* SECTION 4 — Marketplace callout (bg-surface) */}
+        <section className="bg-[var(--bg-surface)] py-12 px-4">
           <div className="max-w-[640px] mx-auto text-center md:text-left">
             <p className="text-xs font-ui font-medium text-accent uppercase tracking-[0.15em]">
               {t('marketplace_eyebrow')}
@@ -207,33 +238,46 @@ export function LandingContent() {
           </div>
         </section>
 
-        {/* SECTION 6 — Final CTA */}
-        <section className="py-16 px-4 text-center">
-          <h2 className="font-display font-semibold text-[28px] text-text-primary mb-3">
+        {/* SECTION 5 — Final CTA (bg-base) */}
+        <section ref={ctaRef} className="bg-[var(--bg-base)] py-16 px-4 text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 24 }}
+            animate={ctaInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="font-display font-semibold text-[28px] text-text-primary mb-3"
+          >
             {t('cta_title')}
-          </h2>
-          <p className="font-ui text-base text-text-secondary mb-8">
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 24 }}
+            animate={ctaInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+            className="font-ui text-base text-text-secondary mb-8"
+          >
             {t('cta_subtitle')}
-          </p>
-          <button
+          </motion.p>
+          <motion.button
+            initial={{ opacity: 0, y: 24 }}
+            animate={ctaInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
             type="button"
             onClick={handleCTAClick}
             className="btn-primary inline-flex px-12 text-base mx-auto"
             style={{ width: 'auto', minWidth: '220px' }}
           >
             {t('cta_button')}
-          </button>
+          </motion.button>
         </section>
       </main>
 
-      {/* MINIMAL FOOTER */}
-      <footer className="bg-bg-surface border-t border-border-default py-5 px-4">
+      {/* FOOTER (bg-base) */}
+      <footer className="bg-[var(--bg-base)] border-t border-border-default py-5 px-4">
         <div className="max-w-[960px] mx-auto flex flex-col items-center gap-4 md:flex-row md:justify-between">
           <span className="text-xs font-ui text-text-muted">{t('footer_copyright')}</span>
-          <div className="flex items-center gap-6">
-            <a href="/terms" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_terms')}</a>
-            <a href="/privacy" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_privacy')}</a>
-            <a href="mailto:hello@leve.am" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70">{t('footer_contact')}</a>
+          <div className="flex items-center gap-2">
+            <a href="/terms" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70 py-3 px-2">{t('footer_terms')}</a>
+            <a href="/privacy" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70 py-3 px-2">{t('footer_privacy')}</a>
+            <a href="mailto:hello@leve.am" className="text-xs font-ui text-text-muted transition-opacity hover:opacity-70 py-3 px-2">{t('footer_contact')}</a>
           </div>
         </div>
       </footer>

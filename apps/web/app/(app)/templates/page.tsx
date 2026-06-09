@@ -341,8 +341,8 @@ export default function SceneSelectionPage() {
       />
 
       {generationError && (
-        <div className="mx-4 mt-3 px-4 py-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-[10px]">
-          <p className="text-[13px] text-[#DC2626] font-medium">
+        <div className="mx-4 mt-3 px-4 py-3 bg-error-subtle border border-[var(--color-error)]/30 rounded-[10px]">
+          <p className="text-[13px] text-error font-medium">
             {generationError === 'timeout'
               ? t('error_timeout')
               : generationError === 'quality_gate_failed'

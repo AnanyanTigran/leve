@@ -9,9 +9,9 @@ import '@/styles/globals.css'
 function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem={false}
+      attribute="data-theme"
+      defaultTheme="dark"
+      enableSystem={true}
       disableTransitionOnChange
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...({ children } as any)}

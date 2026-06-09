@@ -31,6 +31,7 @@ const CONVERT_TO_JPEG_MIMES = new Set([
   'image/heif',
   'image/avif',
   'image/tiff',
+  'image/webp',
 ])
 const MAX_BYTES = 20 * 1024 * 1024 // 20MB
 const MIN_DIMENSION = 512
@@ -70,7 +71,15 @@ export async function validateImage(buffer: Buffer, originalExtension?: string):
   // If fileType says video/* but the original extension is .heic or .heif,
   // trust the extension — it's an iPhone photo, not a video.
   const effectiveMime = (() => {
-    if (!fileType) return null
+    if (!fileType) {
+      if (originalExtension === 'heic' || originalExtension === 'heif') return 'image/heic'
+      if (originalExtension === 'avif') return 'image/avif'
+      if (originalExtension === 'tif' || originalExtension === 'tiff') return 'image/tiff'
+      if (originalExtension === 'jpg' || originalExtension === 'jpeg') return 'image/jpeg'
+      if (originalExtension === 'png') return 'image/png'
+      if (originalExtension === 'webp') return 'image/webp'
+      return null
+    }
     if (
       fileType.mime.startsWith('video/') &&
       (originalExtension === 'heic' || originalExtension === 'heif')
@@ -131,7 +140,10 @@ export async function validateImage(buffer: Buffer, originalExtension?: string):
       // Do NOT specify which label — prevents policy probing
       return { valid: false, error: 'content_policy_violation' }
     }
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.__type === 'InvalidImageFormatException') {
+      return { valid: false, error: 'invalid_file_type' }
+    }
     console.error({ service: 'rekognition', event: 'moderation_unavailable', err }, '[upload] blocking upload — moderation service unavailable')
     return { valid: false, error: 'validation_failed' }
   }

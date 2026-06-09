@@ -28,7 +28,7 @@ export function GeneratedImageDisplay({ imageUrl, onRegenerate, className }: Gen
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
-          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-bg-elevated to-bg-surface" />
+          <div className="absolute inset-0 animate-pulse bg-bg-elevated" />
         )}
       </div>
     </div>

@@ -2,24 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fallback — shown briefly before next-themes sets data-theme.
+   Mirrors [data-theme="dark"] so dark is always the pre-hydration state. */
 :root {
-  --bg-base: #FFFFFF;
-  --bg-surface: #F8F8F6;
-  --bg-elevated: #F0EFEB;
-  --border-default: #E5E4DF;
-  --border-strong: #C8C7C0;
-  --text-primary: #0A0A0A;
-  --text-secondary: #6B6B6B;
-  --text-muted: #A0A0A0;
+  --bg-base: #0A0A0A;
+  --bg-surface: #141414;
+  --bg-elevated: #1E1E1E;
+  --border: #2A2A2A;
+  --border-hover: #3A3A3A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-muted: #4A4A4A;
   --accent: #D64C1A;
   --accent-hover: #E85A22;
-  --accent-subtle: #FDF0EB;
-  --accent-border: #F5C4AA;
+  --accent-subtle: #2A1208;
+  --accent-border: #5A2010;
 
   /* Semantic */
   --color-success: #4CAF50;
   --color-error: #EF4444;
   --color-warning: #F59E0B;
+  --success-subtle: rgba(76, 175, 80, 0.10);
+  --error-subtle: rgba(239, 68, 68, 0.10);
 
   /* Safe area insets */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -28,12 +32,12 @@
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
 }
 
-.dark {
+[data-theme="dark"] {
   --bg-base: #0A0A0A;
   --bg-surface: #141414;
   --bg-elevated: #1E1E1E;
-  --border-default: #2A2A2A;
-  --border-strong: #3A3A3A;
+  --border: #2A2A2A;
+  --border-hover: #3A3A3A;
   --text-primary: #FFFFFF;
   --text-secondary: #A0A0A0;
   --text-muted: #4A4A4A;
@@ -41,6 +45,31 @@
   --accent-hover: #E85A22;
   --accent-subtle: #2A1208;
   --accent-border: #5A2010;
+  --color-success: #4CAF50;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --success-subtle: rgba(76, 175, 80, 0.10);
+  --error-subtle: rgba(239, 68, 68, 0.10);
+}
+
+[data-theme="light"] {
+  --bg-base:        #FFFFFF;
+  --bg-surface:     #F5F5F5;
+  --bg-elevated:    #EBEBEB;
+  --border:         #E0E0E0;
+  --border-hover:   #CCCCCC;
+  --text-primary:   #0A0A0A;
+  --text-secondary: #5A5A5A;
+  --text-muted:     #9A9A9A;
+  --accent:         #D64C1A;
+  --accent-hover:   #E85A22;
+  --accent-subtle:  #FDF0EC;
+  --accent-border:  #F5C4B5;
+  --color-success:  #16A34A;
+  --color-error:    #DC2626;
+  --color-warning:  #D97706;
+  --success-subtle: #F0FDF4;
+  --error-subtle:   #FEF2F2;
 }
 
 @keyframes scale-in {
@@ -125,7 +154,7 @@
 
 @layer components {
   .btn-primary {
-    background-color: #D64C1A;
+    background-color: var(--accent);
     color: #FFFFFF;
     font-family: 'Inter', sans-serif;
     font-weight: 600;
@@ -144,7 +173,7 @@
     white-space: nowrap;
   }
 
-  .btn-primary:hover { background-color: #E85A22; }
+  .btn-primary:hover { background-color: var(--accent-hover); }
   .btn-primary:active { transform: scale(0.97); }
   .btn-primary:disabled { opacity: 0.4; pointer-events: none; }
 
@@ -177,14 +206,14 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border: 1.5px solid var(--border-default);
+    border: 1.5px solid var(--border);
     cursor: pointer;
     transition: border-color 150ms ease, background-color 150ms ease;
     white-space: nowrap;
   }
 
   .btn-secondary:hover {
-    border-color: var(--border-strong);
+    border-color: var(--border-hover);
     background-color: var(--bg-surface);
   }
   .btn-secondary:active { transform: scale(0.97); }
@@ -253,9 +282,13 @@
     animation: processing-fade-in 220ms ease-out forwards;
   }
 
+  /* Processing card — accent glow shadow, extracted from inline style */
+  .processing-card-shadow {
+    box-shadow: 0 25px 60px -15px rgba(214, 76, 26, 0.25), 0 10px 25px -5px rgba(0,0,0,0.4);
+  }
+
   /* Skeleton shimmer for loading states */
   .skeleton {
     @apply bg-bg-elevated animate-pulse rounded-md;
   }
 }
-

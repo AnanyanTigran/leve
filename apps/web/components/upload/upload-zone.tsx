@@ -291,7 +291,7 @@ export function UploadZone() {
                 : isDragging
                 ? 'border-[1.5px] border-solid border-accent bg-accent-subtle cursor-pointer'
                 : error
-                ? 'border-[1.5px] border-dashed border-[#DC2626]/40 bg-[#DC2626]/5 cursor-pointer'
+                ? 'border-[1.5px] border-dashed border-[#EF4444]/40 bg-[#EF4444]/5 cursor-pointer'
                 : 'border-[1.5px] border-dashed border-border-default bg-bg-base cursor-pointer',
             ].join(' ')}
           >
@@ -315,12 +315,12 @@ export function UploadZone() {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleRemove() }}
-                  className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg bg-black/40 hover:bg-black/60 transition-colors"
+                  className="absolute top-2 right-2 w-12 h-12 flex items-center justify-center rounded-lg bg-black/40 hover:bg-black/60 transition-colors"
                   aria-label="Remove file"
                 >
                   <X className="w-5 h-5 text-white" />
                 </button>
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/80 to-transparent flex items-end p-3 gap-3">
+                <div className="absolute bottom-0 left-0 right-0 bg-bg-elevated border-t border-border-default flex items-center p-3 gap-3">
                   <div className="flex-1 min-w-0">
                     <span className="text-[13px] text-white font-medium truncate block">{fileState.file.name}</span>
                     <span className="text-[11px] text-white/60">{formatFileSize(fileState.file.size)}</span>
@@ -338,9 +338,9 @@ export function UploadZone() {
               <div className="flex flex-col items-center justify-center h-full w-full min-h-[300px] lg:min-h-[520px] gap-3 text-center p-8">
                 {error ? (
                   <>
-                    <AlertCircle className="w-12 h-12 text-[#DC2626]" strokeWidth={1.5} />
+                    <AlertCircle className="w-12 h-12 text-error" strokeWidth={1.5} />
                     <div className="flex flex-col items-center gap-1">
-                      <span className="text-[15px] font-semibold text-[#DC2626]">{error}</span>
+                      <span className="text-[15px] font-semibold text-error">{error}</span>
                       <span className="text-[13px] text-text-muted mt-1">{t('tap_to_upload')}</span>
                     </div>
                   </>
@@ -410,7 +410,7 @@ export function UploadZone() {
                   type="button"
                   onClick={() => handleCategorySelect(item.id)}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[36px]',
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[48px]',
                     selectedCategory === item.id
                       ? 'bg-accent text-white border-accent'
                       : 'bg-bg-elevated text-text-secondary border-border-default hover:border-border-hover',

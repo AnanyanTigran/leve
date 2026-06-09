@@ -315,7 +315,7 @@ export default function DownloadSuccessPage() {
             : primaryButtonLabel}
         </button>
         {downloadError && (
-          <p className="text-[13px] text-[#DC2626] text-center mt-2">{downloadError}</p>
+          <p className="text-[13px] text-error text-center mt-2">{downloadError}</p>
         )}
 
         {/* Share (mobile/tablet) or Copy link (desktop) — only when image is ready */}
