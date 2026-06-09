@@ -111,9 +111,9 @@ export default function DownloadSuccessPage() {
   // Detect share/clipboard capabilities after hydration to avoid SSR mismatch
   useEffect(() => {
     try {
-      if (navigator.share) {
+      if ('share' in navigator) {
         const testFile = new File([''], 'test.jpg', { type: 'image/jpeg' })
-        if (navigator.canShare) {
+        if ('canShare' in navigator && navigator.canShare) {
           setSupportsShare(navigator.canShare({ files: [testFile] }))
         } else {
           // Browser has navigator.share but no canShare — assume file sharing works
