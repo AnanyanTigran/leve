@@ -307,42 +307,35 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
 
       const WHERE_STATUS = { in: ['done', 'credit_refunded'] }
 
-      // Primary query: find all jobs linked to this user across all sessions
-      let jobs: Array<{
-        id: string
-        templateId: string
-        category: string
-        status: string
-        previewS3Keys: string[]
-        hdS3Key: string | null
-        uploadS3Key: string
-        createdAt: Date
-      }> = []
-
       const identifier = session.phone ?? session.email
       const identifierType: 'phone' | 'email' = session.phone ? 'phone' : 'email'
 
-      if (identifier) {
-        const user = await UserService.getByIdentifier(identifier, identifierType).catch(() => null)
-        if (user) {
-          jobs = await prisma.generationJob.findMany({
-            where: { userId: user.id, status: WHERE_STATUS },
-            orderBy: { createdAt: 'desc' },
-            take: 50,
-            select: SELECT,
-          })
-        }
-      }
+      const user = identifier
+        ? await UserService.getByIdentifier(identifier, identifierType).catch(() => null)
+        : null
 
-      // Fallback for older jobs that predate the userId field
-      if (jobs.length === 0) {
-        jobs = await prisma.generationJob.findMany({
-          where: { sessionId: session.sessionId, status: WHERE_STATUS },
-          orderBy: { createdAt: 'desc' },
-          take: 50,
-          select: SELECT,
-        })
-      }
+      // Union userId + sessionId so pre-userId jobs are visible alongside newer
+      // userId-linked ones. Without OR, the userId query returning results would
+      // silently hide old jobs that only have a sessionId match.
+      const whereClause = user
+        ? {
+            status: WHERE_STATUS,
+            OR: [
+              { userId: user.id },
+              { sessionId: session.sessionId },
+            ],
+          }
+        : {
+            status: WHERE_STATUS,
+            sessionId: session.sessionId,
+          }
+
+      const jobs = await prisma.generationJob.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: SELECT,
+      })
 
       return reply.send({
         success: true,
