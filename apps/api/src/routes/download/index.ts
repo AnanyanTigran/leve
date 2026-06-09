@@ -488,6 +488,61 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
     },
   )
 
+  // GET /api/download/proxy
+  // Fetches the HD image from S3 server-side and streams it to the client.
+  // Scoped to jobs belonging to the requesting session via DownloadGrant.
+  // Enables navigator.share file sharing without browser CORS restriction.
+  app.get(
+    '/api/download/proxy',
+    { preHandler: [app.requireVerified], config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const requestId = nanoid(10)
+      const session = request.session
+      const { jobId } = request.query as { jobId?: string }
+
+      if (!jobId) {
+        return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
+      }
+
+      const grant = await prisma.downloadGrant.findFirst({
+        where: { jobId, sessionId: session.sessionId },
+        include: { job: true },
+      })
+
+      if (!grant) {
+        return reply.status(403).send({ success: false, error: 'access_denied', requestId })
+      }
+
+      if (!grant.job.hdS3Key) {
+        return reply.status(404).send({ success: false, error: 'hd_not_ready', requestId })
+      }
+
+      let hdKey: string
+      try {
+        hdKey = await resolveHdKeyWithOverlay(grant.job.hdS3Key, grant.job)
+      } catch (err) {
+        app.log.error({ requestId, jobId, err }, 'overlay composite failed — falling back to clean HD')
+        hdKey = grant.job.hdS3Key
+      }
+
+      let buffer: Buffer
+      try {
+        buffer = await downloadFromS3(hdKey)
+      } catch (err) {
+        app.log.error({ requestId, jobId, err }, 's3 fetch failed')
+        return reply.status(500).send({ success: false, error: 's3_fetch_failed', requestId })
+      }
+
+      app.log.info({ requestId, jobId, sessionId: session.sessionId }, 'proxy image served for share')
+
+      return reply
+        .header('Content-Type', 'image/jpeg')
+        .header('Content-Disposition', 'attachment; filename="leve-studio.jpg"')
+        .header('Cache-Control', 'private, max-age=300')
+        .send(buffer)
+    },
+  )
+
   // GET /api/download/check
   // Cheap existence check for a DownloadGrant. Lets the FE render the
   // correct CTA on results (download vs unlock) without a 403 round-trip.
