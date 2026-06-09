@@ -10,6 +10,8 @@ interface BeforeAfterSliderProps {
   afterSrc?: string | null
   aspectRatio?: AspectRatio
   className?: string
+  externalPosition?: number | null
+  onUserInteract?: () => void
 }
 
 export function BeforeAfterSlider({
@@ -17,6 +19,8 @@ export function BeforeAfterSlider({
   afterSrc,
   aspectRatio = '1:1',
   className,
+  externalPosition,
+  onUserInteract,
 }: BeforeAfterSliderProps) {
   const t = useTranslations('results')
   const [sliderPosition, setSliderPosition] = useState(30)
@@ -45,7 +49,13 @@ export function BeforeAfterSlider({
     return () => { if (crossfadeTimerRef.current) clearTimeout(crossfadeTimerRef.current) }
   }, [])
 
+  useEffect(() => {
+    if (externalPosition == null) return
+    setSliderPosition(externalPosition)
+  }, [externalPosition])
+
   const [W, H] = aspectRatio.split(':').map(Number)
+  const demoTransition = !isDragging && externalPosition != null ? '0.7s ease-in-out' : undefined
 
   const updatePosition = useCallback((clientX: number) => {
     if (!containerRef.current) return
@@ -60,9 +70,10 @@ export function BeforeAfterSlider({
       e.stopPropagation()
       ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
       setIsDragging(true)
+      onUserInteract?.()
       updatePosition(e.clientX)
     },
-    [updatePosition]
+    [updatePosition, onUserInteract]
   )
 
   const onPointerMove = useCallback(
@@ -137,7 +148,7 @@ export function BeforeAfterSlider({
       {/* After layer — clipped from the left to reveal the before side */}
       <div
         className="absolute inset-0 bg-bg-elevated"
-        style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+        style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)`, transition: demoTransition ? `clip-path ${demoTransition}` : undefined }}
       >
         {currentAfterSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -182,7 +193,7 @@ export function BeforeAfterSlider({
       {/* Divider line */}
       <div
         className="absolute top-0 bottom-0 w-[2px] bg-white z-10 pointer-events-none"
-        style={{ left: `${sliderPosition}%`, filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.3))' }}
+        style={{ left: `${sliderPosition}%`, filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.3))', transition: demoTransition ? `left ${demoTransition}` : undefined }}
       />
 
       {/* Drag handle — interactive */}
@@ -200,6 +211,7 @@ export function BeforeAfterSlider({
           touchAction: 'none',
           boxShadow: '0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.06)',
           cursor: isDragging ? 'grabbing' : 'grab',
+          transition: demoTransition ? `left ${demoTransition}` : undefined,
         }}
       >
         <ChevronLeft className="w-3.5 h-3.5 text-bg-base pointer-events-none" />
