@@ -115,10 +115,14 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         }
       }
 
-      // Custom text is now treated purely as a scene-description hint to the
-      // model. Text-on-image (price tag / SALE / etc.) lives on the results
-      // page via POST /api/jobs/:jobId/overlay and is composited at HD
-      // download time. See audit doc R1.
+      // For initial generations customText is a scene-description hint.
+      // For iterative edits (isEdit === true) customText carries the user's edit
+      // instruction (e.g. "зробіть фон темнішим" / "ֆոնը մգացրու"). Both paths
+      // flow through translateToEnglish here so Kontext always receives English —
+      // sending Armenian or Russian edit instructions degrades model instruction
+      // following. Text-on-image (price tag / SALE / etc.) lives on the results
+      // page via POST /api/jobs/:jobId/overlay and is composited at HD download
+      // time. See audit doc R1.
       const rawCustomText = customText ?? ''
       const translatedDescription = rawCustomText
         ? await translateToEnglish(rawCustomText)

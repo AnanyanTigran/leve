@@ -185,23 +185,39 @@ async function cropToAspect(buffer: Buffer, targetRatio: number): Promise<Buffer
     .toBuffer()
 }
 
+// Matches edit prompts that explicitly ask to reposition or rescale the product
+// (e.g. "make the bottle bigger", "move it to the left", "show it from the side").
+// When detected, the camera-angle/position lock is omitted — locking both the
+// edit instruction AND the camera angle produces a no-op image because the model
+// averages the contradiction.
+const PRODUCT_REPOSITION_PATTERN =
+  /\b(product|bottle|bag|ring|box|jar|can|it)\b.{0,30}\b(bigger|smaller|larger|move|rotate|turn|flip|left|right|center|closer|zoom|scale)\b|\b(bigger|smaller|larger|move|rotate|turn|flip|zoom|scale)\b.{0,30}\b(product|bottle|bag|ring|box|jar|can|it)\b/i
+
 // Preservation trails the user prompt — constraint-at-end is the BFL-documented
 // Kontext pattern: actions first, then preservation rules.
 //
 // For the initial-generation path, compilePrompt() in prompt.service.ts already
-// appends the preservation + quality suffix. Re-appending here would duplicate
-// the constraint and waste the 512-token budget, so we no-op in that case.
+// appends the preservation + quality suffix via buildPreservationSuffix. We no-op
+// here to avoid duplicating the constraint and wasting the 512-token budget.
 //
-// For the iterative-edit path, the prompt is raw user text that never flowed
-// through compilePrompt, so we add the preservation constraint here as the
-// canonical safety net. Phrasing matches the prompt.service.ts suffix so the
-// two code paths produce semantically equivalent prompts.
+// For the iterative-edit path the prompt is raw (translated) user text that never
+// flowed through compilePrompt. We add a context-aware preservation constraint:
+// - Identity lock always applied (shape, colours, labels, etc.)
+// - Position/angle lock OMITTED when the user explicitly asked to reposition or
+//   rescale the product — honouring that intent instead of creating a no-op.
 function buildSafePrompt(userPrompt: string, isEdit: boolean): string {
   if (!isEdit) return userPrompt
 
-  return `${userPrompt} Apply only the change described above. ` +
-    'Keep the product itself identical to the source image — preserve its exact shape, colors, materials, labels, printed text, logos, and proportions. ' +
-    'Maintain the exact same product position, scale, orientation, and camera angle as in the source.'
+  const wantsProductChange = PRODUCT_REPOSITION_PATTERN.test(userPrompt)
+
+  const identityLock =
+    "Keep the product's exact shape, colours, materials, labels, printed text, logos, and proportions identical to the source image."
+
+  const poseLock = wantsProductChange
+    ? ''  // user explicitly asked to reposition/rescale — honour it
+    : ' Maintain the exact same product position, scale, orientation, and camera angle as in the source.'
+
+  return `${userPrompt} Apply only the change described above. ${identityLock}${poseLock}`
 }
 
 async function getS3PresignedUrl(s3Key: string): Promise<string> {
