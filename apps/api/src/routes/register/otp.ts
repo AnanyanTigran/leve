@@ -19,9 +19,7 @@ const verifySchema = z.object({
 })
 
 const otpIpKeyGenerator = (request: FastifyRequest): string =>
-  (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-  request.ip ??
-  'unknown'
+  request.ip ?? 'unknown'
 
 export async function registerOtpRoutes(app: FastifyInstance) {
   // POST /api/register/otp/send
@@ -53,10 +51,7 @@ export async function registerOtpRoutes(app: FastifyInstance) {
         return reply.status(400).send({ success: false, error: 'invalid_identifier', requestId })
       }
 
-      const ipAddress =
-        (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-        request.ip ??
-        'unknown'
+      const ipAddress = request.ip ?? 'unknown'
 
       const result = await sendOtp(
         validation.normalized,

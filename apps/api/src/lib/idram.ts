@@ -47,7 +47,25 @@ export function buildIdramRequestChecksum(orderId: string, amountAMD: number): s
   return crypto.createHash('md5').update(base).digest('hex').toUpperCase()
 }
 
-export function validateIdramWebhookSignature(payload: IdramWebhookPayload): boolean {
+export type IdramValidationResult =
+  | { valid: false }
+  | { valid: true; payload: IdramWebhookPayload }
+
+// Accepts the raw request Buffer so the body is never mutated by Fastify's
+// form parser before signature verification. Parses internally after verifying.
+export function validateIdramWebhookSignature(rawBody: Buffer): IdramValidationResult {
+  const params = new URLSearchParams(rawBody.toString('utf8'))
+
+  const payload: IdramWebhookPayload = {
+    EDP_MERCHANT_ID: params.get('EDP_MERCHANT_ID') ?? '',
+    EDP_AMOUNT: params.get('EDP_AMOUNT') ?? '',
+    EDP_CURRENCY_CODE: params.get('EDP_CURRENCY_CODE') ?? '',
+    EDP_BILL_NO: params.get('EDP_BILL_NO') ?? '',
+    EDP_PAYER_ACCOUNT: params.get('EDP_PAYER_ACCOUNT') ?? '',
+    EDP_TRANS_ID: params.get('EDP_TRANS_ID') ?? '',
+    EDP_CHECKSUM: params.get('EDP_CHECKSUM') ?? '',
+  }
+
   const base = [
     payload.EDP_MERCHANT_ID,
     payload.EDP_AMOUNT,
@@ -57,13 +75,12 @@ export function validateIdramWebhookSignature(payload: IdramWebhookPayload): boo
   ].join('')
 
   const expected = crypto.createHash('md5').update(base).digest('hex').toUpperCase()
+  const received = payload.EDP_CHECKSUM.toUpperCase()
 
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expected),
-      Buffer.from(payload.EDP_CHECKSUM?.toUpperCase() ?? ''),
-    )
+    const valid = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received))
+    return valid ? { valid: true, payload } : { valid: false }
   } catch {
-    return false
+    return { valid: false }
   }
 }

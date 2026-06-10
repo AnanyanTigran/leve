@@ -90,9 +90,7 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
           amountAMD: pack.amountAMD,
           credits: pack.credits,
           status: 'pending',
-          ipAddress:
-            (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-            request.ip,
+          ipAddress: request.ip ?? 'unknown',
           userAgent: request.headers['user-agent'] ?? '',
         },
       })
@@ -136,7 +134,13 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
     { preHandler: [app.requireSessionOrAnon] },
     async (request, reply) => {
       const requestId = nanoid(10)
-      const { orderId } = request.params as { orderId: string }
+      const orderIdParsed = z.string().min(1).max(32).regex(/^[a-zA-Z0-9_-]+$/).safeParse(
+        (request.params as { orderId: string }).orderId,
+      )
+      if (!orderIdParsed.success) {
+        return reply.status(400).send({ success: false, error: 'invalid_order_id', requestId })
+      }
+      const orderId = orderIdParsed.data
       const session = request.session
 
       const transaction = await prisma.transaction.findUnique({
@@ -157,207 +161,215 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
   )
 
   const webhookKeyGenerator = (request: FastifyRequest): string =>
-    (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-    request.ip ??
-    'unknown'
+    request.ip ?? 'unknown'
 
-  // POST /api/webhooks/idram
-  // Body is form-encoded — @fastify/formbody must be registered before this route.
-  app.post('/api/webhooks/idram', {
-    config: {
-      rateLimit: {
-        max: 30,
-        timeWindow: '1 minute',
-        keyGenerator: webhookKeyGenerator,
-      },
-    },
-  }, async (request, reply) => {
-    const requestId = nanoid(10)
-    const payload = request.body as Record<string, string>
-
-    app.log.info({ requestId, billNo: payload['EDP_BILL_NO'] }, 'idram webhook received')
-
-    // 1. Signature validation FIRST
-    const signatureValid = validateIdramWebhookSignature(payload as Parameters<typeof validateIdramWebhookSignature>[0])
-    if (!signatureValid) {
-      app.log.warn({ requestId }, 'idram webhook: invalid signature')
-      return reply.status(400).send('INVALID SIGNATURE')
-    }
-
-    const billNo = payload['EDP_BILL_NO'] ?? ''
-    const incomingAmount = parseInt(payload['EDP_AMOUNT'] ?? '0', 10)
-
-    // 2. Idempotency check
-    const idempotencyKey = `idram:processed:${billNo}`
-    const alreadyProcessed = await redis.get(idempotencyKey)
-    if (alreadyProcessed) {
-      app.log.info({ requestId, billNo }, 'idram webhook: duplicate, skipping')
-      return reply.send('OK')
-    }
-
-    // 3. Find pending transaction
-    const transaction = await prisma.transaction.findUnique({ where: { orderId: billNo } })
-
-    if (!transaction) {
-      app.log.error({ requestId, billNo }, 'idram webhook: transaction not found')
-      return reply.status(400).send('TRANSACTION NOT FOUND')
-    }
-
-    if (transaction.status !== 'pending') {
-      app.log.warn({ requestId, billNo, status: transaction.status }, 'idram webhook: not pending')
-      return reply.send('OK')
-    }
-
-    // 4. Amount mismatch — CRITICAL fraud prevention
-    if (incomingAmount !== transaction.amountAMD) {
-      app.log.error(
-        { requestId, billNo, incomingAmount, expectedAmount: transaction.amountAMD },
-        'idram webhook: AMOUNT MISMATCH — possible fraud attempt',
-      )
-      return reply.status(400).send('AMOUNT MISMATCH')
-    }
-
-    // 5. Store provider transaction ID
-    await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: {
-        providerId: payload['EDP_TRANS_ID'] ?? billNo,
-        providerMeta: payload as object,
-      },
-    })
-
-    // 6. Find most recent completed generation job for this session
-    const recentJob = await prisma.generationJob.findFirst({
-      where: { sessionId: transaction.sessionId, status: 'done' },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    if (!recentJob) {
-      app.log.error({ requestId }, 'idram webhook: no completed generation job found for session')
-    }
-
-    // 7. Grant credits + optionally create DownloadGrant
-    // Idempotency key is set AFTER success so a failed grant can be retried by the provider.
-    try {
-      await grantCreditsAndCreateDownloadGrant({
-        sessionId: transaction.sessionId,
-        transactionId: transaction.id,
-        jobId: recentJob?.id,
-        hdS3Key: recentJob?.previewS3Keys?.[0],
-        credits: transaction.credits,
-      })
-    } catch (err) {
-      app.log.error(
-        { requestId, transactionId: transaction.id, err },
-        'CRITICAL: idram webhook credit grant failed — provider may retry',
-      )
-      // Return 500 so Idram retries the webhook delivery
-      return reply.status(500).send('INTERNAL ERROR')
-    }
-
-    // 8. Set idempotency key only after successful grant
-    await redis.set(idempotencyKey, '1', 'EX', IDRAM_IDEMPOTENCY_TTL)
-
-    app.log.info(
-      { requestId, billNo, credits: transaction.credits, sessionId: transaction.sessionId },
-      'idram webhook: credits granted successfully',
+  // Webhook routes are scoped in their own plugin so the raw buffer parser
+  // registered here overrides the global @fastify/formbody for these routes only.
+  // The Buffer is passed directly to signature verification before any field parsing.
+  await app.register(async (webhookScope) => {
+    webhookScope.addContentTypeParser(
+      'application/x-www-form-urlencoded',
+      { parseAs: 'buffer' },
+      (_req, body, done) => { done(null, body) },
     )
 
-    return reply.send('OK')
-  })
-
-  // POST /api/webhooks/telcell
-  app.post('/api/webhooks/telcell', {
-    config: {
-      rateLimit: {
-        max: 30,
-        timeWindow: '1 minute',
-        keyGenerator: webhookKeyGenerator,
+    // POST /api/webhooks/idram
+    webhookScope.post('/api/webhooks/idram', {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+          keyGenerator: webhookKeyGenerator,
+        },
       },
-    },
-  }, async (request, reply) => {
-    const requestId = nanoid(10)
-    const payload = request.body as Record<string, string>
+    }, async (request, reply) => {
+      const requestId = nanoid(10)
+      const rawBody = request.body as Buffer
 
-    app.log.info({ requestId, orderId: payload['orderId'] }, 'telcell webhook received')
+      // 1. Signature validation FIRST — parses body and verifies in one atomic step
+      const validation = validateIdramWebhookSignature(rawBody)
+      if (!validation.valid) {
+        app.log.warn({ requestId }, 'idram webhook: invalid signature')
+        return reply.status(400).send('INVALID SIGNATURE')
+      }
 
-    // 1. Signature validation FIRST
-    const signatureValid = validateTelcellWebhookSignature(payload as Parameters<typeof validateTelcellWebhookSignature>[0])
-    if (!signatureValid) {
-      app.log.warn({ requestId }, 'telcell webhook: invalid signature')
-      return reply.status(400).send('INVALID SIGNATURE')
-    }
+      const payload = validation.payload
+      app.log.info({ requestId, billNo: payload.EDP_BILL_NO }, 'idram webhook received')
 
-    const orderId = payload['orderId'] ?? ''
-    const incomingAmount = parseInt(payload['amount'] ?? '0', 10)
+      const billNo = payload.EDP_BILL_NO
+      const incomingAmount = parseInt(payload.EDP_AMOUNT, 10)
 
-    // 2. Idempotency check
-    const idempotencyKey = `telcell:processed:${orderId}`
-    const alreadyProcessed = await redis.get(idempotencyKey)
-    if (alreadyProcessed) {
-      app.log.info({ requestId, orderId }, 'telcell webhook: duplicate, skipping')
+      // 2. Idempotency check
+      const idempotencyKey = `idram:processed:${billNo}`
+      const alreadyProcessed = await redis.get(idempotencyKey)
+      if (alreadyProcessed) {
+        app.log.info({ requestId, billNo }, 'idram webhook: duplicate, skipping')
+        return reply.send('OK')
+      }
+
+      // 3. Find pending transaction
+      const transaction = await prisma.transaction.findUnique({ where: { orderId: billNo } })
+
+      if (!transaction) {
+        app.log.error({ requestId, billNo }, 'idram webhook: transaction not found')
+        return reply.status(400).send('TRANSACTION NOT FOUND')
+      }
+
+      if (transaction.status !== 'pending') {
+        app.log.warn({ requestId, billNo, status: transaction.status }, 'idram webhook: not pending')
+        return reply.send('OK')
+      }
+
+      // 4. Amount mismatch — CRITICAL fraud prevention
+      if (incomingAmount !== transaction.amountAMD) {
+        app.log.error(
+          { requestId, billNo, incomingAmount, expectedAmount: transaction.amountAMD },
+          'idram webhook: AMOUNT MISMATCH — possible fraud attempt',
+        )
+        return reply.status(400).send('AMOUNT MISMATCH')
+      }
+
+      // 5. Store provider transaction ID
+      await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          providerId: payload.EDP_TRANS_ID || billNo,
+          providerMeta: payload as object,
+        },
+      })
+
+      // 6. Find most recent completed generation job for this session
+      const recentJob = await prisma.generationJob.findFirst({
+        where: { sessionId: transaction.sessionId, status: 'done' },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      if (!recentJob) {
+        app.log.error({ requestId }, 'idram webhook: no completed generation job found for session')
+      }
+
+      // 7. Grant credits + optionally create DownloadGrant
+      // Idempotency key is set AFTER success so a failed grant can be retried by the provider.
+      try {
+        await grantCreditsAndCreateDownloadGrant({
+          sessionId: transaction.sessionId,
+          transactionId: transaction.id,
+          jobId: recentJob?.id,
+          hdS3Key: recentJob?.previewS3Keys?.[0],
+          credits: transaction.credits,
+        })
+      } catch (err) {
+        app.log.error(
+          { requestId, transactionId: transaction.id, err },
+          'CRITICAL: idram webhook credit grant failed — provider may retry',
+        )
+        return reply.status(500).send('INTERNAL ERROR')
+      }
+
+      // 8. Set idempotency key only after successful grant
+      await redis.set(idempotencyKey, '1', 'EX', IDRAM_IDEMPOTENCY_TTL)
+
+      app.log.info(
+        { requestId, billNo, credits: transaction.credits, sessionId: transaction.sessionId },
+        'idram webhook: credits granted successfully',
+      )
+
+      return reply.send('OK')
+    })
+
+    // POST /api/webhooks/telcell
+    webhookScope.post('/api/webhooks/telcell', {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+          keyGenerator: webhookKeyGenerator,
+        },
+      },
+    }, async (request, reply) => {
+      const requestId = nanoid(10)
+      const rawBody = request.body as Buffer
+
+      // 1. Signature validation FIRST — parses body and verifies in one atomic step
+      const validation = validateTelcellWebhookSignature(rawBody)
+      if (!validation.valid) {
+        app.log.warn({ requestId }, 'telcell webhook: invalid signature')
+        return reply.status(400).send('INVALID SIGNATURE')
+      }
+
+      const payload = validation.payload
+      app.log.info({ requestId, orderId: payload.orderId }, 'telcell webhook received')
+
+      const orderId = payload.orderId
+      const incomingAmount = parseInt(payload.amount, 10)
+
+      // 2. Idempotency check
+      const idempotencyKey = `telcell:processed:${orderId}`
+      const alreadyProcessed = await redis.get(idempotencyKey)
+      if (alreadyProcessed) {
+        app.log.info({ requestId, orderId }, 'telcell webhook: duplicate, skipping')
+        return reply.status(200).send('OK')
+      }
+
+      // 3. Find pending transaction
+      const transaction = await prisma.transaction.findUnique({ where: { orderId } })
+
+      if (!transaction || transaction.status !== 'pending') {
+        app.log.error({ requestId, orderId }, 'telcell webhook: transaction not found or not pending')
+        return reply.status(400).send('TRANSACTION NOT FOUND')
+      }
+
+      // 4. Amount mismatch check
+      if (incomingAmount !== transaction.amountAMD) {
+        app.log.error(
+          { requestId, orderId, incomingAmount, expectedAmount: transaction.amountAMD },
+          'telcell webhook: AMOUNT MISMATCH — possible fraud attempt',
+        )
+        return reply.status(400).send('AMOUNT MISMATCH')
+      }
+
+      // 5. Store provider meta
+      await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          providerId: payload.transactionId || orderId,
+          providerMeta: payload as object,
+        },
+      })
+
+      // 6. Find recent job
+      const recentJob = await prisma.generationJob.findFirst({
+        where: { sessionId: transaction.sessionId, status: 'done' },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      // 7. Grant credits + optionally create DownloadGrant
+      // Idempotency key is set AFTER success so a failed grant can be retried by the provider.
+      try {
+        await grantCreditsAndCreateDownloadGrant({
+          sessionId: transaction.sessionId,
+          transactionId: transaction.id,
+          jobId: recentJob?.id,
+          hdS3Key: recentJob?.previewS3Keys?.[0],
+          credits: transaction.credits,
+        })
+      } catch (err) {
+        app.log.error(
+          { requestId, transactionId: transaction.id, err },
+          'CRITICAL: telcell webhook credit grant failed — provider may retry',
+        )
+        return reply.status(500).send('INTERNAL ERROR')
+      }
+
+      // 8. Set idempotency key only after successful grant
+      await redis.set(idempotencyKey, '1', 'EX', TELCELL_IDEMPOTENCY_TTL)
+
+      app.log.info(
+        { requestId, orderId, credits: transaction.credits },
+        'telcell webhook: credits granted successfully',
+      )
+
       return reply.status(200).send('OK')
-    }
-
-    // 3. Find pending transaction
-    const transaction = await prisma.transaction.findUnique({ where: { orderId } })
-
-    if (!transaction || transaction.status !== 'pending') {
-      app.log.error({ requestId, orderId }, 'telcell webhook: transaction not found or not pending')
-      return reply.status(400).send('TRANSACTION NOT FOUND')
-    }
-
-    // 4. Amount mismatch check
-    if (incomingAmount !== transaction.amountAMD) {
-      app.log.error(
-        { requestId, orderId, incomingAmount, expectedAmount: transaction.amountAMD },
-        'telcell webhook: AMOUNT MISMATCH — possible fraud attempt',
-      )
-      return reply.status(400).send('AMOUNT MISMATCH')
-    }
-
-    // 5. Store provider meta
-    await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: {
-        providerId: payload['transactionId'] ?? orderId,
-        providerMeta: payload as object,
-      },
     })
-
-    // 6. Find recent job
-    const recentJob = await prisma.generationJob.findFirst({
-      where: { sessionId: transaction.sessionId, status: 'done' },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    // 7. Grant credits + optionally create DownloadGrant
-    // Idempotency key is set AFTER success so a failed grant can be retried by the provider.
-    try {
-      await grantCreditsAndCreateDownloadGrant({
-        sessionId: transaction.sessionId,
-        transactionId: transaction.id,
-        jobId: recentJob?.id,
-        hdS3Key: recentJob?.previewS3Keys?.[0],
-        credits: transaction.credits,
-      })
-    } catch (err) {
-      app.log.error(
-        { requestId, transactionId: transaction.id, err },
-        'CRITICAL: telcell webhook credit grant failed — provider may retry',
-      )
-      // Return 500 so Telcell retries the webhook delivery
-      return reply.status(500).send('INTERNAL ERROR')
-    }
-
-    // 8. Set idempotency key only after successful grant
-    await redis.set(idempotencyKey, '1', 'EX', TELCELL_IDEMPOTENCY_TTL)
-
-    app.log.info(
-      { requestId, orderId, credits: transaction.credits },
-      'telcell webhook: credits granted successfully',
-    )
-
-    return reply.status(200).send('OK')
   })
 }

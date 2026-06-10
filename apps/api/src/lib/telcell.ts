@@ -44,7 +44,25 @@ export function buildTelcellChecksum(orderId: string, amountAMD: number): string
   return crypto.createHash('md5').update(base).digest('hex').toUpperCase()
 }
 
-export function validateTelcellWebhookSignature(payload: TelcellWebhookPayload): boolean {
+export type TelcellValidationResult =
+  | { valid: false }
+  | { valid: true; payload: TelcellWebhookPayload }
+
+// Accepts the raw request Buffer so the body is never mutated by Fastify's
+// form parser before signature verification. Parses internally after verifying.
+export function validateTelcellWebhookSignature(rawBody: Buffer): TelcellValidationResult {
+  const params = new URLSearchParams(rawBody.toString('utf8'))
+
+  const payload: TelcellWebhookPayload = {
+    issuer: params.get('issuer') ?? '',
+    receiverAccount: params.get('receiverAccount') ?? '',
+    amount: params.get('amount') ?? '',
+    currency: params.get('currency') ?? '',
+    orderId: params.get('orderId') ?? '',
+    transactionId: params.get('transactionId') ?? '',
+    checksum: params.get('checksum') ?? '',
+  }
+
   const base = [
     payload.issuer,
     payload.amount,
@@ -54,13 +72,12 @@ export function validateTelcellWebhookSignature(payload: TelcellWebhookPayload):
   ].join('')
 
   const expected = crypto.createHash('md5').update(base).digest('hex').toUpperCase()
+  const received = payload.checksum.toUpperCase()
 
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expected),
-      Buffer.from(payload.checksum?.toUpperCase() ?? ''),
-    )
+    const valid = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received))
+    return valid ? { valid: true, payload } : { valid: false }
   } catch {
-    return false
+    return { valid: false }
   }
 }

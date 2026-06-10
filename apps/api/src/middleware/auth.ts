@@ -16,9 +16,7 @@ export async function registerAuthMiddleware(app: FastifyInstance) {
 
   // Decorator: requireSession — attaches session to request or 401
   app.decorate('requireSession', async (request: FastifyRequest, reply: FastifyReply) => {
-    // TODO: remove header fallback when custom domain is configured
     const sessionId = request.cookies?.[env.SESSION_COOKIE_NAME]
-      || (request.headers['x-session-id'] as string | undefined)
     if (!sessionId) {
       return reply.status(401).send({ success: false, error: 'no_session', requestId: '' })
     }
@@ -31,9 +29,7 @@ export async function registerAuthMiddleware(app: FastifyInstance) {
 
   // Decorator: requireVerified — session must have completed OTP
   app.decorate('requireVerified', async (request: FastifyRequest, reply: FastifyReply) => {
-    // TODO: remove header fallback when custom domain is configured
     const sessionId = request.cookies?.[env.SESSION_COOKIE_NAME]
-      || (request.headers['x-session-id'] as string | undefined)
     if (!sessionId) {
       return reply.status(401).send({ success: false, error: 'no_session', requestId: '' })
     }
@@ -50,9 +46,7 @@ export async function registerAuthMiddleware(app: FastifyInstance) {
   // Decorator: requireSessionOrAnon — attaches existing session or auto-creates one.
   // Used on upload and generate so anonymous users can proceed without OTP.
   app.decorate('requireSessionOrAnon', async (request: FastifyRequest, reply: FastifyReply) => {
-    // TODO: remove header fallback when custom domain is configured
     let sessionId = request.cookies?.[env.SESSION_COOKIE_NAME]
-      || (request.headers['x-session-id'] as string | undefined)
 
     if (sessionId) {
       const session = await SessionService.get(sessionId)
@@ -80,9 +74,7 @@ export async function registerAuthMiddleware(app: FastifyInstance) {
   // Decorator: requireVerifiedOrAnon — attaches session but does NOT enforce isVerified.
   // Handler is responsible for branching on session.isVerified.
   app.decorate('requireVerifiedOrAnon', async (request: FastifyRequest, reply: FastifyReply) => {
-    // TODO: remove header fallback when custom domain is configured
     const sessionId = request.cookies?.[env.SESSION_COOKIE_NAME]
-      || (request.headers['x-session-id'] as string | undefined)
 
     if (!sessionId) {
       return reply.status(401).send({ success: false, error: 'no_session', requestId: '' })
