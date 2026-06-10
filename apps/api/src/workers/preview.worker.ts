@@ -107,9 +107,10 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
 
     await SessionService.appendGenerationHistory(sessionId, jobId)
 
-    if (!isVerified) {
-      await SessionService.incrementAnonGeneration(sessionId)
-    } else {
+    // Anonymous counter is incremented atomically at dispatch time (generate route)
+    // to prevent concurrent requests from racing past the limit. Only the daily
+    // soft cap for verified users is still tracked here after job completion.
+    if (isVerified) {
       await SessionService.incrementDailyGeneration(sessionId)
     }
 

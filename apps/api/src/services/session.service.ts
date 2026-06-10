@@ -187,6 +187,45 @@ export class SessionService {
     await redis.eval(luaScript, 1, key, String(credits))
   }
 
+  // Atomically checks a per-transaction idempotency key and grants credits in
+  // a single Lua script. Prevents double-grant if the process crashes between
+  // the Redis write and the subsequent Postgres transaction update.
+  //
+  // Returns:
+  //   1  = credits granted now (normal path)
+  //   0  = idempotency key already set — credits were granted on a prior attempt
+  //  -1  = session key not found in Redis (session expired before webhook landed)
+  static async addCreditsWithIdempotency(
+    sessionId: string,
+    credits: number,
+    idempotencyKey: string,
+    idempotencyTtl: number,
+  ): Promise<1 | 0 | -1> {
+    const sessionKey = SESSION_KEY(sessionId)
+    const luaScript = `
+      if redis.call('EXISTS', KEYS[2]) == 1 then
+        return 0
+      end
+      local raw = redis.call('GET', KEYS[1])
+      if not raw then
+        return -1
+      end
+      local session = cjson.decode(raw)
+      session.creditsRemaining = session.creditsRemaining + tonumber(ARGV[1])
+      session.isPaid = true
+      session.purchaseCount = session.purchaseCount + 1
+      redis.call('SET', KEYS[1], cjson.encode(session), 'EX', 2592000)
+      redis.call('SET', KEYS[2], '1', 'EX', tonumber(ARGV[2]))
+      return 1
+    `
+    const result = await redis.eval(
+      luaScript, 2,
+      sessionKey, idempotencyKey,
+      String(credits), String(idempotencyTtl),
+    ) as number
+    return result as 1 | 0 | -1
+  }
+
   static async deductCredit(sessionId: string): Promise<boolean> {
     const key = SESSION_KEY(sessionId)
     const luaScript = `
@@ -237,6 +276,33 @@ export class SessionService {
       'EX',
       session.isVerified ? SESSION_TTL_VERIFIED : SESSION_TTL_ANON,
     )
+  }
+
+  // Atomically checks the anon limit and increments the counter in one Lua script.
+  // Prevents two concurrent requests from both passing a stale in-memory check.
+  //
+  // Returns the new count (>= 1) if the generation was allowed and counter incremented.
+  // Returns 0 if the limit is already reached.
+  // Returns -1 if the session key does not exist in Redis.
+  static async checkAndIncrementAnonGeneration(
+    sessionId: string,
+    limit: number,
+  ): Promise<number> {
+    const key = SESSION_KEY(sessionId)
+    const luaScript = `
+      local raw = redis.call('GET', KEYS[1])
+      if not raw then return -1 end
+      local session = cjson.decode(raw)
+      local used = session.anonGenerationsUsed or 0
+      if used >= tonumber(ARGV[1]) then return 0 end
+      session.anonGenerationsUsed = used + 1
+      local ttl = redis.call('TTL', KEYS[1])
+      if ttl < 0 then ttl = 172800 end
+      redis.call('SET', KEYS[1], cjson.encode(session), 'EX', ttl)
+      return session.anonGenerationsUsed
+    `
+    const result = await redis.eval(luaScript, 1, key, String(limit)) as number
+    return result
   }
 
   // Tracks anonymous generation count — gates at ANON_FREE_GENERATIONS

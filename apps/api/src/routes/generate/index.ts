@@ -6,6 +6,7 @@ import { previewQueue, PRIORITIES } from '../../lib/queues'
 import { compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
 import { translateToEnglish } from '../../services/translate.service'
 import { UserService } from '../../services/user.service'
+import { SessionService } from '../../services/session.service'
 import {
   ANON_FREE_GENERATIONS,
   FREE_DAILY_GENERATION_SOFT_CAP,
@@ -65,28 +66,10 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
       }
 
       // ── Gate 1: Anonymous generation limit ───────────────────────────────────
+      let anonUsedAfterGate = session.anonGenerationsUsed ?? 0
       if (!session.isVerified) {
-        const anonUsed = session.anonGenerationsUsed ?? 0
-        if (anonUsed >= ANON_FREE_GENERATIONS) {
-          return reply.status(403).send({
-            success: false,
-            error: 'otp_required',
-            errorCode: 'anon_limit_reached',
-            data: {
-              anonGenerationsUsed: anonUsed,
-              anonGenerationsLimit: ANON_FREE_GENERATIONS,
-            },
-            requestId,
-          })
-        }
-
-        // Secondary IP check — deterrent against cookie-clearing abuse
-        const clientIp =
-          (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-          request.ip ??
-          'unknown'
-
-        const ipAllowed = await checkAnonIpGenerationLimit(clientIp)
+        // IP check first — no state change, fast rejection before touching counters
+        const ipAllowed = await checkAnonIpGenerationLimit(request.ip ?? 'unknown')
         if (!ipAllowed) {
           return reply.status(429).send({
             success: false,
@@ -95,6 +78,27 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
             requestId,
           })
         }
+
+        // Atomic read-check-increment in a single Lua script. Prevents two
+        // concurrent requests from both passing a stale in-memory counter check
+        // before either job completes (the old increment was deferred to the worker).
+        const anonResult = await SessionService.checkAndIncrementAnonGeneration(
+          session.sessionId,
+          ANON_FREE_GENERATIONS,
+        )
+        if (anonResult === 0) {
+          return reply.status(403).send({
+            success: false,
+            error: 'otp_required',
+            errorCode: 'anon_limit_reached',
+            data: {
+              anonGenerationsUsed: session.anonGenerationsUsed ?? 0,
+              anonGenerationsLimit: ANON_FREE_GENERATIONS,
+            },
+            requestId,
+          })
+        }
+        anonUsedAfterGate = anonResult > 0 ? anonResult : anonUsedAfterGate
       }
 
       // ── Gate 2: Verified user daily soft cap (nudge only, not a hard block) ──
@@ -203,9 +207,7 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         data: {
           jobId: job.id,
           softCapReached,
-          anonGenerationsUsed: session.isVerified
-            ? null
-            : (session.anonGenerationsUsed ?? 0),
+          anonGenerationsUsed: session.isVerified ? null : anonUsedAfterGate,
           anonGenerationsLimit: session.isVerified ? null : ANON_FREE_GENERATIONS,
         },
         requestId,
