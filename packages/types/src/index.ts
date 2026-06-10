@@ -294,6 +294,10 @@ export const SCENE_IDS = [
   // Creative
   'floating_levitation', 'splash_water', 'ingredients_flat_lay', 'neon_glow',
   'minimal_pastel', 'editorial_dark',
+  // New gap-analysis scenes
+  'podium_pedestal', 'water_ripple', 'gift_unboxing', 'silk_pearls',
+  'wb_hero_card', 'window_shadow_play', 'color_block_duo',
+  'yerevan_tuff', 'pomegranate_luxe',
 ] as const
 
 export type SceneId = typeof SCENE_IDS[number]
