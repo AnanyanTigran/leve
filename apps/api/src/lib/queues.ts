@@ -33,4 +33,5 @@ export interface PreviewJobData {
   isEdit: boolean
   sourceImageS3Key?: string  // for iterative edits
   requestId: string
+  seed?: number          // optional fixed seed for reproducible generation
 }

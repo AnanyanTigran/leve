@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { logger } from '../lib/logger'
 import { SessionService } from '../services/session.service'
 import { runGeneration } from '../providers/model-router'
+import { getSceneGuidanceScale } from '../services/prompt.service'
 import { QUEUE_NAMES, PreviewJobData } from '../lib/queues'
 import { applyWatermark } from '../lib/watermark'
 import { uploadToS3 } from '../lib/s3'
@@ -36,8 +37,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     requestId,
   } = job.data
 
-  const DARK_SCENES = new Set(['black_studio', 'velvet_dark', 'editorial_dark', 'neon_glow'])
-  const guidanceScale = DARK_SCENES.has(sceneId) ? 4.0 : undefined
+  const guidanceScale = getSceneGuidanceScale(sceneId)
 
   logger.info({ requestId, jobId, isEdit }, '[preview worker] job start')
 
@@ -60,6 +60,7 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       isEdit: isEdit ?? false,
       sourceImageS3Key,
       guidanceScale,
+      seed: job.data.seed,
     })
     await setJobPhase(jobId, 'finalizing')
 
@@ -124,6 +125,8 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       await SessionService.incrementDailyGeneration(sessionId)
     }
 
+    // generationSeed is not yet a DB column — log for debugging until migrated.
+    logger.info({ jobId, seed: output.seed }, '[preview worker] generation seed')
     await setJobPhase(jobId, 'done')
     logger.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
   } catch (err) {
