@@ -29,8 +29,12 @@ async function resolveHdKeyWithOverlay(
 
 const MAX_DOWNLOAD_COUNT_ALERT = 10
 
+// Shared validator for all jobId parameters (query string and body).
+// Prevents arbitrary-length strings from reaching the DB query layer.
+const jobIdSchema = z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/)
+
 const exportSchema = z.object({
-  jobId: z.string().min(1),
+  jobId: jobIdSchema,
   platform: z.enum([
     'instagram_feed',
     'instagram_story',
@@ -67,6 +71,9 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       if (!jobId) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
+      }
+      if (!jobIdSchema.safeParse(jobId).success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
       const { hasGrant, grant } = await sessionHasGrant(jobId, session)
@@ -222,6 +229,9 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       if (!jobId) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
+      }
+      if (!jobIdSchema.safeParse(jobId).success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
       const { hasGrant, grant } = await sessionHasGrant(jobId, session)
@@ -388,7 +398,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       const requestId = nanoid(10)
       const session = request.session
 
-      const parsed = z.object({ jobId: z.string().min(1) }).safeParse(request.body)
+      const parsed = z.object({ jobId: jobIdSchema }).safeParse(request.body)
       if (!parsed.success) {
         return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
@@ -451,7 +461,13 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
           // Race condition: another concurrent session consumed the last credit
           // between our DB pre-check and this DB decrement. Refund the Redis
           // deduction so the session credit count stays consistent, then reject.
-          await SessionService.refundCredit(session.sessionId).catch(() => {})
+          await SessionService.refundCredit(session.sessionId).catch((refundErr: unknown) => {
+            app.log.error(
+              { refundErr, requestId, sessionId: session.sessionId },
+              'CRITICAL: credit refund failed after race-condition loss — manual credit restoration may be needed',
+            )
+            Sentry.captureException(refundErr)
+          })
           return reply.status(402).send({ success: false, error: 'insufficient_credits', requestId })
         }
 
@@ -495,7 +511,13 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       } catch (err) {
         // Refund the credit so the user is not charged for a half-finished
         // grant. The next click will retry cleanly.
-        await SessionService.refundCredit(session.sessionId).catch(() => {})
+        await SessionService.refundCredit(session.sessionId).catch((refundErr: unknown) => {
+          app.log.error(
+            { refundErr, requestId, sessionId: session.sessionId },
+            'CRITICAL: credit refund failed after grant creation error — manual credit restoration may be needed',
+          )
+          Sentry.captureException(refundErr)
+        })
         app.log.error({ err, requestId, jobId }, 'spend-credit grant creation failed — credit refunded')
         Sentry.captureException(err)
         return reply.status(500).send({ success: false, error: 'grant_creation_failed', requestId })
@@ -521,6 +543,9 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       if (!jobId) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
+      }
+      if (!jobIdSchema.safeParse(jobId).success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
       const { hasGrant, grant } = await sessionHasGrant(jobId, session)
@@ -570,6 +595,9 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       if (!jobId) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
       }
+      if (!jobIdSchema.safeParse(jobId).success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
+      }
       const session = request.session
       const { hasGrant } = await sessionHasGrant(jobId, session)
       return reply.send({
@@ -592,6 +620,9 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
 
       if (!jobId) {
         return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
+      }
+      if (!jobIdSchema.safeParse(jobId).success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
       }
 
       const { owns, job } = await sessionOwnsJob(jobId, session)
