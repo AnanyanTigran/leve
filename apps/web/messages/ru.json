@@ -104,7 +104,18 @@
     "pricing_per_image": "{amount} ֏ за изображение",
     "pricing_images": "{count} студийных изображения",
     "pricing_starter_cta": "Купить стартовый пакет",
-    "pricing_creator_cta": "Купить Creator пакет"
+    "pricing_creator_cta": "Купить Creator пакет",
+    "testimonials_title": "Продавцы, которые перешли на LEVE",
+    "pricing_free_feature_1": "2 предпросмотра с водяным знаком",
+    "pricing_free_feature_2": "Любые сцены и категории",
+    "pricing_free_feature_3": "Оцените качество до оплаты",
+    "pricing_starter_feature_1": "Полное разрешение, без водяного знака",
+    "pricing_starter_feature_2": "Все 30+ сцен доступны",
+    "pricing_starter_feature_3": "Экспорт для платформ включён",
+    "pricing_creator_feature_1": "Лучшая цена за изображение",
+    "pricing_creator_feature_2": "Полное разрешение, без водяного знака",
+    "pricing_creator_feature_3": "Армянские текстовые наложения включены",
+    "platform_original_hd": "Original HD"
   },
   "register": {
     "title": "Создайте бесплатный аккаунт",

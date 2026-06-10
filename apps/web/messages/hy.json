@@ -104,7 +104,18 @@
     "pricing_per_image": "{amount} ֏ mi lusandkari hamar",
     "pricing_images": "{count} studia lusandkar",
     "pricing_starter_cta": "Arcel skznakan pakety",
-    "pricing_creator_cta": "Arcel creator pakety"
+    "pricing_creator_cta": "Arcel creator pakety",
+    "testimonials_title": "Sellers who switched to LEVE",
+    "pricing_free_feature_1": "2 watermarked preview images",
+    "pricing_free_feature_2": "Try any scene and category",
+    "pricing_free_feature_3": "See the quality before you pay",
+    "pricing_starter_feature_1": "Full resolution, no watermark",
+    "pricing_starter_feature_2": "All 30+ scenes available",
+    "pricing_starter_feature_3": "Platform export included",
+    "pricing_creator_feature_1": "Best value per image",
+    "pricing_creator_feature_2": "Full resolution, no watermark",
+    "pricing_creator_feature_3": "Armenian text overlays included",
+    "platform_original_hd": "Original HD"
   },
   "register": {
     "title": "Ստեղծեք անվճար հաշիվ",

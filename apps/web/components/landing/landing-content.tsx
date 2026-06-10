@@ -17,10 +17,10 @@ import { CATEGORY_ITEMS, SCENES, CREDIT_PACKAGES } from '@/lib/constants'
 const CDN = process.env.NEXT_PUBLIC_CDN_URL ?? ''
 
 const SHOWCASE_CARDS = [
-  { id: 'jewelry',  label: 'Jewelry',   labelHY: 'Զardelər',     labelRU: 'Ювелирные украшения', beforeImage: `${CDN}/showcase/jewelry-before.webp`,   afterImage: `${CDN}/showcase/jewelry-after.jpg` },
-  { id: 'cosmetics',label: 'Cosmetics', labelHY: 'Kosmetika',    labelRU: 'Косметика',           beforeImage: `${CDN}/showcase/beauty-before.webp`, afterImage: `${CDN}/showcase/beauty-after.jpg` },
-  { id: 'food',     label: 'Food',      labelHY: 'Snund',        labelRU: 'Еда',                 beforeImage: `${CDN}/showcase/food-before.webp`,      afterImage: `${CDN}/showcase/food-after.jpg` },
-  { id: 'fashion',  label: 'Fashion',   labelHY: 'Moda',         labelRU: 'Мода',                beforeImage: `${CDN}/showcase/fashion-before.avif`,   afterImage: `${CDN}/showcase/fashion-after.jpg` },
+  { id: 'jewelry',   catKey: 'cat_jewelry', beforeImage: `${CDN}/showcase/jewelry-before.webp`,  afterImage: `${CDN}/showcase/jewelry-after.jpg` },
+  { id: 'cosmetics', catKey: 'cat_beauty',  beforeImage: `${CDN}/showcase/beauty-before.webp`,   afterImage: `${CDN}/showcase/beauty-after.jpg` },
+  { id: 'food',      catKey: 'cat_food',    beforeImage: `${CDN}/showcase/food-before.webp`,      afterImage: `${CDN}/showcase/food-after.jpg` },
+  { id: 'fashion',   catKey: 'cat_fashion', beforeImage: `${CDN}/showcase/fashion-before.avif`,  afterImage: `${CDN}/showcase/fashion-after.jpg` },
 ]
 
 const SCENE_VARIETY_IDS = [
@@ -30,8 +30,14 @@ const SCENE_VARIETY_IDS = [
 
 const SCENE_VARIETY = SCENE_VARIETY_IDS.map((id) => SCENES.find((s) => s.id === id)!)
 
+const PRICING_TIER_FEATURES: Record<string, string[]> = {
+  free:    ['pricing_free_feature_1',    'pricing_free_feature_2',    'pricing_free_feature_3'],
+  starter: ['pricing_starter_feature_1', 'pricing_starter_feature_2', 'pricing_starter_feature_3'],
+  creator: ['pricing_creator_feature_1', 'pricing_creator_feature_2', 'pricing_creator_feature_3'],
+}
+
 const PRICING_TIERS = [
-  { id: 'free', label: 'Free Preview', labelHY: 'Ancharj Nakhatadesutyan', labelRU: 'Бесплатный просмотр', priceAMD: 0, images: 2, perImageAMD: 0, featured: false },
+  { id: 'free', label: 'Free Preview', labelHY: '', labelRU: 'Бесплатный просмотр', priceAMD: 0, images: 2, perImageAMD: 0, featured: false },
   ...CREDIT_PACKAGES.filter((p) => !p.isMonthly).map((p) => ({
     id: p.id,
     label: p.label as string,
@@ -45,14 +51,14 @@ const PRICING_TIERS = [
 ]
 
 const PLATFORMS = [
-  { id: 'instagram_feed',  label: 'Instagram Feed',  labelHY: 'Instagram Feed',  labelRU: 'Instagram Feed',  dims: '1080×1080', Icon: Camera,       highlight: false, pill: ''     },
-  { id: 'instagram_story', label: 'Instagram Story', labelHY: 'Instagram Story', labelRU: 'Instagram Story', dims: '1080×1920', Icon: Smartphone,   highlight: false, pill: ''     },
-  { id: 'facebook_post',   label: 'Facebook',        labelHY: 'Facebook',        labelRU: 'Facebook',        dims: '1200×630',  Icon: Share2,        highlight: false, pill: ''     },
-  { id: 'wildberries',     label: 'Wildberries',     labelHY: 'Wildberries',     labelRU: 'Wildberries',     dims: '900×1200',  Icon: ShoppingBag,  highlight: true,  pill: 'WB'   },
-  { id: 'ozon',            label: 'Ozon',            labelHY: 'Ozon',            labelRU: 'Ozon',            dims: '1000×1000', Icon: ShoppingCart, highlight: true,  pill: 'Ozon' },
-  { id: 'telegram',        label: 'Telegram',        labelHY: 'Telegram',        labelRU: 'Telegram',        dims: '1080×1080', Icon: Send,          highlight: false, pill: ''     },
-  { id: 'list_am',         label: 'list.am',         labelHY: 'list.am',         labelRU: 'list.am',         dims: '1200×900',  Icon: Globe,         highlight: false, pill: ''     },
-  { id: 'original_hd',     label: 'Original HD',     labelHY: 'Բnor.inak HD',    labelRU: 'Оригинал HD',     dims: 'Full res',  Icon: ImageDown,    highlight: false, pill: ''     },
+  { id: 'instagram_feed',  label: 'Instagram Feed',  dims: '1080×1080', Icon: Camera,       highlight: false, pill: ''     },
+  { id: 'instagram_story', label: 'Instagram Story', dims: '1080×1920', Icon: Smartphone,   highlight: false, pill: ''     },
+  { id: 'facebook_post',   label: 'Facebook',        dims: '1200×630',  Icon: Share2,       highlight: false, pill: ''     },
+  { id: 'wildberries',     label: 'Wildberries',     dims: '900×1200',  Icon: ShoppingBag,  highlight: true,  pill: 'WB'   },
+  { id: 'ozon',            label: 'Ozon',            dims: '1000×1000', Icon: ShoppingCart, highlight: true,  pill: 'Ozon' },
+  { id: 'telegram',        label: 'Telegram',        dims: '1080×1080', Icon: Send,         highlight: false, pill: ''     },
+  { id: 'list_am',         label: 'list.am',         dims: '1200×900',  Icon: Globe,        highlight: false, pill: ''     },
+  { id: 'original_hd',     label: 'Original HD',     labelKey: 'platform_original_hd', dims: 'Full res', Icon: ImageDown, highlight: false, pill: '' },
 ]
 
 const staggerChild = {
@@ -63,6 +69,7 @@ const staggerChild = {
 export function LandingContent() {
   const router = useRouter()
   const t = useTranslations('landing')
+  const tScenes = useTranslations('scenes')
   const { session, status } = useSession()
   const showSignIn = status === 'ready' && !session?.isVerified
 
@@ -290,7 +297,7 @@ export function LandingContent() {
                       : 'bg-transparent border border-border-default text-text-secondary hover:border-border-hover'
                   )}
                 >
-                  {locale === 'hy' ? card.labelHY : locale === 'ru' ? card.labelRU : card.label}
+                  {tScenes(card.catKey)}
                 </button>
               ))}
             </motion.div>
@@ -518,7 +525,7 @@ export function LandingContent() {
                     )}
                     <Icon className="w-5 h-5 text-text-secondary" strokeWidth={1.75} />
                     <span className="text-[13px] font-ui font-medium text-text-primary text-center leading-tight">
-                      {locale === 'hy' ? platform.labelHY : locale === 'ru' ? platform.labelRU : platform.label}
+                      {'labelKey' in platform && platform.labelKey ? t(platform.labelKey) : platform.label}
                     </span>
                     <span className="text-[11px] font-ui text-text-muted text-center">
                       {platform.dims}
@@ -584,7 +591,7 @@ export function LandingContent() {
                     'text-xs font-semibold uppercase tracking-wide mb-4',
                     tier.featured ? 'text-accent' : 'text-text-muted'
                   )}>
-                    {locale === 'hy' ? tier.labelHY : locale === 'ru' ? tier.labelRU : tier.label}
+                    {tier.id === 'free' ? t('pricing_free_label') : (locale === 'hy' ? tier.labelHY : locale === 'ru' ? tier.labelRU : tier.label)}
                   </p>
 
                   <div className="mb-1 flex items-end gap-1">
@@ -600,9 +607,20 @@ export function LandingContent() {
                     </p>
                   )}
 
-                  <p className="text-sm text-text-secondary mb-6 mt-1">
+                  <p className="text-sm text-text-secondary mb-3 mt-1">
                     {tier.priceAMD === 0 ? t('pricing_free_desc') : t('pricing_images', { count: tier.images })}
                   </p>
+
+                  {(PRICING_TIER_FEATURES[tier.id] ?? []).length > 0 && (
+                    <ul className="mb-4 flex flex-col gap-1.5">
+                      {(PRICING_TIER_FEATURES[tier.id] ?? []).map((key) => (
+                        <li key={key} className="flex items-start gap-2 text-xs text-text-secondary">
+                          <span className="text-accent mt-0.5 shrink-0">✓</span>
+                          {t(key)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
                   <div className="flex-1" />
 
