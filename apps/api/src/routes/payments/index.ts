@@ -163,10 +163,17 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
   const webhookKeyGenerator = (request: FastifyRequest): string =>
     request.ip ?? 'unknown'
 
-  // Webhook routes are scoped in their own plugin so the raw buffer parser
-  // registered here overrides the global @fastify/formbody for these routes only.
-  // The Buffer is passed directly to signature verification before any field parsing.
+  // Webhook routes live in a scoped plugin so the raw buffer parser overrides
+  // the global @fastify/formbody parser for these routes only. Fastify 4 child
+  // scopes inherit the parent's parsers, so replaceContentTypeParser must be
+  // used instead of addContentTypeParser — addContentTypeParser throws
+  // "already present" when the inherited parser exists.
   await app.register(async (webhookScope) => {
+    // Remove the parser inherited from @fastify/formbody (registered globally),
+    // then re-add it as a raw Buffer parser. addContentTypeParser throws
+    // "already present" on inherited parsers; removeContentTypeParser clears
+    // the slot in this scope so addContentTypeParser can take over.
+    webhookScope.removeContentTypeParser('application/x-www-form-urlencoded')
     webhookScope.addContentTypeParser(
       'application/x-www-form-urlencoded',
       { parseAs: 'buffer' },
