@@ -2,177 +2,524 @@
 // All prompts follow Kontext's canonical edit pattern from the BFL prompting
 // guide and community findings (mimicpc.com, fluxai.pro, kontext-dev.com):
 //   imperative verb → object → key descriptors → photographic vocabulary.
-// Composition lock (position, scale, camera angle) lives in the trailing
-// PRODUCT_PRESERVATION_SUFFIX, not in scene prompts — putting it in both
-// wastes the 512-token budget and dilutes the scene instruction.
+// Grounding, quality, and preservation suffixes are assembled by compilePrompt
+// from scene metadata — they are not embedded in scene strings, which eliminates
+// the contradiction classes (shadowless scene demanding contact shadow, angle chip
+// fighting the preservation suffix, floating scene demanding grounding shadow).
 
-const SCENE_PROMPTS: Record<string, string> = {
-  // ─── Studio ────────────────────────────────────────────────────────────────
-  // "Cyclorama" + "softbox" are the canonical photography tokens Kontext
-  // responds to; "backdrop" is fuzzier and renders flatter.
-  pure_white_studio:
-    'Replace the background with a pure white seamless studio cyclorama. Light the product with even shadowless commercial softbox lighting wrapping it from all sides.',
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-  // Contact shadow is the single most useful "ground the product" cue.
-  soft_shadow_studio:
-    'Replace the background with a clean white studio surface and add a soft natural contact shadow directly beneath the product. Light with diffused overhead studio softbox lighting. Place the product on a clean white matte surface.',
+type Grounding = 'contact_shadow' | 'reflection' | 'shadowless' | 'floating' | 'embedded'
 
-  // Gradient backdrop — explicit fade direction reduces banding.
-  gray_gradient:
-    'Replace the background with a smooth light-gray seamless studio gradient that fades slightly darker near the bottom. Add a subtle soft drop shadow beneath the product. Place the product on the gradient surface. Add a subtle soft drop shadow beneath it, as in professional packshot photography.',
+interface SceneDef {
+  action: string          // background/surface replacement instruction (imperative verb first)
+  lighting: string        // default lighting sentence — REPLACED (not appended) when a
+                          // lighting chip is selected
+  grounding: Grounding    // drives which grounding sentence and quality suffix variant to use
+  allowsReframe?: boolean // true only for flat-lay scenes; angle chips are silently dropped
+                          // on all other scenes (they fight Kontext's i2i nature)
+  guidanceScale?: number  // scene-specific override; replaces the DARK_SCENES set in worker
+}
 
-  // Lightbox = shadowless wraparound. "Catalog photography" anchors style.
-  light_box:
-    'Enclose the product inside a brightly lit white lightbox with evenly diffused light wrapping every side. Use crisp shadowless packshot lighting suitable for catalog photography.',
+// ─── Grounding Sentences ──────────────────────────────────────────────────────
+// "Shadow Contact Anchors" — the single most effective cue for preventing floating
+// objects. Each grounding type gets a precise sentence tuned to its visual logic.
 
-  // Dark luxury — rim light is the highest-value cue for editorial moods.
-  black_studio:
-    'Replace the background with a deep matte-black studio backdrop as used in luxury perfume advertising. Add a single soft rim light grazing the product edges for a dramatic luxury editorial mood. Add a faint reflected highlight on the dark surface directly beneath the product.',
+const GROUNDING_SENTENCES: Record<Grounding, string> = {
+  contact_shadow:
+    'The product rests firmly on the surface with a soft natural contact shadow directly beneath it, darkest at the exact line where the product meets the surface, and the ambient scene light wraps gently around the product edges so it sits believably in the environment.',
+  reflection:
+    'The product stands firmly on the reflective surface with a clean subtle mirror reflection directly beneath it and a thin soft contact occlusion at the exact line where the product touches the surface.',
+  shadowless:
+    'The product rests naturally on the white surface with only a faint ambient occlusion line exactly where it touches the surface, keeping the backdrop itself completely clean and shadowless.',
+  floating:
+    'A soft diffused shadow pool on the ground surface far beneath the levitating product anchors the levitation effect and prevents the product from appearing cut out.',
+  embedded:
+    'The product is partially settled into the surface material with the surface texture and context realistically displaced around its base, anchoring it naturally to the scene.',
+}
 
-  // ─── Lifestyle Surfaces ────────────────────────────────────────────────────
-  // "Replace the surface beneath the product" is more precise than "place on" —
-  // it tells Kontext to edit only the surface plane, not reposition the product.
-  marble_luxury:
-    'Replace the surface beneath the product with polished white marble featuring delicate gray veining. Light with soft natural daylight from the upper left. Softly blur the background with a shallow depth of field.',
+// ─── Quality Suffix ───────────────────────────────────────────────────────────
+// Grounding-aware: shadowless and floating scenes must not demand "realistic
+// soft shadowing" because the scene premise is explicitly shadow-free or aerial.
 
-  dark_wood:
-    'Replace the surface beneath the product with a dark walnut wood tabletop showing visible natural grain. Light the scene with warm ambient indoor lighting for a warm editorial atmosphere. Replace the background behind the product with a softly blurred dark interior wall.',
+function buildQualitySuffix(grounding: Grounding): string {
+  const base =
+    'Deliver high-resolution professional product photography with sharp focus on the product, accurate true-to-source colours, and crisp commercial detail.'
+  if (grounding === 'shadowless' || grounding === 'floating') return base
+  return (
+    base +
+    ' Realistic soft shadowing and light wrap integrate the product naturally into the scene.'
+  )
+}
 
-  light_wood:
-    'Replace the surface beneath the product with a light oak wooden tabletop showing visible natural grain. Light the scene with bright soft morning daylight in a Scandinavian minimal aesthetic. Replace the background behind the product with a softly blurred bright white or cream wall.',
+// ─── Preservation Suffix ──────────────────────────────────────────────────────
+// Conflict-aware: when an angle chip was actually emitted (allowsReframe scene),
+// omit the camera-angle lock — the user explicitly requested a reframe and
+// locking angle would contradict the instruction.
 
-  concrete_industrial:
-    'Replace the surface beneath the product with raw textured concrete showing subtle imperfections. Light with a single directional side light for an urban industrial editorial feel. Replace the background behind the product with a softly blurred concrete or raw brick wall.',
+const ANGLE_CHIP_IDS = new Set([
+  'angle_front', 'angle_45', 'angle_top', 'angle_low', 'angle_closeup',
+])
+const SCALE_CHIP_IDS = new Set(['market_fill', 'market_padding'])
 
-  linen_fabric:
-    'Replace the surface beneath the product with softly draped natural linen fabric, including gentle folds and wrinkles. Light with soft diffused daylight for an organic lifestyle aesthetic.',
+function buildPreservationSuffix(opts: {
+  hasAngleChip: boolean
+  hasScaleChip: boolean
+}): string {
+  const poseLock = opts.hasAngleChip
+    ? ''  // angle chip explicitly requested a reframe — do NOT also lock camera angle
+    : ' Maintain the exact same product position, scale, orientation, and camera angle as in the source.'
+  const identityLock = opts.hasScaleChip
+    ? 'Keep the product itself identical to the source image — preserve its exact shape, colours, materials, labels, printed text, logos, and proportions, even if its position in the frame changes.'
+    : 'Keep the product itself identical to the source image — preserve its exact shape, colours, materials, labels, printed text, logos, and proportions.'
+  return (
+    identityLock +
+    poseLock +
+    ' Do not add any new text, badges, stickers, or watermarks to the product or scene.' +
+    ' Preserve the original exposure and colour of the product itself while the new scene lighting wraps around it.'
+  )
+}
 
-  velvet_dark:
-    'Replace the surface beneath the product with deep dark velvet that softly absorbs light, with visible short pile texture. Add a single rim light grazing the product edges, surrounded by rich shadow for a luxury editorial mood.',
+// ─── Food Preservation Prefix ─────────────────────────────────────────────────
+// Food category only — preserves serving vessel which Kontext otherwise replaces.
 
-  silk_white:
-    'Replace the surface beneath the product with smooth white silk fabric featuring elegant gentle folds. Light with soft diffused light for a refined luxury feel. Replace the background behind the product with a softly blurred neutral light gray.',
+const FOOD_PRESERVATION_PREFIX =
+  'Preserve the food exactly as presented in its original plate, bowl, or serving vessel. Do not remove, replace, or alter the serving vessel in any way. Only modify the background and surrounding environment. '
 
-  terrazzo:
-    'Replace the surface beneath the product with polished terrazzo stone surface with scattered aggregate chips in muted pastels — cream, dusty pink, sage, and soft blue — with a visible glossy polish finish. Light with bright even modern lighting for a clean contemporary aesthetic.',
+// ─── Scene Registry ───────────────────────────────────────────────────────────
 
-  // ─── Environment ───────────────────────────────────────────────────────────
-  // Each environment names the foreground surface AND a softly blurred
-  // background depth cue separately. Kontext renders environments more
-  // reliably when surface and background are split into two clauses.
-  // "Replace the surface beneath the product" / "Replace the background behind
-  // the product" are the canonical Kontext edit verbs — they instruct the model
-  // to modify only the environment, not reposition or recompose the subject.
-  bathroom_shelf:
-    'Replace the surface beneath the product with a clean white bathroom shelf. Add a softly blurred white tile wall behind it and a folded towel out of focus to one side. Use soft natural light coming through a nearby window.',
+const SCENES: Record<string, SceneDef> = {
 
-  kitchen_counter:
-    'Replace the surface beneath the product with a clean light kitchen countertop. Add contextually appropriate props softly blurred in the background. Light the scene with bright morning daylight.',
+  // ── Studio ─────────────────────────────────────────────────────────────────
 
-  vanity_table:
-    'Replace the surface beneath the product with a wooden makeup vanity. Add a softly blurred mirror behind it. Light the scene with warm soft beauty lighting from vanity bulbs surrounding the mirror, casting a diffused beauty-studio glow.',
+  pure_white_studio: {
+    action: 'Replace the background with a pure white seamless studio cyclorama.',
+    lighting:
+      'Light the product with even commercial softbox lighting wrapping it from all sides, with a soft specular highlight along the product\'s upper edges.',
+    grounding: 'shadowless',
+  },
 
-  cafe_table:
-    'Replace the surface beneath the product with a small wooden cafe table. Keep a warm cafe interior softly blurred behind it. Light the scene with warm ambient indoor lighting and gentle window-light highlights.',
+  soft_shadow_studio: {
+    action: 'Replace the background with a clean white studio surface.',
+    lighting:
+      'Light with diffused overhead studio softbox lighting with a slight warm fill from the front.',
+    grounding: 'contact_shadow',
+  },
 
-  outdoor_garden:
-    'Replace the surface beneath the product with a wooden garden terrace table. Add lush green foliage and a softly blurred garden terrace behind the product. Light the scene with bright natural sunlight for a fresh outdoor feel.',
+  gray_gradient: {
+    action:
+      'Replace the background with a smooth light-gray seamless studio gradient that fades slightly darker toward the bottom, as in professional packshot photography.',
+    lighting: 'Light with soft even commercial studio softbox lighting from above.',
+    grounding: 'contact_shadow',
+  },
 
-  office_desk:
-    'Replace the surface beneath the product with a clean modern minimal office desk. Add softly blurred minimal office elements in the background. Light with bright soft professional daylight.',
+  light_box: {
+    action:
+      'Enclose the product inside a brightly lit white lightbox suitable for catalog packshot photography.',
+    lighting:
+      'Use evenly diffused light wrapping every side of the product, with soft white bounce light reflecting up onto its lower edges.',
+    grounding: 'shadowless',
+  },
 
-  bed_pillows:
-    'Replace the surface beneath the product with crisp white bedding. Add softly arranged pillows around it. Light the scene with soft morning sunlight filtering through sheer curtains for a cozy lifestyle feel.',
+  black_studio: {
+    action:
+      'Replace the background with a deep matte-black studio backdrop as used in luxury perfume advertising.',
+    lighting:
+      'Light with a single soft rim light grazing the product edges from behind, a dim soft fill from the front keeping the product face legible, and a faint reflected highlight on the dark surface directly beneath it.',
+    grounding: 'reflection',
+    guidanceScale: 4.0,
+  },
 
-  beach_sand:
-    'Replace the surface beneath the product with smooth golden beach sand. Keep the ocean softly blurred in the background. Light with warm golden-hour sunlight for a sun-kissed lifestyle scene.',
+  colored_pop: {
+    action:
+      'Replace the background with a bold solid-colour seamless studio backdrop in a vivid saturated hue that contrasts with the product.',
+    lighting: 'Light with clean even commercial studio softbox lighting from above and front.',
+    grounding: 'contact_shadow',
+  },
 
-  // ─── Seasonal ──────────────────────────────────────────────────────────────
-  // "Surround the product with..." is the precise Kontext verb for adding
-  // props around a preserved subject — far stronger than "scene with X around".
-  holiday_new_year:
-    'Surround the product with elegant Christmas decorations — gold ornaments, pine branches, and warm fairy lights softly blurred behind. Light with warm festive ambient lighting.',
+  apricot_warm: {
+    action:
+      'Replace the background with a warm soft apricot-cream seamless studio gradient.',
+    lighting:
+      'Light with soft warm diffused studio lighting with a gentle golden fill from the side.',
+    grounding: 'contact_shadow',
+  },
 
-  spring_bloom:
-    'Surround the product with fresh spring flowers and soft cherry blossom petals in pastel pinks and whites. Light with bright airy daylight for a seasonal spring feel.',
+  wb_white_strict: {
+    action:
+      'Replace the background with a pure white seamless backdrop (RGB 255,255,255). Compose the product to fill approximately 85 percent of the frame, perfectly centred, leaving approximately 15 percent empty padding around it.',
+    lighting: 'Light with even shadowless commercial softbox lighting.',
+    grounding: 'shadowless',
+  },
 
-  autumn_warm:
-    'Replace the surface beneath the product with a dark wood surface scattered with autumn leaves in red, orange, and gold tones. Surround the product with additional softly blurred falling leaves. Light with warm golden afternoon sunlight for a cozy autumn atmosphere.',
+  // ── Lifestyle Surfaces ─────────────────────────────────────────────────────
 
-  summer_fresh:
-    'Replace the surface beneath the product with a cool white marble or light tile surface. Arrange ice cubes, fresh water droplets, and citrus slices around it. Light with bright crisp daylight for a vibrant summer feel.',
+  marble_luxury: {
+    action:
+      'Replace the surface beneath the product with polished white marble featuring delicate gray veining, and softly blur the background with a shallow depth of field.',
+    lighting:
+      'Light with soft natural daylight from the upper left so the light wraps around the product edges with a gentle highlight on the lit side.',
+    grounding: 'contact_shadow',
+  },
 
-  // Marketing scene — text composited post-generation via sharp, not via Kontext.
-  sale_promo:
-    'Replace the background with a bold deep red seamless studio backdrop. Light the product with crisp even commercial studio softbox lighting. Keep the composition centered.',
+  dark_wood: {
+    action:
+      'Replace the surface beneath the product with a dark walnut wood tabletop showing visible natural grain, and softly blur a warm dark background behind it.',
+    lighting:
+      'Light with warm ambient side lighting with a soft key light from the upper left creating rich wood-grain texture.',
+    grounding: 'contact_shadow',
+  },
 
-  // ─── Creative ──────────────────────────────────────────────────────────────
-  // "Make the product appear to float" — instructional framing for the effect.
-  floating_levitation:
-    'Make the product appear to float in mid-air against a clean soft light-gray gradient background. Add a soft dramatic contact shadow on the surface directly beneath it. Keep the product in its exact same position, scale, and orientation. Only remove the surface beneath it and replace the background.',
+  light_wood: {
+    action:
+      'Replace the surface beneath the product with a light oak wooden table surface showing natural grain, with a softly blurred neutral wall background.',
+    lighting:
+      'Light with bright soft natural morning daylight from the left in a clean Scandinavian minimal style.',
+    grounding: 'contact_shadow',
+  },
 
-  // High-speed water — "frozen motion" + "commercial beverage photography"
-  // gives Kontext the strongest reference style.
-  splash_water:
-    'Surround the product with dynamic frozen splashes of clear water suspended in mid-air. Use crisp high-speed studio lighting that captures the water motion as in commercial beverage photography. Keep the product itself completely dry and visually unchanged — the water only surrounds it.',
+  concrete_industrial: {
+    action:
+      'Replace the surface beneath the product with a raw concrete surface showing texture and grain, with a blurred concrete or brick wall background.',
+    lighting:
+      'Light with cool directional hard side light creating defined shadows that emphasise the concrete texture.',
+    grounding: 'contact_shadow',
+  },
 
-  ingredients_flat_lay:
-    'Compose the scene as a flat lay shot from directly overhead, with the product centered and surrounded by its natural ingredients. Use soft even top-down lighting.',
+  linen_fabric: {
+    action:
+      'Replace the surface beneath the product with natural linen fabric with soft organic wrinkles and texture.',
+    lighting:
+      'Light with soft diffused daylight for a clean organic aesthetic.',
+    grounding: 'embedded',
+  },
 
-  neon_glow:
-    'Replace the surface beneath the product with a dark surface. Cast vivid neon light reflections in pink, cyan, and purple across the background. Use a moody cyberpunk editorial aesthetic. Cast the neon reflections only on the background and the surface around the product, not on the product itself.',
+  velvet_dark: {
+    action:
+      'Replace the surface beneath the product with a deep jewel-toned velvet fabric surface.',
+    lighting:
+      'Light with dramatic rim lighting tracing the product edges and a soft front fill, creating a luxury editorial mood.',
+    grounding: 'embedded',
+    guidanceScale: 4.0,
+  },
 
-  minimal_pastel:
-    'Replace the background with a soft warm cream seamless studio backdrop. Light with even soft minimal studio lighting for a clean modern composition.',
+  silk_white: {
+    action:
+      'Replace the surface beneath the product with white silk fabric with elegant soft folds and subtle sheen.',
+    lighting:
+      'Light with soft diffused elegant overhead light that picks up the silk sheen.',
+    grounding: 'embedded',
+  },
 
-  editorial_dark:
-    'Replace the background with a deep dark editorial setting with rich shadows. Add a single hard key light from the upper left casting dramatic deep shadows across the scene. Use a high-contrast luxury brand aesthetic.',
+  terrazzo: {
+    action:
+      'Replace the surface beneath the product with pastel terrazzo surface in modern design aesthetic.',
+    lighting:
+      'Light with bright even daylight for a clean modern commercial look.',
+    grounding: 'contact_shadow',
+  },
 
-  // ─── Additions (2026-06) ───────────────────────────────────────────────────
-  // Backed by competitor research (Pebblely top templates, Photoroom
-  // best-converting backgrounds) and cultural anchoring for the Armenian SME
-  // audience. See audit deliverable 3 for rationale.
+  acrylic_reflect: {
+    action:
+      'Replace the surface beneath the product with a polished clear acrylic sheet and replace the background with a soft neutral light gray.',
+    lighting:
+      'Light with soft diffused studio lighting that enhances the reflection without glare.',
+    grounding: 'reflection',
+  },
 
-  // Solid vibrant color backdrop — Pebblely's most-used template type.
-  colored_pop:
-    'Replace the background with a vibrant solid bright color in deep coral-red. Light the product with crisp even studio softbox lighting for a bold modern aesthetic.',
+  mirror_acrylic: {
+    action:
+      'Replace the surface beneath the product with a polished white acrylic mirror surface and replace the background with a clean neutral white or pale gray.',
+    lighting:
+      'Light with soft even diffused studio lighting that enhances the reflection and adds depth.',
+    grounding: 'reflection',
+  },
 
-  // Armenian apricot — national symbolic color (Pantone 1235 family).
-  // Flatters skincare, jewelry, and warm-toned product palettes.
-  apricot_warm:
-    'Replace the background with a warm seamless apricot-peach gradient that fades slightly darker near the bottom. Light with soft diffused warm studio lighting. Place the product on the apricot surface with a very soft warm contact shadow beneath it.',
+  stone_texture: {
+    action:
+      'Replace the surface beneath the product with a natural stone or slate surface showing visible texture and grain, and softly blur a neutral stone-toned wall behind it.',
+    lighting:
+      'Light with cool soft directional side light for a refined organic feel.',
+    grounding: 'contact_shadow',
+  },
 
-  // Armenian copper jezve coffee context — culturally specific cafe scene.
-  coffee_jezve:
-    'Replace the surface beneath the product with a small wooden cafe table. Add a small Armenian copper coffee jezve and a tiny cup of black coffee beside the product, with a warm cafe interior softly blurred behind. Light the scene with warm ambient indoor lighting. Keep the jezve and coffee cup visually distinct and clearly separate from the product being photographed.',
+  dark_stone: {
+    action:
+      'Replace the surface beneath the product with a dark slate or black stone surface showing natural texture, and softly blur a very dark wall behind it.',
+    lighting:
+      'Light with a single directional side light source creating rich deep shadows for a premium moody editorial aesthetic.',
+    grounding: 'contact_shadow',
+    guidanceScale: 4.0,
+  },
 
-  // Wildberries-compliant packshot: pure white (RGB 255,255,255), 15% padding, 85% fill.
-  wb_white_strict:
-    'Replace the background with a pure white seamless backdrop (RGB 255,255,255). Light with even shadowless commercial softbox lighting. Leave approximately 15 percent empty padding around the product. Compose the product to fill approximately 85 percent of the frame, perfectly centered.',
+  // ── Environment / Lifestyle ────────────────────────────────────────────────
 
-  // Lifestyle hand framing — product stays locked, hand enters from bottom edge.
-  handheld_lifestyle:
-    'Replace the background and surface with a softly blurred warm lifestyle setting. Keep the product in exactly its current position, scale, and orientation. Add a partially visible human hand entering the lower edge of the frame as if gently holding the product from below — the hand must not obscure or alter the product itself.',
+  bathroom_shelf: {
+    action:
+      'Replace the surface and background with a bathroom shelf setting — white tiles, soft towels nearby, and natural light through a frosted window.',
+    lighting:
+      'Light with soft cool natural light from a window to the side.',
+    grounding: 'contact_shadow',
+  },
 
-  // ─── New scenes (2026-06) ───────────────────────────────────────────────────
+  kitchen_counter: {
+    action:
+      'Replace the surface and background with a clean kitchen countertop in morning light, with softly blurred herbs or ingredients in the background.',
+    lighting:
+      'Light with bright soft morning daylight from the left.',
+    grounding: 'contact_shadow',
+  },
 
-  acrylic_reflect:
-    'Replace the surface beneath the product with a polished clear acrylic or glass sheet. Add a clean subtle mirror reflection of the product on the surface directly beneath it. Light with soft diffused studio lighting to enhance the reflection without glare. Replace the background with a soft neutral light gray.',
+  vanity_table: {
+    action:
+      'Replace the surface and background with a wooden makeup vanity table with a softly blurred mirror behind it.',
+    lighting:
+      'Light the scene with warm soft beauty lighting from vanity bulbs.',
+    grounding: 'contact_shadow',
+  },
 
-  mirror_acrylic:
-    'Replace the surface beneath the product with a polished white acrylic mirror surface. Add a clean symmetrical reflection of the product below it. Light with soft even diffused studio lighting that enhances the reflection and adds depth. Replace the background with a clean neutral white or pale gray.',
+  cafe_table: {
+    action:
+      'Replace the surface and background with a cafe table setting with a softly blurred warm cafe interior behind it.',
+    lighting:
+      'Light with warm ambient cafe lighting.',
+    grounding: 'contact_shadow',
+  },
 
-  stone_texture:
-    'Replace the surface beneath the product with a natural stone or slate surface showing visible texture and grain. Light with cool soft directional side light for a refined organic feel. Replace the background behind the product with a softly blurred neutral stone-toned wall.',
+  outdoor_garden: {
+    action:
+      'Replace the surface and background with an outdoor garden table setting with green plants and foliage softly blurred behind.',
+    lighting:
+      'Light with natural outdoor sunlight from above and to the side.',
+    grounding: 'contact_shadow',
+  },
 
-  dark_stone:
-    'Replace the surface beneath the product with a dark slate or black stone surface showing natural texture. Light with a single directional side light source creating rich deep shadows for a premium moody editorial aesthetic. Replace the background behind the product with a softly blurred very dark wall.',
+  office_desk: {
+    action:
+      'Replace the surface and background with a clean minimal modern office desk with a blurred laptop and desk accessories in the background.',
+    lighting:
+      'Light with crisp cool professional daylight from the side.',
+    grounding: 'contact_shadow',
+  },
 
-  tech_desk_setup:
-    'Replace the surface beneath the product with a clean minimal dark desk surface. Add softly blurred cool-toned ambient elements in the background — suggesting a modern tech workspace. Light with crisp cool professional daylight from above and a subtle blue ambient fill from the side. Replace the background with a deep dark blue-gray.',
+  bed_pillows: {
+    action:
+      'Replace the surface and background with white bedding and soft pillows, with morning sunlight through blurred curtains behind.',
+    lighting:
+      'Light with soft warm morning sunlight from the side.',
+    grounding: 'embedded',
+  },
 
-  styled_shelf:
-    'Replace the surface beneath the product with a clean light wood or white shelf surface. Add a softly blurred neutral wall behind it with a small out-of-focus green plant to one side. Light with soft warm natural window light from the left. The overall scene should feel like a curated home interior styled corner.',
+  beach_sand: {
+    action:
+      'Replace the surface beneath the product with fine warm beach sand, with the ocean softly blurred in the background.',
+    lighting:
+      'Light with low golden-hour sunlight from the side, casting a long soft warm shadow from the product across the sand and a warm rim highlight on its sunlit edge.',
+    grounding: 'embedded',
+  },
+
+  coffee_jezve: {
+    action:
+      'Replace the surface and background with a traditional Armenian coffee setup — dark wood surface, small copper jezve coffee pot and small cup blurred nearby.',
+    lighting:
+      'Light with warm intimate ambient lighting.',
+    grounding: 'contact_shadow',
+  },
+
+  handheld_lifestyle: {
+    action:
+      'Replace the background and surface with a softly blurred warm lifestyle setting. Keep the product in exactly its current position, scale, and orientation. Add a partially visible human hand entering the lower edge of the frame as if gently holding the product from below — the hand must not obscure or alter the product itself.',
+    lighting:
+      'Light with soft warm natural lifestyle lighting.',
+    grounding: 'contact_shadow',
+  },
+
+  tech_desk_setup: {
+    action:
+      'Replace the surface beneath the product with a clean minimal dark desk surface, with softly blurred cool-toned ambient tech workspace elements in the background. Replace the background with a deep dark blue-gray.',
+    lighting:
+      'Light with crisp cool professional daylight from above and a subtle blue ambient fill from the side.',
+    grounding: 'contact_shadow',
+  },
+
+  styled_shelf: {
+    action:
+      'Replace the surface beneath the product with a clean light wood or white shelf surface, with a softly blurred neutral wall behind it and a small out-of-focus green plant to one side. The overall scene should feel like a curated home interior styled corner.',
+    lighting:
+      'Light with soft warm natural window light from the left.',
+    grounding: 'contact_shadow',
+  },
+
+  // ── Seasonal ───────────────────────────────────────────────────────────────
+
+  holiday_new_year: {
+    action:
+      'Surround the product with elegant Christmas decorations — gold ornaments, pine branches, and warm fairy lights softly blurred behind.',
+    lighting:
+      'Light with warm festive ambient lighting.',
+    grounding: 'contact_shadow',
+  },
+
+  spring_bloom: {
+    action:
+      'Surround the product with fresh spring flowers and soft cherry blossom petals in pastel pinks and whites.',
+    lighting:
+      'Light with bright airy daylight for a seasonal spring feel.',
+    grounding: 'contact_shadow',
+  },
+
+  autumn_warm: {
+    action:
+      'Replace the surface beneath the product with a dark wood surface scattered with autumn leaves in red, orange, and gold tones, with additional softly blurred falling leaves surrounding the product.',
+    lighting:
+      'Light with warm golden afternoon sunlight for a cozy autumn atmosphere.',
+    grounding: 'contact_shadow',
+  },
+
+  summer_fresh: {
+    action:
+      'Replace the surface beneath the product with a cool white marble or light tile surface with ice cubes, fresh water droplets, and citrus slices arranged around it.',
+    lighting:
+      'Light with bright crisp daylight for a vibrant summer feel.',
+    grounding: 'contact_shadow',
+  },
+
+  sale_promo: {
+    action:
+      'Replace the background with a bold deep red seamless studio backdrop. Keep the composition centred.',
+    lighting:
+      'Light the product with crisp even commercial studio softbox lighting.',
+    grounding: 'contact_shadow',
+  },
+
+  // ── Creative / Editorial ──────────────────────────────────────────────────
+
+  floating_levitation: {
+    action:
+      'Make the product appear to float in mid-air against a clean soft light-gray gradient background. Keep the product in its exact same position, scale, and orientation — only remove the surface beneath it.',
+    lighting:
+      'Light with soft directional studio light from above with a subtle bright rim along the product\'s top edges emphasising the levitation.',
+    grounding: 'floating',
+  },
+
+  splash_water: {
+    action:
+      'Surround the product with dynamic frozen splashes of clear water suspended in mid-air around it, as in commercial beverage photography. The product surface stays clean and matte while crisp water droplets hang suspended in the air around it.',
+    lighting:
+      'Use crisp high-speed studio lighting that captures the water motion.',
+    grounding: 'contact_shadow',
+  },
+
+  ingredients_flat_lay: {
+    action:
+      'Compose the scene as a flat lay shot from directly overhead, with the product centred and surrounded by its natural ingredients.',
+    lighting:
+      'Use soft even top-down lighting.',
+    grounding: 'contact_shadow',
+    allowsReframe: true,  // flat lay — angle_top chip makes sense here
+  },
+
+  neon_glow: {
+    action:
+      'Replace the surface beneath the product with a dark reflective surface and cast vivid neon light reflections in pink, cyan, and purple across the background behind it, in a moody cyberpunk editorial aesthetic.',
+    lighting:
+      'The product itself stays lit by a clean neutral white key light from the front, with only thin coloured neon rim highlights tracing its left and right edges.',
+    grounding: 'reflection',
+    guidanceScale: 4.0,
+  },
+
+  minimal_pastel: {
+    action:
+      'Replace the background with a soft warm cream seamless studio backdrop.',
+    lighting:
+      'Light with even soft minimal studio lighting for a clean modern composition.',
+    grounding: 'contact_shadow',
+  },
+
+  editorial_dark: {
+    action:
+      'Replace the background with a deep dark editorial setting with rich shadows and moody atmosphere.',
+    lighting:
+      'Light with a single dramatic key light from the side with deep shadow on the opposite side, and a subtle rim light tracing the product edges.',
+    grounding: 'contact_shadow',
+    guidanceScale: 4.0,
+  },
+
+  // ── New scenes ────────────────────────────────────────────────────────────
+
+  podium_pedestal: {
+    action:
+      'Place the product on top of a smooth matte cream cylindrical display podium, with a soft beige arched alcove wall behind it and gentle negative space around the composition.',
+    lighting:
+      'Light with warm directional sunlight from the upper right, casting one clean soft-edged diagonal shadow of the product across the podium top and a soft light wrap along its lit edge.',
+    grounding: 'contact_shadow',
+  },
+
+  water_ripple: {
+    action:
+      'Place the product standing upright in very shallow clear water over a soft blue-gray surface, with gentle concentric ripples radiating from its base and a clean reflection on the water.',
+    lighting:
+      'Light with bright soft daylight from above, with crisp small specular highlights on the ripples.',
+    grounding: 'reflection',
+  },
+
+  gift_unboxing: {
+    action:
+      'Place the product emerging from an open kraft gift box with white crinkled tissue paper around its base, a length of satin ribbon resting beside the box on a warm neutral surface.',
+    lighting:
+      'Light with soft warm window light from the left.',
+    grounding: 'embedded',
+  },
+
+  silk_pearls: {
+    action:
+      'Replace the surface beneath the product with softly draped champagne-coloured silk fabric with gentle folds, with a few scattered pearls softly blurred in the foreground and background.',
+    lighting:
+      'Light with soft diffused beauty lighting from the upper front, creating delicate specular highlights on the product and a soft shadow nestled in the silk folds beneath it.',
+    grounding: 'embedded',
+    guidanceScale: 4.0,
+  },
+
+  wb_hero_card: {
+    action:
+      'Replace the background with a smooth premium vertical gradient from soft ice-blue at the top to white at the bottom, with the product positioned in the lower two-thirds of the frame and clean empty space above it.',
+    lighting:
+      'Light with crisp even commercial studio lighting with a subtle cool rim highlight on the product edges.',
+    grounding: 'contact_shadow',
+  },
+
+  window_shadow_play: {
+    action:
+      'Place the product on a warm white plaster wall ledge, with hard dappled sunlight casting sharp organic leaf and window-frame shadows across the wall behind it.',
+    lighting:
+      'Light with hard direct late-afternoon sunlight from the upper left, casting one crisp elongated shadow of the product itself onto the surface and a bright sunlit edge along its lit side.',
+    grounding: 'contact_shadow',
+  },
+
+  color_block_duo: {
+    action:
+      'Replace the background with a bold two-tone colour block composition: a warm terracotta upper background meeting a soft cream lower surface in a clean horizontal line behind the product.',
+    lighting:
+      'Light with even bold studio lighting, casting one clean hard-edged shadow of the product diagonally onto the cream surface.',
+    grounding: 'contact_shadow',
+  },
+
+  yerevan_tuff: {
+    action:
+      'Replace the surface and background with warm rose-pink volcanic tuff stone blocks with natural porous texture, like a sunlit Yerevan building facade, softly blurred behind the product.',
+    lighting:
+      'Light with warm low golden sunlight from the side, casting a soft warm shadow of the product onto the stone and a golden rim highlight along its edge.',
+    grounding: 'contact_shadow',
+  },
+
+  pomegranate_luxe: {
+    action:
+      'Place the product on a dark wooden surface beside one whole pomegranate and a halved pomegranate with glistening ruby seeds, with a deep warm dark background softly blurred behind.',
+    lighting:
+      'Light with warm dramatic side light, creating rich deep shadows, glossy highlights on the pomegranate seeds, and a warm rim light tracing the product edges.',
+    grounding: 'contact_shadow',
+    guidanceScale: 4.0,
+  },
 }
 
 // ─── Chip Prompt Fragments ─────────────────────────────────────────────────────
@@ -317,31 +664,17 @@ const CHIP_GROUPS: Record<string, 'lighting' | 'angle' | 'mood' | 'accent' | 'ca
   toy_colorful: 'category', toy_white_bg: 'category',
 }
 
-// ─── Product Preservation Constraint (trails the prompt) ──────────────────────
-// Placed AT THE END so Kontext reads scene edits FIRST and locks the product
-// as the stability constraint. Phrasing mirrors BFL's canonical guide:
-//   "in the exact same position, scale, and pose ... maintain identical
-//   subject placement, camera angle, framing, and perspective."
-// Including camera angle here is what lets us safely drop angle preservation
-// from individual scene prompts.
+// ─── Group Wrappers ───────────────────────────────────────────────────────────
 
-const FOOD_PRESERVATION_PREFIX =
-  'Preserve the food exactly as presented in its original plate, bowl, or serving vessel. Do not remove, replace, or alter the serving vessel in any way. Only modify the background and surrounding environment. '
-
-const PRODUCT_PRESERVATION_SUFFIX =
-  'Keep the product itself identical to the source image — preserve its exact shape, colors, materials, labels, printed text, logos, and proportions. ' +
-  'Maintain the exact same product position, scale, orientation, and camera angle as in the source. ' +
-  'Do not add any new text, badges, stickers, watermarks, or promotional graphics to the product or scene. ' +
-  'Preserve the original exposure and brightness of the product. Do not darken, overexpose, or alter the product\'s natural lighting.'
-
-// ─── Global Quality Cue ────────────────────────────────────────────────────────
-// Specific photographic vocabulary (high-resolution, sharp focus, true-to-source
-// colors, soft contact shadow) shifts Kontext output measurably; generic tokens
-// like "photorealistic" or "professional photography" carry near-zero semantic
-// weight at inference and were removed.
-
-const GLOBAL_QUALITY_SUFFIX =
-  'Deliver high-resolution professional product photography quality with sharp focus on the product, accurate true-to-source colors, realistic soft contact shadows grounding it to the surface, and crisp commercial detail.'
+// Group-specific wrapper sentences. Each refinement chip group emits ONE
+// sentence so Kontext sees a verb-led instruction per intent, instead of a
+// single comma-chained "Use X, Y, Z." blob that dilutes everything.
+const GROUP_WRAPPERS = {
+  lighting: (phrase: string) => `Light the scene with ${phrase}.`,
+  angle:    (phrase: string) => `Frame the shot ${phrase}.`,
+  mood:     (phrase: string) => `The overall atmosphere is ${phrase}.`,
+  accent:   (phrase: string) => `Tint the background and surrounding props with subtle ${phrase} tones.`,
+}
 
 // ─── Main Prompt Compiler ──────────────────────────────────────────────────────
 // NOTE: Text-on-image (price tags, "SALE", etc.) is no longer parsed here.
@@ -357,77 +690,94 @@ export interface CompilePromptInput {
   translatedSceneDescription?: string
 }
 
-// Group-specific wrapper sentences. Each refinement chip group emits ONE
-// sentence so Kontext sees a verb-led instruction per intent, instead of a
-// single comma-chained "Use X, Y, Z." blob that dilutes everything.
-const GROUP_WRAPPERS = {
-  lighting: (phrase: string) => `Light the scene with ${phrase}.`,
-  angle:    (phrase: string) => `Frame the shot ${phrase}.`,
-  mood:     (phrase: string) => `The overall atmosphere is ${phrase}.`,
-  accent:   (phrase: string) => `Tint the background and surrounding props with subtle ${phrase} tones.`,
-}
-
 // Assembly order (matches BFL canonical "actions first, preservation last"):
-//   1. scene instruction      — the primary action to apply
-//   2. lighting refinement    — modifies scene lighting
-//   3. mood refinement        — modifies scene atmosphere
-//   4. angle refinement       — modifies framing (rarely selected; see note above)
-//   5. category refinement    — adds props / composition specifics
-//   6. translated custom text — user free-form intent
-//   7. global quality cue     — output quality constraint
-//   8. product preservation   — LAST — locks stability of the product
-export function compilePrompt(input: CompilePromptInput): string {
-  const scenePrompt =
-    SCENE_PROMPTS[input.sceneId] ??
-    SCENE_PROMPTS['soft_shadow_studio'] // safe fallback
+//   1. scene.action         — primary background/surface replacement instruction
+//   2. lighting             — scene default, or chip override (replaces, not appends)
+//   3. grounding sentence   — tailored to scene.grounding type
+//   4. mood refinement      — modifies scene atmosphere
+//   5. accent refinement    — brand colour tint
+//   6. angle refinement     — only emitted for allowsReframe scenes
+//   7. category refinement  — props / composition specifics
+//   8. custom text          — user free-form intent
+//   9. food preservation    — food category only
+//  10. quality suffix        — grounding-aware
+//  11. preservation suffix  — conflict-aware (no angle lock when chip was emitted)
 
-  // Bucket chip IDs by group so we can emit one wrapping sentence per group.
-  const byGroup: Record<'lighting' | 'angle' | 'mood' | 'accent' | 'category', string[]> = {
+function bucketChips(
+  chipIds: string[],
+): Record<'lighting' | 'angle' | 'mood' | 'accent' | 'category', string[]> {
+  const result: Record<'lighting' | 'angle' | 'mood' | 'accent' | 'category', string[]> = {
     lighting: [], angle: [], mood: [], accent: [], category: [],
   }
-  for (const chipId of input.selectedChipIds) {
+  for (const chipId of chipIds) {
     const phrase = CHIP_PROMPTS[chipId]
     const group = CHIP_GROUPS[chipId]
     if (!phrase || !group) continue
-    byGroup[group].push(phrase)
+    result[group].push(phrase)
   }
+  return result
+}
 
-  const lightingSentence = byGroup.lighting.length > 0
-    ? GROUP_WRAPPERS.lighting(byGroup.lighting.join(' and '))
-    : ''
-  const moodSentence = byGroup.mood.length > 0
-    ? GROUP_WRAPPERS.mood(byGroup.mood.join(' and '))
-    : ''
-  const angleSentence = byGroup.angle.length > 0
-    ? GROUP_WRAPPERS.angle(byGroup.angle.join(' and '))
-    : ''
-  const accentSentence = byGroup.accent.length > 0
-    ? GROUP_WRAPPERS.accent(byGroup.accent.join(' and '))
-    : ''
-  // Category chips are already full sentences — concatenate as-is.
-  const categorySentence = byGroup.category.length > 0
-    ? byGroup.category.join(' ')
-    : ''
+export function compilePrompt(input: CompilePromptInput): string {
+  const scene = SCENES[input.sceneId] ?? SCENES['soft_shadow_studio']!
+
+  const byGroup = bucketChips(input.selectedChipIds)
+
+  const hasAngleChip = input.selectedChipIds.some((id) => ANGLE_CHIP_IDS.has(id))
+  const hasScaleChip = input.selectedChipIds.some((id) => SCALE_CHIP_IDS.has(id))
+
+  // Lighting chip REPLACES scene default lighting — never appended to it.
+  const lightingSentence =
+    byGroup.lighting.length > 0
+      ? GROUP_WRAPPERS.lighting(byGroup.lighting.join(' and '))
+      : scene.lighting
+
+  // Angle chips only emitted for scenes that allow reframing.
+  const angleSentence =
+    scene.allowsReframe === true && hasAngleChip
+      ? GROUP_WRAPPERS.angle(byGroup.angle.join(' and '))
+      : ''
+
+  const moodSentence =
+    byGroup.mood.length > 0 ? GROUP_WRAPPERS.mood(byGroup.mood.join(' and ')) : ''
+
+  const accentSentence =
+    byGroup.accent.length > 0
+      ? GROUP_WRAPPERS.accent(byGroup.accent.join(' and '))
+      : ''
+
+  const categorySentence = byGroup.category.join(' ')
 
   const customRaw = input.translatedSceneDescription?.trim() ?? ''
   const customSentence = customRaw
-    ? (/[.!?]$/.test(customRaw) ? customRaw : `${customRaw}.`)
+    ? /[.!?]$/.test(customRaw) ? customRaw : `${customRaw}.`
     : ''
 
   const parts = [
-    scenePrompt,
+    scene.action,
     lightingSentence,
+    GROUNDING_SENTENCES[scene.grounding],
     moodSentence,
     accentSentence,
     angleSentence,
     categorySentence,
     customSentence,
     input.category === 'food_cafe' ? FOOD_PRESERVATION_PREFIX.trim() : '',
-    GLOBAL_QUALITY_SUFFIX,
-    PRODUCT_PRESERVATION_SUFFIX,
+    buildQualitySuffix(scene.grounding),
+    buildPreservationSuffix({
+      hasAngleChip: scene.allowsReframe === true && hasAngleChip,
+      hasScaleChip,
+    }),
   ].filter(Boolean)
 
   return parts.join(' ')
+}
+
+// Returns the guidance_scale override for a scene, or undefined for scenes that
+// use the default (3.5). Exported so the preview worker can replace its hardcoded
+// DARK_SCENES set with a single lookup here.
+export function getSceneGuidanceScale(sceneId: string): number | undefined {
+  return SCENES[sceneId]?.guidanceScale
 }
 
 export function sanitizeCustomText(text: string): string {
