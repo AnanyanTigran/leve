@@ -66,6 +66,9 @@ export async function exportForPlatform(
 
   if (platform === 'original_hd') return sourceS3Key
 
+  // sourceS3Key (hdS3Key) is a PNG — model-router stores the lossless fal
+  // output as PNG so the preview watermark is the only lossy encode in the
+  // preview chain. sharp handles PNG input transparently; no change needed here.
   let sourceBuffer = await downloadFromS3(sourceS3Key)
 
   if (isValidCrop(cropRegion)) {

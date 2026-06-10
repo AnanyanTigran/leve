@@ -86,14 +86,15 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
       return
     }
 
-    // Every preview is watermarked — verified and anonymous alike. The clean
-    // original (output.s3Key) is preserved as hdS3Key and only served after
-    // purchase via the HD download endpoint.
+    // Encode chain: model-router emits PNG (lossless from fal) stored at
+    // hdS3Key. applyWatermark re-encodes to JPEG q85 — this is the ONLY lossy
+    // step in the preview chain. The clean PNG (hdS3Key) is served at HD
+    // download time by export.service.ts, which re-encodes to JPEG q92.
     let workingKey = output.s3Key
 
     try {
       const watermarkedBuffer = await applyWatermark(output.outputBuffer)
-      const watermarkedKey = output.s3Key.replace('-output.jpg', '-wm.jpg')
+      const watermarkedKey = output.s3Key.replace('-output.png', '-wm.jpg')
       await uploadToS3(watermarkedKey, watermarkedBuffer, 'image/jpeg')
       workingKey = watermarkedKey
     } catch (err) {
