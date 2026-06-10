@@ -1,4 +1,5 @@
 import * as fal from '@fal-ai/serverless-client'
+import sharp from 'sharp'
 import { validateEnv } from '../config/env'
 import { uploadToS3, buildS3Key } from '../lib/s3'
 import axios from 'axios'
@@ -32,45 +33,54 @@ const circuitBreaker = {
   },
 }
 
-// Aspect ratio → pixel dimensions (long edge = 2048px for verified users)
-export const ASPECT_RATIO_SIZES: Record<string, { width: number; height: number }> = {
-  '1:1':  { width: 2048, height: 2048 },
-  '4:5':  { width: 1638, height: 2048 },
-  '3:4':  { width: 1536, height: 2048 },
-  '9:16': { width: 1152, height: 2048 },
-  '16:9': { width: 2048, height: 1152 },
+// LEVE aspect ratio → Kontext [pro] enum value.
+// 4:5 is not in the [pro] enum; generate at 3:4 then center-crop to 4:5.
+export const KONTEXT_ASPECT_RATIOS: Record<string, string> = {
+  '1:1':  '1:1',
+  '4:5':  '3:4',  // generated at 3:4, post-cropped to 4:5
+  '3:4':  '3:4',
+  '9:16': '9:16',
+  '16:9': '16:9',
 }
 
-// Anonymous users get lower resolution (same cost, lower quality — creates upgrade incentive)
-const ANON_SIZE = { width: 1024, height: 1024 }
+// Ratios that require a center-crop after generation (target ratio as a decimal)
+const POST_CROP_TARGETS: Record<string, number> = {
+  '4:5': 4 / 5,
+}
 
 export interface GenerationInput {
   sessionId: string
   jobId: string
-  uploadS3Key: string      // user's product photo in S3
-  compiledPrompt: string   // scene + chips + translated custom text (NO text overlay content)
-  isVerified: boolean      // determines output resolution
-  aspectRatio?: string     // '1:1' | '4:5' | '3:4' | '9:16' | '16:9', default '1:1'
-  isEdit?: boolean         // true = iterative edit, sourceImageS3Key is prior output
+  uploadS3Key: string       // user's product photo in S3
+  compiledPrompt: string    // scene + chips + translated custom text (NO text overlay content)
+  aspectRatio?: string      // '1:1' | '4:5' | '3:4' | '9:16' | '16:9', default '1:1'
+  isEdit?: boolean          // true = iterative edit, sourceImageS3Key is prior output
   sourceImageS3Key?: string // for iterative edits: the previously generated image
-  guidanceScale?: number   // override default 3.5; dark scenes use 4.0 to prevent underexposure
+  guidanceScale?: number    // override default 3.5; dark scenes use 4.0 to prevent underexposure
+  seed?: number             // optional; random seed generated if omitted
+  /** @deprecated Kontext [pro] controls resolution; field is accepted but ignored */
+  isVerified?: boolean
 }
 
 export interface GenerationOutput {
-  s3Key: string      // single output image stored in S3
+  s3Key: string       // single output image stored in S3
   outputBuffer: Buffer // raw image bytes — used by worker for quality gate without extra S3 round trip
   provider: string
   durationMs: number
+  seed: number        // seed actually used — record for reproducible debugging
 }
 
 // Single entry point for ALL generation. No routing logic needed — always Kontext [pro].
 export async function runGeneration(input: GenerationInput): Promise<GenerationOutput> {
   const start = Date.now()
 
-  // Determine image_size based on verification state and chosen aspect ratio
-  const imageSize = input.isVerified
-    ? (ASPECT_RATIO_SIZES[input.aspectRatio ?? '1:1'] ?? ASPECT_RATIO_SIZES['1:1'])
-    : ANON_SIZE
+  // Fail fast before any presign work if the circuit is open
+  if (circuitBreaker.isOpen()) {
+    throw new Error('kontext_circuit_open')
+  }
+
+  const aspectRatio = input.aspectRatio ?? '1:1'
+  const kontextRatio = KONTEXT_ASPECT_RATIOS[aspectRatio] ?? '1:1'
 
   // Use uploaded photo as input for initial generation,
   // or previously generated image for iterative edits
@@ -84,31 +94,28 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
   // Enforce product preservation in every prompt — never allow Kontext to alter the product
   const safePrompt = buildSafePrompt(input.compiledPrompt, input.isEdit ?? false)
 
-  if (circuitBreaker.isOpen()) {
-    throw new Error('kontext_circuit_open')
-  }
+  const seed = input.seed ?? Math.floor(Math.random() * 2 ** 31)
 
-  let falResult: { images: { url: string }[] }
+  let falResult: { images: { url: string }[]; seed?: number }
 
-  const cancellableTimeout = createCancellableTimeout(30000, 'kontext_timeout')
+  const cancellableTimeout = createCancellableTimeout(45_000, 'kontext_timeout')
   try {
     falResult = await Promise.race([
-      fal.run('fal-ai/flux-pro/kontext', {
+      fal.subscribe('fal-ai/flux-pro/kontext', {
         input: {
           image_url: sourcePresignedUrl,
           prompt: safePrompt,
-          image_size: imageSize,
-          // 40 steps moves us closer to BFL's canonical 50-step recommendation
-          // for [pro] without busting the 8s preview target. At 32 the model
-          // visibly under-resolved fine product detail (jewelry, label text);
-          // 50+ is diminishing returns at significant runtime cost.
-          num_inference_steps: 40,
+          aspect_ratio: kontextRatio,
           // Default 3.5 is BFL-documented. Dark scenes (black_studio,
           // velvet_dark, editorial_dark, neon_glow) pass 4.0 to strengthen
           // instruction adherence and prevent underexposure.
           guidance_scale: input.guidanceScale ?? 3.5,
+          output_format: 'png',
+          safety_tolerance: '2',
+          enhance_prompt: false,
+          seed,
         },
-      }) as Promise<{ images: { url: string }[] }>,
+      }) as Promise<{ images: { url: string }[]; seed?: number }>,
       cancellableTimeout.promise,
     ])
     circuitBreaker.recordSuccess()
@@ -123,20 +130,60 @@ export async function runGeneration(input: GenerationInput): Promise<GenerationO
   const imageUrl = falResult.images?.[0]?.url
   if (!imageUrl) throw new Error('kontext_no_output')
 
-  // Download from fal.ai CDN and store in our S3
-  const imageBuffer = await downloadImageFromUrl(imageUrl)
-  const s3Key = buildS3Key('previews', input.sessionId, `${input.jobId}-output.jpg`)
-  await uploadToS3(s3Key, imageBuffer, 'image/jpeg')
+  // Download from fal.ai CDN
+  let imageBuffer = await downloadImageFromUrl(imageUrl)
+
+  // Center-crop to exact target ratio for aspect ratios not natively in the [pro] enum
+  const cropTarget = POST_CROP_TARGETS[aspectRatio]
+  if (cropTarget !== undefined) {
+    imageBuffer = await cropToAspect(imageBuffer, cropTarget)
+  }
+
+  const s3Key = buildS3Key('previews', input.sessionId, `${input.jobId}-output.png`)
+  await uploadToS3(s3Key, imageBuffer, 'image/png')
 
   return {
     s3Key,
     outputBuffer: imageBuffer,
     provider: 'fal_kontext_pro',
     durationMs: Date.now() - start,
+    seed: falResult.seed ?? seed,
   }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Center-crops a PNG buffer to the given aspect ratio (width/height decimal).
+// Returns the buffer unchanged if the ratio already matches within 0.5%.
+async function cropToAspect(buffer: Buffer, targetRatio: number): Promise<Buffer> {
+  const meta = await sharp(buffer).metadata()
+  const { width, height } = meta
+  if (!width || !height) return buffer
+
+  const currentRatio = width / height
+  if (Math.abs(currentRatio - targetRatio) / targetRatio < 0.005) return buffer
+
+  // Determine crop box that fits inside the image at the target ratio
+  let cropWidth: number
+  let cropHeight: number
+  if (currentRatio > targetRatio) {
+    // Image is wider than target — clamp width
+    cropHeight = height
+    cropWidth = Math.round(height * targetRatio)
+  } else {
+    // Image is taller than target — clamp height
+    cropWidth = width
+    cropHeight = Math.round(width / targetRatio)
+  }
+
+  const left = Math.floor((width - cropWidth) / 2)
+  const top = Math.floor((height - cropHeight) / 2)
+
+  return sharp(buffer)
+    .extract({ left, top, width: cropWidth, height: cropHeight })
+    .png()
+    .toBuffer()
+}
 
 // Preservation trails the user prompt — constraint-at-end is the BFL-documented
 // Kontext pattern: actions first, then preservation rules.
