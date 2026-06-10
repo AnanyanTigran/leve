@@ -186,8 +186,8 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         },
         {
           priority,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
+          attempts: 2,
+          backoff: { type: 'fixed', delay: 5000 },
           removeOnComplete: { count: 100 },
           removeOnFail: { count: 50 },
         },

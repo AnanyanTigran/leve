@@ -12,6 +12,16 @@ import { setJobPhase, clearJobPhase } from '../lib/job-phase'
 
 const PREVIEW_CONCURRENCY = 8
 
+// Errors that will always fail regardless of retries — never rethrow these.
+// Rethrowing would trigger BullMQ retries and bill $0.04 per attempt for a
+// result that is guaranteed to be the same (policy violation, open circuit, etc).
+const NON_RETRYABLE_ERRORS = new Set([
+  'kontext_no_output',
+  'content_policy_violation',
+  'kontext_circuit_open',
+  'quality_gate_failed',
+])
+
 async function processJob(job: Job<PreviewJobData>): Promise<void> {
   const {
     jobId,
@@ -118,9 +128,26 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
     logger.info({ requestId, jobId, durationMs: output.durationMs }, '[preview worker] done')
   } catch (err) {
     const errorCode = err instanceof Error ? err.message : 'unknown'
-    const isFinalAttempt = job.attemptsMade >= (job.opts.attempts ?? 1)
 
-    logger.error({ requestId, jobId, errorCode, isFinalAttempt, attemptsMade: job.attemptsMade }, '[preview worker] failed')
+    if (NON_RETRYABLE_ERRORS.has(errorCode)) {
+      logger.error(
+        { requestId, jobId, errorCode, retryable: false },
+        '[preview worker] non-retryable error — skipping BullMQ retry to prevent billing leak',
+      )
+      await prisma.generationJob.update({
+        where: { id: jobId },
+        data: { status: 'failed', errorCode },
+      })
+      await clearJobPhase(jobId)
+      return
+    }
+
+    // Retryable path (timeouts, network failures) — rethrow so BullMQ retries.
+    const isFinalAttempt = job.attemptsMade >= (job.opts.attempts ?? 1)
+    logger.error(
+      { requestId, jobId, errorCode, retryable: true, isFinalAttempt, attemptsMade: job.attemptsMade },
+      '[preview worker] retryable error',
+    )
 
     await prisma.generationJob.update({
       where: { id: jobId },
@@ -132,11 +159,11 @@ async function processJob(job: Job<PreviewJobData>): Promise<void> {
 
     if (!isFinalAttempt) {
       await setJobPhase(jobId, 'queued')
-    }
-
-    if (isFinalAttempt) {
+    } else {
       await clearJobPhase(jobId)
     }
+
+    throw err
   }
 }
 
