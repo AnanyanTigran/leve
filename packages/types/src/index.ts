@@ -275,3 +275,26 @@ export interface AspectRatioOption {
   height: number
 }
 
+// Canonical list of all valid scene IDs — single source of truth for both
+// the web scene picker and the API allowlist in /api/session/favorite-scene.
+export const SCENE_IDS = [
+  // Studio
+  'pure_white_studio', 'soft_shadow_studio', 'gray_gradient', 'light_box', 'black_studio',
+  'colored_pop', 'apricot_warm', 'wb_white_strict',
+  // Lifestyle surfaces
+  'marble_luxury', 'dark_wood', 'light_wood', 'concrete_industrial', 'linen_fabric',
+  'velvet_dark', 'silk_white', 'terrazzo', 'acrylic_reflect', 'mirror_acrylic',
+  'stone_texture', 'dark_stone',
+  // Environment
+  'bathroom_shelf', 'kitchen_counter', 'vanity_table', 'cafe_table', 'outdoor_garden',
+  'office_desk', 'bed_pillows', 'beach_sand', 'coffee_jezve', 'handheld_lifestyle',
+  'tech_desk_setup', 'styled_shelf',
+  // Seasonal
+  'holiday_new_year', 'spring_bloom', 'autumn_warm', 'summer_fresh', 'sale_promo',
+  // Creative
+  'floating_levitation', 'splash_water', 'ingredients_flat_lay', 'neon_glow',
+  'minimal_pastel', 'editorial_dark',
+] as const
+
+export type SceneId = typeof SCENE_IDS[number]
+
