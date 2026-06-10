@@ -39,7 +39,7 @@ export function AppHeader({
             <ChevronLeft className="w-6 h-6 text-text-primary" />
           </Link>
         ) : (
-          <div className="w-11 h-11" />
+          <div className="w-12 h-12" />
         )}
       </div>
 

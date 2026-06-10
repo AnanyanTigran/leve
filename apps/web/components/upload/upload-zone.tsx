@@ -413,7 +413,7 @@ export function UploadZone() {
                   type="button"
                   onClick={() => handleCategorySelect(item.id)}
                   className={cn(
-                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[36px]',
+                    'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[48px]',
                     selectedCategory === item.id
                       ? 'bg-accent text-white border-accent'
                       : 'bg-bg-elevated text-text-secondary border-border-default hover:border-border-hover',

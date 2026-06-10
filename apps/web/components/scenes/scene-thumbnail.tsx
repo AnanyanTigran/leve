@@ -80,8 +80,8 @@ export function SceneThumbnail({
             onClick={handleBookmark}
             aria-label={isFavorite ? t('remove_favorite') : t('saved_favorite')}
             className={cn(
-              'absolute top-0 right-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-150',
-              'opacity-40 group-hover:opacity-100 focus-visible:opacity-100 active:opacity-100',
+              'absolute top-0 right-0 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-150 p-2',
+              'opacity-100 lg:opacity-40 lg:group-hover:opacity-100 focus-visible:opacity-100 active:opacity-100',
               isFavorite && 'opacity-100',
               isFavorite
                 ? 'bg-accent shadow-md'
