@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import { nanoid } from 'nanoid'
+import sharp from 'sharp'
 import { validateImage } from '../../services/image-validation.service'
 import { probeImageQuality } from '../../services/image-quality.service'
+import { preprocessForGeneration } from '../../services/preprocess.service'
 import { uploadToS3, buildS3Key } from '../../lib/s3'
 import { checkRateLimit, uploadRateLimitKey } from '../../lib/rate-limit'
 
@@ -78,25 +80,32 @@ export async function registerUploadRoute(app: FastifyInstance) {
         })
       }
 
-      // If validation converted HEIC/HEIF/AVIF/TIFF → JPEG, upload the
-      // transcoded buffer (Kontext can't ingest HEIC) and stamp .jpg.
+      // If validation converted HEIC/HEIF/AVIF/TIFF → JPEG, use the transcoded
+      // buffer as the preprocessing input; otherwise use the original.
       const storedBuffer = validation.convertedBuffer ?? fileBuffer
-      const storedExt = validation.convertedBuffer
-        ? 'jpg'
-        : originalFilename.split('.').pop()?.toLowerCase() ?? 'jpg'
-      const s3Key = buildS3Key('uploads', session.sessionId, `original.${storedExt}`)
+
+      // Quality probe runs on storedBuffer (pre-resize) so the assessment
+      // reflects original image content, not the downscaled copy.
+      const qualityWarning = await probeImageQuality(storedBuffer)
+
+      // Bake EXIF orientation, cap to KONTEXT_MAX_EDGE on the long side,
+      // re-encode to JPEG 4:4:4, and strip all EXIF (including GPS).
+      const processedBuffer = await preprocessForGeneration(storedBuffer)
+
+      // Re-read dimensions — resize may have changed them from validation values.
+      const processedMeta = await sharp(processedBuffer).metadata()
+      const outputWidth = processedMeta.width ?? validation.width
+      const outputHeight = processedMeta.height ?? validation.height
+
+      // Preprocessing always outputs JPEG regardless of the source format.
+      const s3Key = buildS3Key('uploads', session.sessionId, 'original.jpg')
 
       try {
-        await uploadToS3(s3Key, storedBuffer, validation.mimeType!)
+        await uploadToS3(s3Key, processedBuffer, 'image/jpeg')
       } catch (err) {
         app.log.error({ requestId, err }, 's3 upload failed')
         return reply.status(500).send({ success: false, error: 'upload_error', requestId })
       }
-
-      // Best-effort quality probe — never blocks. The FE shows a soft
-      // warning ("looks a bit dark — generate anyway?") so users avoid
-      // spending a credit on a low-quality source photo.
-      const qualityWarning = await probeImageQuality(storedBuffer)
 
       app.log.info({ requestId, s3Key, sessionId: session.sessionId, qualityWarning }, 'upload complete')
 
@@ -104,8 +113,8 @@ export async function registerUploadRoute(app: FastifyInstance) {
         success: true,
         data: {
           uploadKey: s3Key,
-          width: validation.width,
-          height: validation.height,
+          width: outputWidth,
+          height: outputHeight,
           qualityWarning, // 'too_dark' | 'too_bright' | 'low_contrast' | null
         },
         requestId,
