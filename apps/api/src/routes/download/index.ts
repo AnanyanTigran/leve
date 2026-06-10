@@ -9,6 +9,7 @@ import { SessionService } from '../../services/session.service'
 import { UserService } from '../../services/user.service'
 import { Sentry } from '../../lib/sentry'
 import { sessionOwnsJob, sessionHasGrant } from '../../lib/ownership'
+import { ensureUpscaledHd } from '../../providers/upscale.service'
 
 // Resolve the actual S3 key to serve for a job's HD download. If the user
 // configured a text overlay on /results, composite it onto the HD output
@@ -90,12 +91,15 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         })
       }
 
+      // Upscale to 2× via Real-ESRGAN on first download; cached in Redis thereafter.
+      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+
       let hdKey: string
       try {
-        hdKey = await resolveHdKeyWithOverlay(grant.job.hdS3Key, grant.job)
+        hdKey = await resolveHdKeyWithOverlay(upscaledKey, grant.job)
       } catch (err) {
         app.log.error({ requestId, jobId, err }, 'overlay composite failed — falling back to clean HD')
-        hdKey = grant.job.hdS3Key
+        hdKey = upscaledKey
       }
 
       let signedUrl: string
@@ -169,10 +173,13 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         })
       }
 
+      // Upscale to 2× before platform resize so the export starts from a higher-res source.
+      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+
       let exportKey: string
       try {
         exportKey = await exportForPlatform(
-          grant.job.hdS3Key,
+          upscaledKey,
           platform,
           session.sessionId,
           jobId,
@@ -248,12 +255,15 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         })
       }
 
+      // Upscale to 2× via Real-ESRGAN on first download; cached in Redis thereafter.
+      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+
       let hdKey: string
       try {
-        hdKey = await resolveHdKeyWithOverlay(grant.job.hdS3Key, grant.job)
+        hdKey = await resolveHdKeyWithOverlay(upscaledKey, grant.job)
       } catch (err) {
         app.log.error({ requestId, jobId, err }, 'overlay composite failed — falling back to clean HD')
-        hdKey = grant.job.hdS3Key
+        hdKey = upscaledKey
       }
 
       let buffer: Buffer
@@ -339,10 +349,13 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         })
       }
 
+      // Upscale to 2× before platform resize so the export starts from a higher-res source.
+      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+
       let exportKey: string
       try {
         exportKey = await exportForPlatform(
-          grant.job.hdS3Key,
+          upscaledKey,
           platform,
           session.sessionId,
           jobId,
@@ -557,12 +570,15 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(404).send({ success: false, error: 'hd_not_ready', requestId })
       }
 
+      // Upscale to 2× via Real-ESRGAN on first download; cached in Redis thereafter.
+      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+
       let hdKey: string
       try {
-        hdKey = await resolveHdKeyWithOverlay(grant.job.hdS3Key, grant.job)
+        hdKey = await resolveHdKeyWithOverlay(upscaledKey, grant.job)
       } catch (err) {
         app.log.error({ requestId, jobId, err }, 'overlay composite failed — falling back to clean HD')
-        hdKey = grant.job.hdS3Key
+        hdKey = upscaledKey
       }
 
       let buffer: Buffer

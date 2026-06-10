@@ -29,8 +29,12 @@ export const FREE_DAILY_GENERATION_SOFT_CAP = 15
 // Anonymous users: max generations before OTP wall
 export const ANON_FREE_GENERATIONS = 2
 
-// Anonymous preview resolution (px) — lower quality, watermarked
-export const ANON_GENERATION_SIZE = 1024
-
-// Verified user preview resolution (px)
-export const VERIFIED_GENERATION_SIZE = 2048
+// DEPRECATED — these constants drove the `image_size` parameter that was removed
+// from model-router.ts in the Kontext [pro] schema fix (image_size is not a valid
+// [pro] parameter and was silently ignored). Resolution tiering now happens at HD
+// download time via Real-ESRGAN 2× upscale in upscale.service.ts: all tiers
+// receive native Kontext output (~1MP) as a watermarked preview; verified users
+// who download get the ESRGAN-upscaled 2× JPEG. These constants are kept for
+// reference and are no longer imported anywhere.
+// export const ANON_GENERATION_SIZE = 1024
+// export const VERIFIED_GENERATION_SIZE = 2048
