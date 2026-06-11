@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, getLocale } from 'next-intl/server'
+import { CookieConsent } from '@/components/shared/cookie-consent'
 import '@/styles/globals.css'
 
 // next-themes hasn't updated its types for React 19's removed implicit children prop
@@ -79,6 +80,7 @@ export default async function RootLayout({
       <body className="bg-bg-base text-text-primary font-ui antialiased">
         <NextIntlClientProvider messages={messages}>
           <Providers>{children}</Providers>
+          <CookieConsent />
         </NextIntlClientProvider>
       </body>
     </html>

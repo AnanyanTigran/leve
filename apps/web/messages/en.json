@@ -418,5 +418,18 @@
     "subtext": "The page you're looking for isn't in our studio.",
     "cta_studio": "Back to studio",
     "cta_home": "Go home"
+  },
+  "cookie": {
+    "heading": "Setting up your studio",
+    "body": "LEVE uses cookies to keep your session ready and, with your okay, to understand how the studio gets used.",
+    "privacy_link": "Privacy details",
+    "accept_all": "Accept all",
+    "essential_only": "Essential only",
+    "customize": "Customize",
+    "essential_label": "Essential",
+    "essential_desc": "Keeps you logged in and your session active",
+    "analytics_label": "Analytics",
+    "analytics_desc": "Helps us understand how the studio gets used",
+    "save_choices": "Save choices"
   }
 }
