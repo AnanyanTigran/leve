@@ -246,7 +246,8 @@
     "download_hd_spending": "Unlocking…",
     "generate_another": "Generate another scene",
     "upload_new_photo": "Upload a new photo",
-    "aspect_ratio_mismatch_note": "Original image cropped for comparison"
+    "aspect_ratio_mismatch_note": "Original image cropped for comparison",
+    "expand_image": "View fullscreen"
   },
   "paywall": {
     "title": "Unlock HD Download",
@@ -358,7 +359,9 @@
   "nav": {
     "home": "Home",
     "upload": "Upload",
-    "history": "History"
+    "history": "History",
+    "sign_in": "Sign in",
+    "sign_out": "Sign out"
   },
   "scenes": {
     "title": "Choose a scene",
@@ -409,5 +412,11 @@
     "last_setup_label": "Last time you picked {scene}",
     "last_setup_cta": "Use again",
     "pricing_note": "Generation is free — HD downloads from 200 ֏"
+  },
+  "not_found": {
+    "headline": "This shot doesn't exist",
+    "subtext": "The page you're looking for isn't in our studio.",
+    "cta_studio": "Back to studio",
+    "cta_home": "Go home"
   }
 }
