@@ -703,14 +703,16 @@ export default function ResultsPage() {
               back to scene selection; only the "new photo" branch clears it. */}
           <div className="flex flex-col gap-2 pt-2 md:items-center">
             {sourceAvailable && (
-              <button
-                type="button"
-                onClick={() => { setIsNavigating(true); router.push('/templates') }}
-                disabled={isNavigating}
-                className="btn-secondary btn-full"
-              >
-                {t('generate_another')}
-              </button>
+              <div className="w-full md:max-w-[320px]">
+                <button
+                  type="button"
+                  onClick={() => { setIsNavigating(true); router.push('/templates') }}
+                  disabled={isNavigating}
+                  className="btn-secondary btn-full"
+                >
+                  {t('generate_another')}
+                </button>
+              </div>
             )}
             <button
               type="button"

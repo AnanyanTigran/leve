@@ -294,6 +294,7 @@ leve/
 - Structured logging with pino. No console.log in production.
 - Generate requestId (nanoid) for every request. Log with every AI call.
 - All Armenian/Russian/English strings in `/lib/i18n/` — never hardcoded.
+- Button labels are plain text only — no arrows (→), ellipses (...), or decorative symbols. Loading states inside buttons also follow this rule.
 
 ### Localization Rules
 - EVERY user-visible string in a component must use `useTranslations()`

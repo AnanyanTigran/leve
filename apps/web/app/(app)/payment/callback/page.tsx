@@ -118,12 +118,14 @@ export default function PaymentCallbackPage() {
         <p className="text-[13px] text-text-muted text-center mt-2 mb-6">
           {state === 'timeout' ? t('timeout_sub') : t('failed_sub')}
         </p>
-        <button
-          className="btn-primary btn-full max-w-[280px]"
-          onClick={() => router.push('/results')}
-        >
-          {t('back_to_results')}
-        </button>
+        <div className="w-full md:max-w-[320px] md:mx-auto">
+          <button
+            className="btn-primary btn-full"
+            onClick={() => router.push('/results')}
+          >
+            {t('back_to_results')}
+          </button>
+        </div>
       </div>
     )
   }
