@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PromptTextarea } from '@/components/ui/prompt-textarea'
 import {
   LIGHTING_CHIPS,
   MOOD_CHIPS,
@@ -302,7 +303,7 @@ export function RefinementPanel({
                       const next = customText
                         ? `${customText.trim().replace(/,$/, '')}, ${phrase}`
                         : phrase
-                      const clipped = next.slice(0, 300)
+                      const clipped = next.slice(0, 200)
                       setCustomText(clipped)
                       onCustomTextChange(clipped)
                     }}
@@ -314,16 +315,13 @@ export function RefinementPanel({
               })}
             </div>
 
-            <textarea
+            <PromptTextarea
               value={customText}
-              onChange={(e) => {
-                setCustomText(e.target.value)
-                onCustomTextChange(e.target.value)
+              onChange={(val) => {
+                setCustomText(val)
+                onCustomTextChange(val)
               }}
               placeholder={t('custom_placeholder')}
-              maxLength={300}
-              rows={2}
-              className="w-full bg-bg-surface border border-border-default rounded-[10px] px-3 py-2.5 text-[14px] text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:border-accent transition-colors"
             />
             <p className="text-[11px] text-text-muted mt-1">
               {t('custom_hint')}
