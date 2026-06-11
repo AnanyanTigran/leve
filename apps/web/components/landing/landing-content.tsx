@@ -83,6 +83,8 @@ export function LandingContent() {
 
   const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.1 })
   const showcaseInView = useInView(showcaseRef, { once: true, amount: 0.2 })
+  // Separate from entry animation — tracks live visibility to pause ambient gallery
+  const showcaseVisible = useInView(showcaseRef, { once: false, amount: 0.3 })
   const scenesInView = useInView(scenesRef, { once: true, amount: 0.2 })
   const stepsInView = useInView(stepsRef, { once: true, amount: 0.2 })
   const marketplaceInView = useInView(marketplaceRef, { once: true, amount: 0.2 })
@@ -114,19 +116,49 @@ export function LandingContent() {
 
   const [activeCardIndex, setActiveCardIndex] = useState(0)
   const [demoPosition, setDemoPosition] = useState<number | null>(null)
-  const [userHasInteracted, setUserHasInteracted] = useState(false)
-  const demoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const [isPaused, setIsPaused] = useState(false)
+  const pauseResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Ambient gallery: wipe 70→30→50 over the card's 4s window, then advance
   useEffect(() => {
-    if (!showcaseInView || userHasInteracted) return
-    const timers: ReturnType<typeof setTimeout>[] = []
-    timers.push(setTimeout(() => setDemoPosition(75), 300))
-    timers.push(setTimeout(() => setDemoPosition(25), 1100))
-    timers.push(setTimeout(() => setDemoPosition(50), 2000))
-    timers.push(setTimeout(() => setDemoPosition(null), 2800))
-    demoTimersRef.current = timers
-    return () => timers.forEach(clearTimeout)
-  }, [showcaseInView, userHasInteracted, activeCardIndex])
+    if (!showcaseVisible || isPaused) {
+      setDemoPosition(null)
+      return
+    }
+    const w1 = setTimeout(() => setDemoPosition(70), 300)
+    const w2 = setTimeout(() => setDemoPosition(30), 1800)
+    const w3 = setTimeout(() => setDemoPosition(50), 3000)
+    const cycle = setTimeout(
+      () => setActiveCardIndex((i) => (i + 1) % SHOWCASE_CARDS.length),
+      4000,
+    )
+    return () => {
+      clearTimeout(w1)
+      clearTimeout(w2)
+      clearTimeout(w3)
+      clearTimeout(cycle)
+    }
+  }, [activeCardIndex, isPaused, showcaseVisible])
+
+  // Clean up pause-resume timer on unmount
+  useEffect(() => {
+    return () => { if (pauseResumeTimerRef.current) clearTimeout(pauseResumeTimerRef.current) }
+  }, [])
+
+  function handleShowcaseInteract() {
+    setIsPaused(true)
+    setDemoPosition(null)
+    if (pauseResumeTimerRef.current) clearTimeout(pauseResumeTimerRef.current)
+    pauseResumeTimerRef.current = setTimeout(() => {
+      setIsPaused(false)
+      pauseResumeTimerRef.current = null
+    }, 3000)
+  }
+
+  function handleDotClick(idx: number) {
+    setActiveCardIndex(idx)
+    handleShowcaseInteract()
+  }
 
   function handleCategorySelect(categoryId: ProductCategory) {
     sessionStorage.setItem('leve_category', categoryId)
@@ -272,41 +304,11 @@ export function LandingContent() {
               {t('showcase_subtitle')}
             </motion.p>
 
-            {/* Category tabs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="flex gap-2 justify-center flex-wrap mb-6"
-            >
-              {SHOWCASE_CARDS.map((card, idx) => (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveCardIndex(idx)
-                    setUserHasInteracted(false)
-                    setDemoPosition(null)
-                    demoTimersRef.current.forEach(clearTimeout)
-                    demoTimersRef.current = []
-                  }}
-                  className={cn(
-                    'px-4 py-2 rounded-full text-sm font-ui font-medium transition-all duration-150 min-h-[40px]',
-                    activeCardIndex === idx
-                      ? 'bg-[var(--accent)] text-white border border-transparent'
-                      : 'bg-transparent border border-border-default text-text-secondary hover:border-border-hover'
-                  )}
-                >
-                  {tScenes(card.catKey)}
-                </button>
-              ))}
-            </motion.div>
-
-            {/* Slider */}
+            {/* Slider + dot indicators */}
             <motion.div
               initial={{ opacity: 0, y: 32 }}
               animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
               className="max-w-[380px] mx-auto"
             >
               {!CDN ? (
@@ -323,23 +325,43 @@ export function LandingContent() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
                   >
                     <BeforeAfterSlider
                       beforeSrc={SHOWCASE_CARDS[activeCardIndex]!.beforeImage}
                       afterSrc={SHOWCASE_CARDS[activeCardIndex]!.afterImage}
                       aspectRatio="1:1"
                       externalPosition={demoPosition}
-                      onUserInteract={() => {
-                        setUserHasInteracted(true)
-                        setDemoPosition(null)
-                        demoTimersRef.current.forEach(clearTimeout)
-                        demoTimersRef.current = []
-                      }}
+                      onUserInteract={handleShowcaseInteract}
                     />
                   </motion.div>
                 </AnimatePresence>
               )}
+
+              {/* Dot indicators — tap to jump; active dot widens into a pill */}
+              <div className="flex justify-center gap-0.5 mt-4">
+                {SHOWCASE_CARDS.map((card, idx) => (
+                  <button
+                    key={card.id}
+                    type="button"
+                    aria-label={tScenes(card.catKey)}
+                    onClick={() => handleDotClick(idx)}
+                    className="flex items-center justify-center"
+                    style={{ minWidth: 32, minHeight: 44, padding: '0 6px' }}
+                  >
+                    <span
+                      className={cn(
+                        'block h-2 rounded-full',
+                        idx === activeCardIndex ? 'bg-accent' : 'bg-border-strong',
+                      )}
+                      style={{
+                        width: idx === activeCardIndex ? 20 : 8,
+                        transition: 'width 0.25s ease-out, background-color 0.25s ease-out',
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
             </motion.div>
           </div>
         </section>
