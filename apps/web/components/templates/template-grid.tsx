@@ -169,14 +169,16 @@ export function TemplateGrid() {
       {/* Sticky bottom CTA */}
       <div className="sticky bottom-0 bg-bg-base border-t border-border-default py-3">
         <div className="page-content">
-          <button
-            type="button"
-            onClick={handleContinue}
-            disabled={!selectedId}
-            className="btn-primary btn-full"
-          >
-            {tCommon('continue')}
-          </button>
+          <div className="md:max-w-[320px] md:mx-auto">
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={!selectedId}
+              className="btn-primary btn-full"
+            >
+              {tCommon('continue')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

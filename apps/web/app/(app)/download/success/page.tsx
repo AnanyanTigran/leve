@@ -301,48 +301,54 @@ export default function DownloadSuccessPage() {
         </div>
 
         {/* Primary download button */}
-        <button
-          onClick={handleDownload}
-          disabled={isDownloading}
-          className={cn(
-            'btn-primary btn-full h-14 text-[16px] mt-6 gap-2',
-            isDownloading && 'opacity-50 cursor-not-allowed',
-          )}
-        >
-          <Download className="w-[18px] h-[18px]" />
-          {isDownloading
-            ? t('downloading')
-            : primaryButtonLabel}
-        </button>
+        <div className="md:max-w-[320px] md:mx-auto mt-6">
+          <button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className={cn(
+              'btn-primary btn-full h-14 text-[16px] gap-2',
+              isDownloading && 'opacity-50 cursor-not-allowed',
+            )}
+          >
+            <Download className="w-[18px] h-[18px]" />
+            {isDownloading
+              ? t('downloading')
+              : primaryButtonLabel}
+          </button>
+        </div>
         {downloadError && (
           <p className="text-[13px] text-error text-center mt-2">{downloadError}</p>
         )}
 
         {/* Share (mobile/tablet) or Copy link (desktop) — only when image is ready */}
         {previewUrl && supportsShare && (
-          <button
-            onClick={() => void handleShare()}
-            disabled={shareState === 'loading'}
-            className={cn(
-              'btn-secondary btn-full h-12 text-[15px] mt-2 gap-2',
-              shareState === 'loading' && 'opacity-50 cursor-not-allowed',
-            )}
-          >
-            <Share2 className="w-[18px] h-[18px]" />
-            {shareState === 'idle' && t('share_btn')}
-            {shareState === 'loading' && t('share_loading')}
-            {shareState === 'success' && t('share_success')}
-            {shareState === 'error' && t('share_error')}
-          </button>
+          <div className="md:max-w-[320px] md:mx-auto mt-2">
+            <button
+              onClick={() => void handleShare()}
+              disabled={shareState === 'loading'}
+              className={cn(
+                'btn-secondary btn-full h-12 text-[15px] gap-2',
+                shareState === 'loading' && 'opacity-50 cursor-not-allowed',
+              )}
+            >
+              <Share2 className="w-[18px] h-[18px]" />
+              {shareState === 'idle' && t('share_btn')}
+              {shareState === 'loading' && t('share_loading')}
+              {shareState === 'success' && t('share_success')}
+              {shareState === 'error' && t('share_error')}
+            </button>
+          </div>
         )}
         {previewUrl && !supportsShare && supportsClipboard && (
-          <button
-            onClick={() => void handleCopyLink()}
-            className="btn-secondary btn-full h-12 text-[15px] mt-2 gap-2"
-          >
-            <Copy className="w-[18px] h-[18px]" />
-            {copyState === 'idle' ? t('copy_link') : t('copied')}
-          </button>
+          <div className="md:max-w-[320px] md:mx-auto mt-2">
+            <button
+              onClick={() => void handleCopyLink()}
+              className="btn-secondary btn-full h-12 text-[15px] gap-2"
+            >
+              <Copy className="w-[18px] h-[18px]" />
+              {copyState === 'idle' ? t('copy_link') : t('copied')}
+            </button>
+          </div>
         )}
 
         {/* Platform picker */}
@@ -386,12 +392,14 @@ export default function DownloadSuccessPage() {
 
         </div>
 
-        <button
-          onClick={() => router.push('/templates')}
-          className="btn-secondary btn-full mt-6"
-        >
-          {t('generate_another')}
-        </button>
+        <div className="md:max-w-[320px] md:mx-auto mt-6">
+          <button
+            onClick={() => router.push('/templates')}
+            className="btn-secondary btn-full"
+          >
+            {t('generate_another')}
+          </button>
+        </div>
         <button
           onClick={() => router.push('/')}
           className="block mx-auto text-[13px] text-text-muted hover:text-text-secondary font-semibold py-3 mt-1"

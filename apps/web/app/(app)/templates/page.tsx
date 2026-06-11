@@ -483,24 +483,26 @@ export default function SceneSelectionPage() {
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={!selectedScene || isLoading}
-            className={cn(
-              'btn-primary btn-full h-14 text-[16px] font-semibold transition-all',
-              (!selectedScene || isLoading) && 'opacity-50 cursor-not-allowed',
-            )}
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                {t('generating')}
-              </div>
-            ) : (
-              t('generate_btn')
-            )}
-          </button>
+          <div className="md:max-w-[320px] md:mx-auto">
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={!selectedScene || isLoading}
+              className={cn(
+                'btn-primary btn-full h-14 text-[16px] font-semibold transition-all',
+                (!selectedScene || isLoading) && 'opacity-50 cursor-not-allowed',
+              )}
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  {t('generating')}
+                </div>
+              ) : (
+                t('generate_btn')
+              )}
+            </button>
+          </div>
 
           {!selectedScene && (
             <p className="text-center text-[12px] text-text-muted mt-2">

@@ -178,7 +178,7 @@
   .btn-primary:disabled { opacity: 0.4; pointer-events: none; }
 
   /* Desktop: auto width unless .btn-full override */
-  @media (min-width: 1024px) {
+  @media (min-width: 768px) {
     .btn-primary {
       width: auto;
       min-width: 180px;
@@ -218,7 +218,7 @@
   }
   .btn-secondary:active { transform: scale(0.97); }
 
-  @media (min-width: 1024px) {
+  @media (min-width: 768px) {
     .btn-secondary {
       width: auto;
       min-width: 180px;

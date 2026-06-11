@@ -153,12 +153,14 @@ export default function HistoryPage() {
 
       <div className="sticky bottom-0 bg-bg-base border-t border-border-default py-3 safe-bottom">
         <div className="page-content">
-          <button
-            onClick={() => router.push('/upload')}
-            className="btn-primary btn-full"
-          >
-            {t('generate_first')}
-          </button>
+          <div className="md:max-w-[320px] md:mx-auto">
+            <button
+              onClick={() => router.push('/upload')}
+              className="btn-primary btn-full"
+            >
+              {t('generate_first')}
+            </button>
+          </div>
         </div>
       </div>
 
