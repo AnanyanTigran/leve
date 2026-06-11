@@ -3,7 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Phone } from 'lucide-react'
+import { Phone, Download, Maximize2 } from 'lucide-react'
+import Lightbox from 'yet-another-react-lightbox'
+import Zoom from 'yet-another-react-lightbox/plugins/zoom'
+import 'yet-another-react-lightbox/styles.css'
+import { PromptTextarea } from '@/components/ui/prompt-textarea'
 import { AppHeader } from '@/components/shared/app-header'
 import { useSession } from '@/hooks/use-session'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -52,6 +56,7 @@ export default function ResultsPage() {
   // CTA can show a loading state and ignore double clicks.
   const [isSpendingCredit, setIsSpendingCredit] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollFailuresRef = useRef(0)
 
@@ -396,6 +401,18 @@ export default function ResultsPage() {
     }
   }
 
+  function handleDownloadHd() {
+    setLightboxOpen(false)
+    if (hasGrant) {
+      setIsNavigating(true)
+      router.push('/download/success')
+    } else if (hasCredits) {
+      void handleSpendCredit()
+    } else {
+      setPaywallOpen(true)
+    }
+  }
+
   async function handleRetryPreviewUrl() {
     if (!jobId) return
     setPreviewUrlError(false)
@@ -484,6 +501,10 @@ export default function ResultsPage() {
   const sliderAspectRatio = (
     (typeof window !== 'undefined' && sessionStorage.getItem('leve_aspect_ratio')) || '1:1'
   ) as AspectRatio
+  const [arW, arH] = sliderAspectRatio.split(':').map(Number) as [number, number]
+  // True only when the original upload preview is in sessionStorage (fresh generation path).
+  // False when arriving from history — the base64 preview was never stored for old jobs.
+  const sourceAvailable = uploadPreview !== null
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-bg-base">
@@ -517,12 +538,47 @@ export default function ResultsPage() {
               </button>
             </div>
           )}
-          <div className="relative">
-            <BeforeAfterSlider
-              beforeSrc={previousImageUrl ?? uploadPreview}
-              afterSrc={generatedImageUrl ?? uploadPreview}
-              aspectRatio={sliderAspectRatio}
-            />
+          <div className="relative group">
+            {/* Expand button — hover-only on desktop, always visible on mobile */}
+            {generatedImageUrl && editPhase === 'idle' && (
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="absolute top-3 right-3 z-30 p-2.5 rounded-full bg-black/50 border border-white/15 text-white transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                aria-label={t('expand_image')}
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+            )}
+            {sourceAvailable ? (
+              <BeforeAfterSlider
+                beforeSrc={previousImageUrl ?? uploadPreview}
+                afterSrc={generatedImageUrl ?? uploadPreview}
+                aspectRatio={sliderAspectRatio}
+              />
+            ) : (
+              // Source image unavailable (history job) — show generated image only
+              <div
+                className="relative w-full mx-auto overflow-hidden rounded-[12px] border border-border-default"
+                style={{
+                  aspectRatio: `${arW} / ${arH}`,
+                  maxHeight: '70vh',
+                  maxWidth: `calc(70vh * ${arW} / ${arH})`,
+                }}
+              >
+                {generatedImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={generatedImageUrl}
+                    alt=""
+                    draggable={false}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-bg-elevated animate-pulse" />
+                )}
+              </div>
+            )}
             {/* Edit phase overlay — visible during editing, pointer-events none
                 so the slider handle remains interactive underneath. */}
             {editPhase !== 'idle' && (
@@ -604,53 +660,58 @@ export default function ResultsPage() {
               <p className="text-[14px] font-semibold text-text-primary">{t('edit_heading')}</p>
               {canEdit ? (
                 <>
-                  <input
-                    type="text"
+                  <PromptTextarea
                     value={editPrompt}
-                    onChange={e => setEditPrompt(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleEditSubmit() }}
+                    onChange={setEditPrompt}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEditSubmit() } }}
                     placeholder={t('edit_placeholder')}
                     disabled={editPhase !== 'idle'}
-                    className="w-full h-12 rounded-[10px] border border-border-default bg-bg-elevated px-3 text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-strong disabled:opacity-50"
+                    hasError={!!editError}
                   />
                   {editError && (
                     <p className="text-[12px] text-error">{t('edit_error')}</p>
                   )}
-                  <button
-                    onClick={handleEditSubmit}
-                    disabled={editPhase !== 'idle' || !editPrompt.trim()}
-                    className="btn-primary btn-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {editPhase !== 'idle' ? (
-                      <>
-                        <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                        <span>{t('edit_regenerating')}</span>
-                      </>
-                    ) : t('edit_submit')}
-                  </button>
+                  <div className="md:max-w-[320px] md:mx-auto">
+                    <button
+                      onClick={handleEditSubmit}
+                      disabled={editPhase !== 'idle' || !editPrompt.trim()}
+                      className="btn-primary btn-full disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {editPhase !== 'idle' ? (
+                        <>
+                          <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                          <span>{t('edit_regenerating')}</span>
+                        </>
+                      ) : t('edit_submit')}
+                    </button>
+                  </div>
                 </>
               ) : (
-                <button
-                  onClick={() => setPaywallOpen(true)}
-                  className="btn-primary btn-full"
-                >
-                  {t('edit_no_credits')}
-                </button>
+                <div className="md:max-w-[320px] md:mx-auto">
+                  <button
+                    onClick={() => setPaywallOpen(true)}
+                    className="btn-primary btn-full"
+                  >
+                    {t('edit_no_credits')}
+                  </button>
+                </div>
               )}
             </div>
           )}
 
           {/* End-of-page next actions — keeps the current upload when jumping
               back to scene selection; only the "new photo" branch clears it. */}
-          <div className="flex flex-col gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => { setIsNavigating(true); router.push('/templates') }}
-              disabled={isNavigating}
-              className="btn-secondary btn-full"
-            >
-              {t('generate_another')}
-            </button>
+          <div className="flex flex-col gap-2 pt-2 md:items-center">
+            {sourceAvailable && (
+              <button
+                type="button"
+                onClick={() => { setIsNavigating(true); router.push('/templates') }}
+                disabled={isNavigating}
+                className="btn-secondary btn-full"
+              >
+                {t('generate_another')}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { setIsNavigating(true); router.push('/') }}
@@ -669,42 +730,44 @@ export default function ResultsPage() {
             fade lets content scroll behind it. */}
         {!paywallOpen && (
           <div className="sticky bottom-16 z-40 -mx-4 px-4 pb-3 pt-3 bg-bg-base border-t border-border-default safe-bottom">
-            {hasGrant === null ? (
-              <div className="h-12 rounded-[12px] bg-bg-elevated animate-pulse" />
-            ) : hasGrant ? (
-              <button
-                onClick={() => { setIsNavigating(true); router.push('/download/success') }}
-                disabled={isNavigating}
-                className="btn-primary btn-full h-12 text-[15px] font-semibold"
-              >
-                {t('download_hd')}
-              </button>
-            ) : hasCredits ? (
-              <button
-                onClick={handleSpendCredit}
-                disabled={isSpendingCredit || isNavigating}
-                className="btn-primary btn-full h-12 text-[15px] font-semibold disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isSpendingCredit ? (
-                  <>
-                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                    <span>{t('download_hd_spending')}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{t('download_hd')}</span>
-                    <span className="text-[12px] font-medium opacity-80">({t('download_hd_credit')})</span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={() => setPaywallOpen(true)}
-                className="btn-primary btn-full h-12 text-[15px] font-semibold"
-              >
-                {tPaywall('title')}
-              </button>
-            )}
+            <div className="md:max-w-[320px] md:mx-auto">
+              {hasGrant === null ? (
+                <div className="h-12 rounded-[12px] bg-bg-elevated animate-pulse" />
+              ) : hasGrant ? (
+                <button
+                  onClick={() => { setIsNavigating(true); router.push('/download/success') }}
+                  disabled={isNavigating}
+                  className="btn-primary btn-full h-12 text-[15px] font-semibold"
+                >
+                  {t('download_hd')}
+                </button>
+              ) : hasCredits ? (
+                <button
+                  onClick={handleSpendCredit}
+                  disabled={isSpendingCredit || isNavigating}
+                  className="btn-primary btn-full h-12 text-[15px] font-semibold disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSpendingCredit ? (
+                    <>
+                      <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      <span>{t('download_hd_spending')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t('download_hd')}</span>
+                      <span className="text-[12px] font-medium opacity-80">({t('download_hd_credit')})</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => setPaywallOpen(true)}
+                  className="btn-primary btn-full h-12 text-[15px] font-semibold"
+                >
+                  {tPaywall('title')}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </main>
@@ -715,6 +778,36 @@ export default function ResultsPage() {
         onClose={() => { setPaywallOpen(false); setPaywallInitialState('pricing') }}
         initialState={paywallInitialState}
       />
+      {generatedImageUrl && (
+        <Lightbox
+          open={lightboxOpen}
+          close={() => setLightboxOpen(false)}
+          slides={[{ src: generatedImageUrl }]}
+          plugins={[Zoom]}
+          carousel={{ finite: true }}
+          styles={{ container: { backgroundColor: '#0A0A0A' } }}
+          zoom={{
+            maxZoomPixelRatio: 4,
+            zoomInMultiplier: 1.5,
+            doubleTapDelay: 300,
+            scrollToZoom: true,
+          }}
+          toolbar={{
+            buttons: [
+              <button
+                key="hd-download"
+                type="button"
+                onClick={handleDownloadHd}
+                className="yarl__button"
+                aria-label={t('download_hd')}
+              >
+                <Download className="w-5 h-5" />
+              </button>,
+              'close',
+            ],
+          }}
+        />
+      )}
     </div>
   )
 }

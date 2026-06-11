@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import Cropper from 'react-easy-crop'
+import type { Area } from 'react-easy-crop'
 import { useTranslations } from 'next-intl'
 import { AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -14,8 +16,8 @@ export interface CropRegion {
 
 interface CropSelectorProps {
   imageUrl: string
-  sourceAspectRatio: number  // w / h of the generated image
-  targetAspectRatio: number  // w / h required by the target platform
+  sourceAspectRatio: number  // passed by parent — not needed by react-easy-crop, accepted for API compat
+  targetAspectRatio: number
   targetWidth: number
   targetHeight: number
   platformLabel: string
@@ -24,14 +26,13 @@ interface CropSelectorProps {
   onConfirm: (region: CropRegion) => void
 }
 
-// Maximum zoom level — prevents cropping a tiny sliver that would massively upscale
+const MIN_ZOOM = 1
 const MAX_ZOOM = 4
-// If the required upscale factor exceeds this, show the quality warning
+// If server would need to upscale the cropped area beyond this factor, warn the user
 const UPSCALE_WARN_THRESHOLD = 1.2
 
 export function CropSelector({
   imageUrl,
-  sourceAspectRatio,
   targetAspectRatio,
   targetWidth,
   targetHeight,
@@ -43,159 +44,36 @@ export function CropSelector({
   const t = useTranslations('download')
   const tCommon = useTranslations('common')
 
-  // Natural pixel dimensions of the source image — used for upscale detection
-  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
-
-  // Compute the fractional crop dimensions at zoom=1 (largest rect at target AR)
-  const { cropW, cropH } = useMemo(() => {
-    if (targetAspectRatio >= sourceAspectRatio) {
-      // target is wider than source — fill width, shrink height
-      return { cropW: 1, cropH: sourceAspectRatio / targetAspectRatio }
-    }
-    // target is narrower than source — fill height, shrink width
-    return { cropW: targetAspectRatio / sourceAspectRatio, cropH: 1 }
-  }, [sourceAspectRatio, targetAspectRatio])
-
-  // Zoom state: 1 = full coverage (min zoom), MAX_ZOOM = tightest crop (max zoom)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+  // react-easy-crop gives percentages (0-100) and pixel coords on each change
+  const [croppedAreaPct, setCroppedAreaPct] = useState<Area | null>(null)
+  const [croppedAreaPx, setCroppedAreaPx] = useState<Area | null>(null)
 
-  // Effective crop dimensions shrink as zoom increases
-  const effectiveCropW = cropW / zoom
-  const effectiveCropH = cropH / zoom
+  const onCropComplete = useCallback((_pct: Area, px: Area) => {
+    setCroppedAreaPct(_pct)
+    setCroppedAreaPx(px)
+  }, [])
 
-  const [pos, setPos] = useState(() => ({
-    x: (1 - cropW) / 2,
-    y: (1 - cropH) / 2,
-  }))
-
-  // Clamp pos whenever effectiveCrop shrinks after a zoom change
-  useEffect(() => {
-    setPos((p) => ({
-      x: Math.max(0, Math.min(1 - effectiveCropW, p.x)),
-      y: Math.max(0, Math.min(1 - effectiveCropH, p.y)),
-    }))
-  }, [effectiveCropW, effectiveCropH])
-
-  // Detect whether this crop would need upscaling beyond the threshold
+  // Quality warning: if the cropped pixel area is smaller than the target output,
+  // sharp will have to upscale — warn when that factor exceeds the threshold
   const showQualityWarning = useMemo(() => {
-    if (!naturalSize) return false
-    const croppedPxW = effectiveCropW * naturalSize.w
-    const croppedPxH = effectiveCropH * naturalSize.h
-    const scaleX = targetWidth / croppedPxW
-    const scaleY = targetHeight / croppedPxH
+    if (!croppedAreaPx) return false
+    const scaleX = targetWidth / croppedAreaPx.width
+    const scaleY = targetHeight / croppedAreaPx.height
     return Math.max(scaleX, scaleY) > UPSCALE_WARN_THRESHOLD
-  }, [naturalSize, effectiveCropW, effectiveCropH, targetWidth, targetHeight])
-
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  // ── Pointer tracking ────────────────────────────────────────────────────────
-  // We track all active pointers in a Map so we can handle both single-finger
-  // drag and two-finger pinch with the same pointer event handlers.
-  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map())
-  // Anchor state saved when a drag begins — used to compute relative movement
-  const dragAnchorRef = useRef<{ startX: number; startY: number; posX: number; posY: number } | null>(null)
-  // Previous pinch distance — used to compute zoom delta
-  const prevPinchDistRef = useRef<number | null>(null)
-
-  function getContainerRect(): DOMRect | null {
-    return containerRef.current?.getBoundingClientRect() ?? null
-  }
-
-  function getPinchDistance(): number | null {
-    const pts = Array.from(pointersRef.current.values())
-    if (pts.length < 2) return null
-    const a = pts[0]!
-    const b = pts[1]!
-    return Math.hypot(b.x - a.x, b.y - a.y)
-  }
-
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-
-      const rect = getContainerRect()
-      if (!rect) return
-
-      if (pointersRef.current.size === 1) {
-        // Single pointer — start drag
-        dragAnchorRef.current = {
-          startX: e.clientX,
-          startY: e.clientY,
-          posX: pos.x,
-          posY: pos.y,
-        }
-        prevPinchDistRef.current = null
-      } else {
-        // Second pointer arrived — switch to pinch, cancel drag
-        dragAnchorRef.current = null
-        prevPinchDistRef.current = getPinchDistance()
-      }
-    },
-    [pos],
-  )
-
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!pointersRef.current.has(e.pointerId)) return
-      e.preventDefault()
-      e.stopPropagation()
-      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
-
-      const rect = getContainerRect()
-      if (!rect) return
-
-      if (pointersRef.current.size === 2) {
-        // ── Pinch-to-zoom ──
-        const dist = getPinchDistance()
-        if (dist === null) return
-        const prev = prevPinchDistRef.current
-        if (prev !== null && prev > 0) {
-          const ratio = dist / prev
-          setZoom((z) => {
-            const next = Math.max(1, Math.min(MAX_ZOOM, z * ratio))
-            return next
-          })
-        }
-        prevPinchDistRef.current = dist
-      } else if (pointersRef.current.size === 1 && dragAnchorRef.current) {
-        // ── Single-finger drag ──
-        const anchor = dragAnchorRef.current
-        const dxFrac = (e.clientX - anchor.startX) / rect.width
-        const dyFrac = (e.clientY - anchor.startY) / rect.height
-        const wFrac = effectiveCropW
-        const hFrac = effectiveCropH
-        setPos({
-          x: Math.max(0, Math.min(1 - wFrac, anchor.posX + dxFrac)),
-          y: Math.max(0, Math.min(1 - hFrac, anchor.posY + dyFrac)),
-        })
-      }
-    },
-    [effectiveCropW, effectiveCropH],
-  )
-
-  const onPointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const target = e.target as HTMLElement
-      if (target.hasPointerCapture(e.pointerId)) target.releasePointerCapture(e.pointerId)
-      pointersRef.current.delete(e.pointerId)
-
-      if (pointersRef.current.size < 2) {
-        prevPinchDistRef.current = null
-      }
-      if (pointersRef.current.size === 0) {
-        dragAnchorRef.current = null
-      }
-    },
-    [],
-  )
+  }, [croppedAreaPx, targetWidth, targetHeight])
 
   function handleConfirm() {
-    onConfirm({ x: pos.x, y: pos.y, width: effectiveCropW, height: effectiveCropH })
+    if (!croppedAreaPct) return
+    // Convert react-easy-crop percentages (0–100) → fractional coords (0–1)
+    // to match the CropRegion contract expected by triggerDownload / the server
+    onConfirm({
+      x: croppedAreaPct.x / 100,
+      y: croppedAreaPct.y / 100,
+      width: croppedAreaPct.width / 100,
+      height: croppedAreaPct.height / 100,
+    })
   }
 
   return (
@@ -208,54 +86,48 @@ export function CropSelector({
           </p>
         </div>
 
-        <div
-          ref={containerRef}
-          className="relative w-full mx-auto overflow-hidden rounded-[12px] bg-bg-elevated select-none"
-          style={{
-            aspectRatio: `${sourceAspectRatio}`,
-            maxHeight: '60vh',
-            userSelect: 'none',
-            WebkitUserSelect: 'none',
-            WebkitTouchCallout: 'none',
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt=""
-            draggable={false}
-            onLoad={(e) => {
-              const img = e.currentTarget
-              setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight })
-            }}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-          />
-
-          {/* Crop window — box-shadow paints the surrounding dim. The
-              container's overflow: hidden clips the shadow to the image. */}
-          <div
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            role="presentation"
-            className="absolute border-2 border-white cursor-grab active:cursor-grabbing"
+        {/* react-easy-crop fills position:absolute into its parent — parent needs explicit height */}
+        <div className="relative w-full rounded-[12px] overflow-hidden" style={{ height: '300px' }}>
+          <Cropper
+            image={imageUrl}
+            crop={crop}
+            zoom={zoom}
+            aspect={targetAspectRatio}
+            minZoom={MIN_ZOOM}
+            maxZoom={MAX_ZOOM}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
+            showGrid
             style={{
-              left: `${pos.x * 100}%`,
-              top: `${pos.y * 100}%`,
-              width: `${effectiveCropW * 100}%`,
-              height: `${effectiveCropH * 100}%`,
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)',
-              touchAction: 'none',
+              containerStyle: {
+                background: '#141414',
+                borderRadius: '12px',
+              },
+              cropAreaStyle: {
+                // border is the accent-colored crop frame
+                border: '2px solid #D64C1A',
+                // color drives the box-shadow overlay that dims the area outside the crop rect
+                color: 'rgba(0,0,0,0.55)',
+              },
             }}
-          >
-            {/* Rule-of-thirds helper grid for composition */}
-            <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="border border-white/25" />
-              ))}
-            </div>
-          </div>
+          />
+        </div>
+
+        {/* Zoom slider — fallback control for desktop and accessibility */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-text-muted shrink-0">1×</span>
+          <input
+            type="range"
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
+            step={0.01}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="flex-1 h-12 cursor-pointer"
+            style={{ accentColor: '#D64C1A' }}
+          />
+          <span className="text-[11px] text-text-muted shrink-0">4×</span>
         </div>
 
         {showQualityWarning && (
@@ -277,8 +149,11 @@ export function CropSelector({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={isDownloading}
-            className={cn('btn-primary flex-1 h-12 text-[15px]', isDownloading && 'opacity-50 cursor-not-allowed')}
+            disabled={isDownloading || !croppedAreaPct}
+            className={cn(
+              'btn-primary flex-1 h-12 text-[15px]',
+              (isDownloading || !croppedAreaPct) && 'opacity-50 cursor-not-allowed',
+            )}
           >
             {isDownloading ? t('downloading') : t('download_btn')}
           </button>
