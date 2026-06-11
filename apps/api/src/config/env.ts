@@ -11,7 +11,6 @@ const envSchema = z.object({
 
   SESSION_COOKIE_SECRET: z.string().min(32),
   SESSION_COOKIE_NAME: z.string().default('leve_sid'),
-  CSRF_HMAC_SECRET: z.string().min(32),
 
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),

@@ -88,32 +88,14 @@ async function bootstrap() {
 
   await app.register(csrf, {
     sessionPlugin: '@fastify/cookie',
-    // Bind each CSRF token to the caller's session cookie value so the token is
-    // cryptographically tied to the session identity. This means that even if the
-    // _csrf cookie is unavailable (e.g. mobile Safari ITP in a cross-origin context),
-    // the token–session pair is still verifiable via the session cookie alone.
-    // The session cookie (leve_sid) is first-party because all browser requests go
-    // through the Next.js /api/* rewrite proxy on the same Vercel origin.
-    getUserInfo: (request) => {
-      // Raw signed cookie value is stable for the session lifetime and unique per
-      // session — no need to unsign it here since we only use it as a binding key.
-      return request.cookies[env.SESSION_COOKIE_NAME] ?? 'anon'
-    },
-    csrfOpts: {
-      // userInfo: true tells the csrf library to incorporate the getUserInfo
-      // return value into the token HMAC, binding the token to the session identity.
-      // hmacKey is required by the type when userInfo is true.
-      userInfo: true,
-      hmacKey: env.CSRF_HMAC_SECRET,
-    },
     cookieOpts: {
       signed: true,
       path: '/',
-      // SameSite=Strict is safe because browser API calls go through the Next.js
-      // rewrite proxy (same Vercel origin), so the _csrf cookie is always sent on
-      // same-site requests. Changed from 'none' which caused ITP blocking on mobile
-      // Safari when the API was called cross-origin.
-      sameSite: 'strict',
+      // SameSite=None; Secure is required because the browser calls the Railway
+      // API URL directly (NEXT_PUBLIC_API_URL points to Railway, bypassing the
+      // Next.js proxy). Cross-origin requests require SameSite=None to send
+      // cookies. Secure=true is mandatory when SameSite=None.
+      sameSite: 'none',
       secure: true,
       httpOnly: true,
     },
