@@ -99,6 +99,9 @@ async function bootstrap() {
       // session — no need to unsign it here since we only use it as a binding key.
       return request.cookies?.[env.SESSION_COOKIE_NAME] ?? 'anon'
     },
+    // Required by @fastify/csrf-protection v8 whenever getUserInfo is set.
+    // Used to HMAC the token against the getUserInfo return value.
+    hmacKey: env.CSRF_HMAC_SECRET,
     cookieOpts: {
       signed: true,
       path: '/',
