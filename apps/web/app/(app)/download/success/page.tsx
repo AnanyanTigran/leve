@@ -230,12 +230,14 @@ export default function DownloadSuccessPage() {
   }
 
   function needsCropPicker(): boolean {
+    // Original HD downloads the file untouched — no ratio, no crop.
     if (selectedPlatform === 'original_hd') return false
     const spec = PLATFORM_SPECS[selectedPlatform]
-    // Marketplace exports (Wildberries, Ozon) use contain+pad on the server,
-    // so a manual crop wouldn't change the visible composition.
-    if (spec.forceWhiteBg) return false
     if (!spec.width || !spec.height) return false
+    // Any platform whose target ratio differs from the image's native ratio
+    // would be center-cropped by the server. Let the user place that crop
+    // themselves instead — marketplace platforms (Wildberries/Ozon) included,
+    // since they now crop-to-fill like the rest rather than padding.
     const targetRatio = spec.width / spec.height
     return Math.abs(targetRatio - sourceAspectRatio) / targetRatio > RATIO_TOLERANCE
   }

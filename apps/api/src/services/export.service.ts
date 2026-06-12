@@ -5,24 +5,23 @@ import { downloadFromS3 } from '../lib/cloudfront'
 export interface PlatformSpec {
   width: number
   height: number
-  forceWhiteBg: boolean
-  padding: number
 }
 
 export const SERVER_PLATFORM_SPECS: Record<string, PlatformSpec> = {
-  instagram_feed:  { width: 1080, height: 1080, forceWhiteBg: false, padding: 0 },
-  instagram_story: { width: 1080, height: 1920, forceWhiteBg: false, padding: 0 },
-  facebook_post:   { width: 1200, height: 630,  forceWhiteBg: false, padding: 0 },
-  wildberries:     { width: 900,  height: 1200, forceWhiteBg: true,  padding: 0.15 },
-  ozon:            { width: 1000, height: 1000, forceWhiteBg: true,  padding: 0.10 },
-  telegram:        { width: 1080, height: 1080, forceWhiteBg: false, padding: 0 },
-  list_am:         { width: 1200, height: 900,  forceWhiteBg: false, padding: 0 },
-  original_hd:     { width: 0,    height: 0,    forceWhiteBg: false, padding: 0 },
+  instagram_feed:  { width: 1080, height: 1080 },
+  instagram_story: { width: 1080, height: 1920 },
+  facebook_post:   { width: 1200, height: 630  },
+  wildberries:     { width: 900,  height: 1200 },
+  ozon:            { width: 1000, height: 1000 },
+  telegram:        { width: 1080, height: 1080 },
+  list_am:         { width: 1200, height: 900  },
+  original_hd:     { width: 0,    height: 0    },
 }
 
 // User-defined crop, sent from the FE as fractions of the source image
-// (top-left origin). When omitted we keep the previous behavior: a centered
-// `fit: 'cover'` for normal platforms and a contain+pad for marketplace ones.
+// (top-left origin). When omitted the image is center-cropped (`fit: 'cover'`)
+// to the target ratio. The export never pads — the product always fills the
+// frame, on every platform and every path.
 export interface CropRegion {
   x: number
   y: number
@@ -75,36 +74,17 @@ export async function exportForPlatform(
     sourceBuffer = await applyUserCrop(sourceBuffer, cropRegion)
   }
 
-  let pipeline: sharp.Sharp
-
-  if (spec.forceWhiteBg) {
-    // White background with padding — Wildberries/Ozon marketplace compliance
-    const paddingPx = Math.round(Math.min(spec.width, spec.height) * spec.padding)
-    const innerWidth = spec.width - paddingPx * 2
-    const innerHeight = spec.height - paddingPx * 2
-
-    const contained = await sharp(sourceBuffer)
-      .resize(innerWidth, innerHeight, {
-        fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
-      })
-      .toBuffer()
-
-    pipeline = sharp(contained).extend({
-      top: paddingPx,
-      bottom: paddingPx,
-      left: paddingPx,
-      right: paddingPx,
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
-    })
-  } else {
-    pipeline = sharp(sourceBuffer).resize(spec.width, spec.height, {
+  // Always crop-to-fill: scale to cover the target frame and center-crop the
+  // overflow. `fit: 'cover'` never introduces margins, so no platform — not
+  // even Wildberries/Ozon — gets white bars. When a user crop was applied
+  // above it already matches the target ratio, so cover is a clean exact fit.
+  const outputBuffer = await sharp(sourceBuffer)
+    .resize(spec.width, spec.height, {
       fit: 'cover',
       position: 'centre',
     })
-  }
-
-  const outputBuffer = await pipeline.jpeg({ quality: 92 }).toBuffer()
+    .jpeg({ quality: 92 })
+    .toBuffer()
 
   const exportKey = buildS3Key('hd', sessionId, `${jobId}-${platform}.jpg`)
   await uploadToS3(exportKey, outputBuffer, 'image/jpeg')

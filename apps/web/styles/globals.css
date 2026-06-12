@@ -24,6 +24,7 @@
   --color-warning: #F59E0B;
   --success-subtle: rgba(76, 175, 80, 0.10);
   --error-subtle: rgba(239, 68, 68, 0.10);
+  --warning-subtle: rgba(245, 158, 11, 0.12);
 
   /* Safe area insets */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
@@ -50,6 +51,7 @@
   --color-warning: #F59E0B;
   --success-subtle: rgba(76, 175, 80, 0.10);
   --error-subtle: rgba(239, 68, 68, 0.10);
+  --warning-subtle: rgba(245, 158, 11, 0.12);
 }
 
 [data-theme="light"] {
@@ -70,6 +72,7 @@
   --color-warning:  #D97706;
   --success-subtle: #F0FDF4;
   --error-subtle:   #FEF2F2;
+  --warning-subtle: #FEF3C7;
 }
 
 @keyframes scale-in {

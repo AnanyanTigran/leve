@@ -99,14 +99,15 @@ export function CropSelector({
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
             showGrid
+            zoomWithScroll
             style={{
               containerStyle: {
-                background: '#141414',
+                background: 'var(--bg-surface)',
                 borderRadius: '12px',
               },
               cropAreaStyle: {
-                // border is the accent-colored crop frame
-                border: '2px solid #D64C1A',
+                // accent-colored crop frame
+                border: '2px solid var(--accent)',
                 // color drives the box-shadow overlay that dims the area outside the crop rect
                 color: 'rgba(0,0,0,0.55)',
               },
@@ -125,15 +126,15 @@ export function CropSelector({
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
             className="flex-1 h-12 cursor-pointer"
-            style={{ accentColor: '#D64C1A' }}
+            style={{ accentColor: 'var(--accent)' }}
           />
           <span className="text-[11px] text-text-muted shrink-0">4×</span>
         </div>
 
         {showQualityWarning && (
-          <div className="flex items-start gap-2 px-3 py-2 rounded-[10px] bg-[#451A03] border border-[#92400E]">
-            <AlertTriangle className="w-4 h-4 text-[#F59E0B] shrink-0 mt-[1px]" />
-            <p className="text-[12px] text-[#FCD34D] leading-snug">{t('crop_quality_warning')}</p>
+          <div className="flex items-start gap-2 px-3 py-2 rounded-[10px] bg-warning-subtle border border-warning/40">
+            <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-[1px]" />
+            <p className="text-[12px] text-warning leading-snug">{t('crop_quality_warning')}</p>
           </div>
         )}
 

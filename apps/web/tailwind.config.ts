@@ -24,8 +24,10 @@ const config: Config = {
         'accent-border': 'var(--accent-border)',
         'success': 'var(--color-success)',
         'error': 'var(--color-error)',
+        'warning': 'var(--color-warning)',
         'success-subtle': 'var(--success-subtle)',
         'error-subtle': 'var(--error-subtle)',
+        'warning-subtle': 'var(--warning-subtle)',
       },
       fontFamily: {
         ui: ['Inter', 'system-ui', 'sans-serif'],
