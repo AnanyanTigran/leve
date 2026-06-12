@@ -46,28 +46,37 @@ export async function registerAuthMiddleware(app: FastifyInstance) {
   // Decorator: requireSessionOrAnon — attaches existing session or auto-creates one.
   // Used on upload and generate so anonymous users can proceed without OTP.
   app.decorate('requireSessionOrAnon', async (request: FastifyRequest, reply: FastifyReply) => {
-    let sessionId = request.cookies?.[env.SESSION_COOKIE_NAME]
-
-    if (sessionId) {
-      const session = await SessionService.get(sessionId)
+    // Primary: session cookie
+    const cookieSid = request.cookies?.[env.SESSION_COOKIE_NAME]
+    if (cookieSid) {
+      const session = await SessionService.get(cookieSid)
       if (session) {
         request.session = session
         return
       }
     }
 
-    // No session or expired — create one automatically
-    const newSession = await SessionService.create()
-    sessionId = newSession.sessionId
+    // Fallback: x-session-id header sent by the client from localStorage.
+    // Required on mobile Safari where ITP blocks cross-site Set-Cookie responses.
+    // TODO: remove when custom domain is configured, revert to cookie-only.
+    const headerSid = request.headers['x-session-id'] as string | undefined
+    if (headerSid) {
+      const session = await SessionService.get(headerSid)
+      if (session) {
+        request.session = session
+        return
+      }
+    }
 
-    reply.setCookie(env.SESSION_COOKIE_NAME, sessionId, {
+    // No valid session — create anonymous one
+    const newSession = await SessionService.create()
+    reply.setCookie(env.SESSION_COOKIE_NAME, newSession.sessionId, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
       path: '/',
       maxAge: 60 * 60 * 48,
     })
-
     request.session = newSession
   })
 

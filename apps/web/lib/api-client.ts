@@ -45,5 +45,9 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     const token = await getCsrfToken()
     if (token) headers.set('x-csrf-token', token)
   }
+  // Send stored sessionId as fallback header for mobile Safari (ITP blocks cross-site cookies).
+  // TODO: remove when custom domain is configured, revert to cookie-only
+  const storedSid = typeof window !== 'undefined' ? localStorage.getItem(SESSION_STORAGE_KEY) : null
+  if (storedSid) headers.set('x-session-id', storedSid)
   return fetch(apiUrl(path), { ...options, headers, credentials: 'include' })
 }
