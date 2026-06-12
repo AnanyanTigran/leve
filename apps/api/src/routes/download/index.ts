@@ -59,6 +59,17 @@ const cropQuerySchema = z.object({
 })
 
 export async function registerDownloadRoutes(app: FastifyInstance) {
+  // TODO(MEDIUM infra-audit 4.6): the rateLimit configs below use the
+  // plugin's default IP key — 30/min is shared across every user behind one
+  // carrier-NAT IP. These routes are session-authenticated; re-key them with
+  // sessionOrIpKey() from lib/rate-limit.ts.
+  //
+  // TODO(MEDIUM infra-audit 8.3): ensureUpscaledHd runs a Real-ESRGAN call
+  // synchronously inside the request with no timeout, and the server has
+  // requestTimeout disabled — a hung upstream holds the connection (and the
+  // user's spinner) indefinitely. Wrap it in AbortSignal.timeout(~30s) and
+  // return the existing hd_not_ready retry response, or move upscaling into
+  // the preview worker at generation time.
 
   // GET /api/download/url
   // Requires DownloadGrant — proof that payment was completed.

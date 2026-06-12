@@ -16,7 +16,12 @@ const OTP_EXPIRY_SECONDS = 60 * 10      // 10 minutes
 const OTP_MAX_ATTEMPTS = 5
 const OTP_RATE_LIMIT_MAX = 3            // sends per identifier per hour
 const OTP_RATE_LIMIT_WINDOW = 3600
-const IP_RATE_LIMIT_MAX = 10            // sends per IP per hour
+// Sends per IP per hour — SMS-cost backstop only, NOT the per-user guard
+// (that is the per-identifier limit above). Armenian carrier NAT puts many
+// users behind one public IP: at 10/hr, 4-5 users registering in the same
+// hour exhausted it and, because the route answers 200 regardless
+// (anti-enumeration), the next user's code silently never arrived.
+const IP_RATE_LIMIT_MAX = 30
 const BCRYPT_ROUNDS = 10
 
 function generateOtpCode(): string {
@@ -61,6 +66,9 @@ export async function sendOtp(
   ipAddress: string,
 ): Promise<{ sent: boolean; error?: string }> {
   // Rate limit by identifier
+  // TODO(MEDIUM infra-audit 4.7): INCR-then-EXPIRE here and below is not
+  // atomic — a crash between the two leaves a counter with no TTL, permanently
+  // blocking that identifier/IP. Fold into a single Lua script.
   const identifierCount = await redis.incr(otpRateLimitKey(identifier))
   if (identifierCount === 1) await redis.expire(otpRateLimitKey(identifier), OTP_RATE_LIMIT_WINDOW)
   if (identifierCount > OTP_RATE_LIMIT_MAX) {

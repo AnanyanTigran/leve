@@ -38,10 +38,13 @@ const app = Fastify({
   genReqId: () => `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
   keepAliveTimeout: 61000,
   connectionTimeout: 0,
-  // Let Fastify parse x-forwarded-for set by the load balancer so that
-  // request.ip always reflects the real client IP. All IP-based rate limiting
-  // and fraud logging reads request.ip exclusively — never the raw header.
-  trustProxy: true,
+  // Trust exactly ONE proxy hop (the Railway edge). request.ip then resolves
+  // to the rightmost x-forwarded-for entry — the one Railway itself appended.
+  // `true` would trust every hop, letting clients spoof request.ip (and bypass
+  // all IP-keyed rate limits) by sending their own x-forwarded-for prefix.
+  // If Railway ever adds a second proxy layer, bump this to 2 (symptom: all
+  // request.ip values in logs collapse to one shared internal IP).
+  trustProxy: 1,
 })
 
 // Log which image formats libvips compiled into sharp so we know HEIC/AVIF
@@ -65,6 +68,9 @@ async function bootstrap() {
   await app.register(cors, {
     origin: env.CORS_ORIGIN,
     credentials: true,
+    // Without this, cross-origin JS cannot read rate-limit headers on 429s —
+    // the browser hides non-safelisted response headers by default.
+    exposedHeaders: ['retry-after', 'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset'],
   })
 
   await app.register(helmet, {
@@ -78,12 +84,33 @@ async function bootstrap() {
     limits: { fileSize: 20 * 1024 * 1024 },
   })
 
+  // Cookie MUST register before rate-limit: both install onRequest hooks and
+  // Fastify runs them in registration order. Route-level rate-limit
+  // keyGenerators read request.cookies (e.g. OTP verify keyed by session) —
+  // with the reverse order they always saw undefined and silently fell back
+  // to the shared NAT/proxy IP key, reproducing the OTP 429 incident.
+  await app.register(cookie, { secret: env.SESSION_COOKIE_SECRET })
+
+  // 300/min per IP. Armenian carrier NAT puts many users behind one public IP
+  // and the FE polls generate status at ~30-40 req/min per active user, so
+  // 100/min throttled 2-3 concurrent legitimate users. This limiter is the
+  // unauthenticated-flood backstop only — per-session limits live on routes.
+  // Keyed by IP deliberately: a session key here would be bypassable by
+  // rotating the client-controlled x-session-id header.
+  // TODO(MEDIUM infra-audit 1.4): pass the shared ioredis connection via the
+  // `redis` option — the default in-memory store resets on every deploy and
+  // is per-instance if Railway scales horizontally.
   await app.register(rateLimit, {
-    max: 100,
+    max: 300,
     timeWindow: '1 minute',
+    errorResponseBuilder: (request, context) => ({
+      success: false,
+      error: 'rate_limit_exceeded',
+      retryAfterSeconds: Math.ceil(context.ttl / 1000),
+      requestId: request.id,
+    }),
   })
 
-  await app.register(cookie, { secret: env.SESSION_COOKIE_SECRET })
   await app.register(formbody)
 
   // CSRF — Redis-backed token validation. Consistent with the session system:
@@ -91,7 +118,15 @@ async function bootstrap() {
   // via x-csrf-token request header. No _csrf cookie dependency, so it works
   // on mobile Safari where ITP blocks all cross-site cookies regardless of
   // SameSite=None. When a custom domain is added this approach remains correct.
-  const CSRF_EXCLUDED = ['/api/webhooks/', '/api/register/otp/']
+  //
+  // Only webhooks are excluded: they are server-to-server, cannot fetch a
+  // token, and are authenticated by HMAC signature instead. OTP routes are
+  // deliberately NOT excluded — with @fastify/formbody registered globally, a
+  // cross-site <form> POST (no CORS preflight, SameSite=None cookie attached)
+  // to /api/register/otp/* would otherwise allow login-CSRF: verifying the
+  // attacker's identifier onto a victim's session. The SPA sends x-csrf-token
+  // on these calls via apiFetch, so they need no exclusion.
+  const CSRF_EXCLUDED = ['/api/webhooks/']
   app.addHook('preHandler', async (request, reply) => {
     const method = request.method.toUpperCase()
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return
@@ -99,13 +134,47 @@ async function bootstrap() {
     if (CSRF_EXCLUDED.some(prefix => url.startsWith(prefix))) return
     const token = request.headers['x-csrf-token'] as string | undefined
     if (!token) {
-      return reply.status(403).send({ success: false, error: 'csrf_missing', requestId: '' })
+      return reply.status(403).send({ success: false, error: 'csrf_missing', requestId: request.id })
     }
+    // TODO(MEDIUM infra-audit 3.4): bind tokens to sessions — store the
+    // sessionId as the key's value and compare it against the resolved
+    // session here. Today any minted token validates any request; the custom
+    // header requirement (CORS preflight) is what actually blocks CSRF.
     const valid = await redis.exists(`csrf:${token}`)
     if (!valid) {
-      return reply.status(403).send({ success: false, error: 'csrf_invalid', requestId: '' })
+      return reply.status(403).send({ success: false, error: 'csrf_invalid', requestId: request.id })
     }
   })
+
+  // Sanitized error responses. Without this, Fastify's default handler echoes
+  // error.message to the client — Prisma/Redis/AWS messages leak hostnames,
+  // table names, and request metadata. Full error is logged and 5xx captured
+  // to Sentry; the client only ever sees a stable machine code + requestId.
+  app.setErrorHandler((error, request, reply) => {
+    const statusCode = error.statusCode && error.statusCode >= 400 ? error.statusCode : 500
+    if (statusCode >= 500) {
+      request.log.error({ err: error, url: request.url }, 'unhandled route error')
+      Sentry.captureException(error)
+    } else {
+      request.log.warn({ err: error, url: request.url, statusCode }, 'request error')
+    }
+    const errorCode =
+      error.validation ? 'invalid_input'
+      : statusCode === 413 ? 'payload_too_large'
+      : statusCode === 415 ? 'unsupported_media_type'
+      : statusCode >= 500 ? 'internal_error'
+      : 'bad_request'
+    return reply.status(statusCode).send({ success: false, error: errorCode, requestId: request.id })
+  })
+
+  app.setNotFoundHandler((request, reply) =>
+    reply.status(404).send({ success: false, error: 'not_found', requestId: request.id }),
+  )
+
+  // TODO(MEDIUM infra-audit 5.3): add process-level unhandledRejection /
+  // uncaughtException handlers that log + Sentry.captureException before
+  // exiting. Route rejections are covered by setErrorHandler, but a rejection
+  // escaping a worker callback or library timer crashes with stderr only.
 
   await registerAuthMiddleware(app)
 
@@ -143,14 +212,23 @@ async function bootstrap() {
     })
   })
 
-  // GET /api/csrf-token — generates a token, stores it in Redis for 2 hours,
+  // GET /api/csrf-token — generates a token, stores it in Redis for 24 hours,
   // and returns it in the response body. The SPA caches it in memory and sends
-  // it as x-csrf-token on every state-mutating request.
-  app.get('/api/csrf-token', async (_request, reply) => {
-    const token = nanoid(32)
-    await redis.set(`csrf:${token}`, '1', 'EX', 7200)
-    return reply.send({ success: true, data: { token } })
-  })
+  // it as x-csrf-token on every state-mutating request; on csrf_invalid /
+  // csrf_missing 403s the client refetches and retries once (api-client.ts).
+  // Rate limited per IP: this endpoint is unauthenticated and each call writes
+  // a Redis key — unmetered, it is a cheap Redis-fill DoS against the store
+  // that also holds sessions and credit balances. 120/min is generous: a real
+  // page load fetches exactly one token, even with many users per NAT IP.
+  app.get(
+    '/api/csrf-token',
+    { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
+    async (_request, reply) => {
+      const token = nanoid(32)
+      await redis.set(`csrf:${token}`, '1', 'EX', 86400)
+      return reply.send({ success: true, data: { token } })
+    },
+  )
 
   await registerSessionInit(app)
   await registerSessionPreferences(app)

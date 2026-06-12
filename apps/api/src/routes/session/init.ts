@@ -85,7 +85,17 @@ export async function registerSessionInit(app: FastifyInstance) {
       const requestId = nanoid(10)
       const sessionId = request.session.sessionId
       await redis.del(SESSION_KEY(sessionId)).catch(() => {})
-      reply.clearCookie(env.SESSION_COOKIE_NAME, { path: '/' })
+      // clearCookie emits an expiring Set-Cookie, and browsers reject any
+      // Set-Cookie on a cross-site response unless it carries SameSite=None;
+      // Secure — so the attributes must match the ones used when setting it,
+      // or the dead cookie lingers in the browser and shadows the
+      // x-session-id header path on subsequent requests.
+      reply.clearCookie(env.SESSION_COOKIE_NAME, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+      })
       return reply.send({ success: true, requestId })
     },
   )

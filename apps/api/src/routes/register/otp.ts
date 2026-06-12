@@ -1,8 +1,9 @@
-import { FastifyInstance, FastifyRequest } from 'fastify'
+import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { validateIdentifier, sendOtp, verifyOtp } from '../../services/otp.service'
 import { SessionService } from '../../services/session.service'
+import { sessionOrIpKey } from '../../lib/rate-limit'
 import { validateEnv } from '../../config/env'
 
 const env = validateEnv()
@@ -18,17 +19,15 @@ const verifySchema = z.object({
   code: z.string().length(6).regex(/^\d{6}$/),
 })
 
-const otpIpKeyGenerator = (request: FastifyRequest): string =>
-  request.ip ?? 'unknown'
-
-// Verify attempts are throttled per session, not per IP. Session-scoped limits
-// are immune to proxy IP confusion (Railway, shared mobile hotspots, NAT) and
-// accurately isolate one user's attempts from another's. Falls back to IP if
-// the cookie is absent (that request will 401 from requireSession anyway).
-const otpVerifyKeyGenerator = (request: FastifyRequest): string => {
-  const sid = request.cookies?.[env.SESSION_COOKIE_NAME]
-  return sid ? `otp:verify:sid:${sid}` : `otp:verify:ip:${request.ip ?? 'unknown'}`
-}
+// Both OTP routes are throttled per session, not per IP. Session-scoped
+// limits are immune to proxy IP confusion (Railway, shared mobile hotspots,
+// carrier NAT) and accurately isolate one user's attempts from another's.
+// sessionOrIpKey reads cookie first, then the x-session-id header (mobile
+// Safari has no cross-site cookies), then falls back to IP. Brute-force
+// safety does not depend on these keys: sends are capped per identifier
+// (3/hr) in otp.service and each OTP record allows 5 verify attempts.
+const otpSendKeyGenerator = sessionOrIpKey('ratelimit:otp:send')
+const otpVerifyKeyGenerator = sessionOrIpKey('ratelimit:otp:verify')
 
 export async function registerOtpRoutes(app: FastifyInstance) {
   // POST /api/register/otp/send
@@ -40,7 +39,7 @@ export async function registerOtpRoutes(app: FastifyInstance) {
         rateLimit: {
           max: 5,
           timeWindow: '1 minute',
-          keyGenerator: otpIpKeyGenerator,
+          keyGenerator: otpSendKeyGenerator,
         },
       },
     },

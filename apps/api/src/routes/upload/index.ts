@@ -21,17 +21,21 @@ export async function registerUploadRoute(app: FastifyInstance) {
 
       // Tiered rate limit: anon 10/hr, verified 50/hr
       const uploadMax = session.isVerified ? 50 : 10
-      const allowed = await checkRateLimit(
+      const rateResult = await checkRateLimit(
         uploadRateLimitKey(session.sessionId),
         uploadMax,
         UPLOAD_WINDOW,
       )
-      if (!allowed) {
-        return reply.status(429).send({
-          success: false,
-          error: 'rate_limit_exceeded',
-          requestId,
-        })
+      if (!rateResult.allowed) {
+        return reply
+          .status(429)
+          .header('Retry-After', String(rateResult.retryAfterSeconds))
+          .send({
+            success: false,
+            error: 'rate_limit_exceeded',
+            retryAfterSeconds: rateResult.retryAfterSeconds,
+            requestId,
+          })
       }
 
       // Read multipart file — @fastify/multipart already registered

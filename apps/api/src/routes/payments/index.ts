@@ -103,6 +103,11 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
       }
 
       const description = `LEVE ${pack.id} pack`
+      // TODO(MEDIUM infra-audit 6.3): CORS_ORIGIN doubles as "the frontend
+      // base URL" here (and in the idempotent-replay branch above). This only
+      // works while both are a single identical origin — the custom-domain
+      // migration or multi-origin CORS will break payment callbacks. Add a
+      // dedicated FRONTEND_BASE_URL env var.
       const callbackUrl = `${env.CORS_ORIGIN}/payment/callback`
 
       const idramUrl = buildIdramRedirectUrl(orderId, pack.amountAMD, description, callbackUrl)

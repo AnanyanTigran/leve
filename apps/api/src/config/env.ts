@@ -7,7 +7,13 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().default('redis://localhost:6379'),
-  CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  // Trailing slash is stripped because the browser's Origin header never has
+  // one — 'https://app.example.com/' would silently fail every CORS match.
+  // Also doubles as the frontend base URL for payment callbacks (payments/index.ts).
+  CORS_ORIGIN: z
+    .string()
+    .default('http://localhost:3000')
+    .transform((s) => s.replace(/\/+$/, '')),
 
   SESSION_COOKIE_SECRET: z.string().min(32),
   SESSION_COOKIE_NAME: z.string().default('leve_sid'),
@@ -48,6 +54,13 @@ export function validateEnv(): Env {
   if (!result.success) {
     console.error('❌ Invalid environment variables:')
     console.error(result.error.flatten().fieldErrors)
+    process.exit(1)
+  }
+  // The localhost default is for development only. In production a missing
+  // CORS_ORIGIN must fail startup loudly: silently defaulting breaks every
+  // browser request AND sends payment callback redirects to localhost.
+  if (result.data.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+    console.error('❌ CORS_ORIGIN must be set explicitly in production (e.g. https://leve-rho.vercel.app)')
     process.exit(1)
   }
   return result.data

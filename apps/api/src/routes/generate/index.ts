@@ -11,7 +11,7 @@ import {
   ANON_FREE_GENERATIONS,
   FREE_DAILY_GENERATION_SOFT_CAP,
 } from '../../lib/session.types'
-import { checkAnonIpGenerationLimit } from '../../lib/rate-limit'
+import { checkAnonIpGenerationLimit, sessionOrIpKey } from '../../lib/rate-limit'
 import { getJobPhase, setJobPhase } from '../../lib/job-phase'
 import { sessionOwnsJob } from '../../lib/ownership'
 
@@ -41,10 +41,25 @@ const previewSchema = z.object({
 
 export async function registerGenerateRoutes(app: FastifyInstance) {
 
-  // POST /api/generate/preview — anonymous and verified sessions allowed
+  // POST /api/generate/preview — anonymous and verified sessions allowed.
+  // Burst limit 10/min per session: anon users are already capped (2 lifetime
+  // + per-IP daily), but verified users had nothing between them and the
+  // fal.ai bill except the unenforced daily soft cap — a scripted session
+  // could fire unbounded $0.04 generations. 10/min is far above human
+  // clicking speed, so it never conflicts with the "soft cap, never hard
+  // block" rule, while capping scripted abuse.
   app.post(
     '/api/generate/preview',
-    { preHandler: [app.requireSessionOrAnon] },
+    {
+      preHandler: [app.requireSessionOrAnon],
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 minute',
+          keyGenerator: sessionOrIpKey('ratelimit:generate'),
+        },
+      },
+    },
     async (request, reply) => {
       const requestId = nanoid(10)
       const session = request.session
@@ -69,14 +84,18 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
       let anonUsedAfterGate = session.anonGenerationsUsed ?? 0
       if (!session.isVerified) {
         // IP check first — no state change, fast rejection before touching counters
-        const ipAllowed = await checkAnonIpGenerationLimit(request.ip ?? 'unknown')
-        if (!ipAllowed) {
-          return reply.status(429).send({
-            success: false,
-            error: 'rate_limit_exceeded',
-            errorCode: 'ip_generation_limit',
-            requestId,
-          })
+        const ipResult = await checkAnonIpGenerationLimit(request.ip ?? 'unknown')
+        if (!ipResult.allowed) {
+          return reply
+            .status(429)
+            .header('Retry-After', String(ipResult.retryAfterSeconds))
+            .send({
+              success: false,
+              error: 'rate_limit_exceeded',
+              errorCode: 'ip_generation_limit',
+              retryAfterSeconds: ipResult.retryAfterSeconds,
+              requestId,
+            })
         }
 
         // Atomic read-check-increment in a single Lua script. Prevents two
