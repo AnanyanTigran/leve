@@ -1,27 +1,18 @@
 'use client'
 
-import { useRef, useState, useEffect } from 'react'
-import { motion, AnimatePresence, useInView } from 'framer-motion'
+import { useRef } from 'react'
+import { motion, useInView } from 'framer-motion'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { ImageOff, Upload, Layers, Sparkles, SlidersHorizontal, Download, Camera, Smartphone, Share2, ShoppingBag, ShoppingCart, Send, Globe, ImageDown } from 'lucide-react'
+import { Upload, Layers, Sparkles, SlidersHorizontal, Download, Camera, Smartphone, Share2, ShoppingBag, ShoppingCart, Send, Globe, ImageDown } from 'lucide-react'
 import { TestimonialCards } from '@/components/landing/testimonial-cards'
+import { ShowcaseGallery } from '@/components/landing/showcase-gallery'
 import { AppHeader } from '@/components/shared/app-header'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { BeforeAfterSlider } from '@/components/results/before-after-slider'
 import { useSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
 import type { ProductCategory } from '@leve/types'
 import { CATEGORY_ITEMS, SCENES, CREDIT_PACKAGES } from '@/lib/constants'
-
-const CDN = process.env.NEXT_PUBLIC_CDN_URL ?? ''
-
-const SHOWCASE_CARDS = [
-  { id: 'jewelry',   catKey: 'cat_jewelry', beforeImage: `${CDN}/showcase/jewelry-before.webp`,  afterImage: `${CDN}/showcase/jewelry-after.jpg` },
-  { id: 'cosmetics', catKey: 'cat_beauty',  beforeImage: `${CDN}/showcase/beauty-before.webp`,   afterImage: `${CDN}/showcase/beauty-after.jpg` },
-  { id: 'food',      catKey: 'cat_food',    beforeImage: `${CDN}/showcase/food-before.webp`,      afterImage: `${CDN}/showcase/food-after.jpg` },
-  { id: 'fashion',   catKey: 'cat_fashion', beforeImage: `${CDN}/showcase/fashion-before.avif`,  afterImage: `${CDN}/showcase/fashion-after.jpg` },
-]
 
 const SCENE_VARIETY_IDS = [
   'marble_luxury', 'black_studio', 'cafe_table', 'outdoor_garden',
@@ -69,7 +60,6 @@ const staggerChild = {
 export function LandingContent() {
   const router = useRouter()
   const t = useTranslations('landing')
-  const tScenes = useTranslations('scenes')
   const { session, status } = useSession()
   const showSignIn = status === 'ready' && !session?.isVerified
 
@@ -113,52 +103,6 @@ export function LandingContent() {
     { num: 4, Icon: SlidersHorizontal, title: t('how_step4_title'), desc: t('how_step4_desc') },
     { num: 5, Icon: Download,          title: t('how_step5_title'), desc: t('how_step5_desc') },
   ]
-
-  const [activeCardIndex, setActiveCardIndex] = useState(0)
-  const [demoPosition, setDemoPosition] = useState<number | null>(null)
-  const [isPaused, setIsPaused] = useState(false)
-  const pauseResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Ambient gallery: wipe 70→30→50 over the card's 4s window, then advance
-  useEffect(() => {
-    if (!showcaseVisible || isPaused) {
-      setDemoPosition(null)
-      return
-    }
-    const w1 = setTimeout(() => setDemoPosition(70), 300)
-    const w2 = setTimeout(() => setDemoPosition(30), 1800)
-    const w3 = setTimeout(() => setDemoPosition(50), 3000)
-    const cycle = setTimeout(
-      () => setActiveCardIndex((i) => (i + 1) % SHOWCASE_CARDS.length),
-      4000,
-    )
-    return () => {
-      clearTimeout(w1)
-      clearTimeout(w2)
-      clearTimeout(w3)
-      clearTimeout(cycle)
-    }
-  }, [activeCardIndex, isPaused, showcaseVisible])
-
-  // Clean up pause-resume timer on unmount
-  useEffect(() => {
-    return () => { if (pauseResumeTimerRef.current) clearTimeout(pauseResumeTimerRef.current) }
-  }, [])
-
-  function handleShowcaseInteract() {
-    setIsPaused(true)
-    setDemoPosition(null)
-    if (pauseResumeTimerRef.current) clearTimeout(pauseResumeTimerRef.current)
-    pauseResumeTimerRef.current = setTimeout(() => {
-      setIsPaused(false)
-      pauseResumeTimerRef.current = null
-    }, 3000)
-  }
-
-  function handleDotClick(idx: number) {
-    setActiveCardIndex(idx)
-    handleShowcaseInteract()
-  }
 
   function handleCategorySelect(categoryId: ProductCategory) {
     sessionStorage.setItem('leve_category', categoryId)
@@ -284,7 +228,7 @@ export function LandingContent() {
           </div>
         </section>
 
-        {/* SECTION 2 — Before/After showcase (bg-surface) */}
+        {/* SECTION 2 — Result gallery showcase (bg-surface) */}
         <section ref={showcaseRef} className="bg-[var(--bg-surface)] px-4 py-16">
           <div className="max-w-[540px] mx-auto">
             <motion.h2
@@ -299,71 +243,19 @@ export function LandingContent() {
               initial={{ opacity: 0, y: 20 }}
               animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="font-ui text-base text-text-secondary text-center mb-6"
+              className="font-ui text-base text-text-secondary text-center mb-8"
             >
               {t('showcase_subtitle')}
             </motion.p>
-
-            {/* Slider + dot indicators */}
-            <motion.div
-              initial={{ opacity: 0, y: 32 }}
-              animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-              className="max-w-[380px] mx-auto"
-            >
-              {!CDN ? (
-                <div className="aspect-square bg-bg-elevated rounded-2xl flex flex-col items-center justify-center gap-3">
-                  <ImageOff className="w-8 h-8 text-text-muted" />
-                  <p className="text-sm font-ui text-text-muted text-center px-6">
-                    Add showcase images to S3 showcase/
-                  </p>
-                </div>
-              ) : (
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeCardIndex}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: 'easeOut' }}
-                  >
-                    <BeforeAfterSlider
-                      beforeSrc={SHOWCASE_CARDS[activeCardIndex]!.beforeImage}
-                      afterSrc={SHOWCASE_CARDS[activeCardIndex]!.afterImage}
-                      aspectRatio="1:1"
-                      externalPosition={demoPosition}
-                      onUserInteract={handleShowcaseInteract}
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              )}
-
-              {/* Dot indicators — tap to jump; active dot widens into a pill */}
-              <div className="flex justify-center gap-0.5 mt-4">
-                {SHOWCASE_CARDS.map((card, idx) => (
-                  <button
-                    key={card.id}
-                    type="button"
-                    aria-label={tScenes(card.catKey)}
-                    onClick={() => handleDotClick(idx)}
-                    className="flex items-center justify-center"
-                    style={{ minWidth: 32, minHeight: 44, padding: '0 6px' }}
-                  >
-                    <span
-                      className={cn(
-                        'block h-2 rounded-full',
-                        idx === activeCardIndex ? 'bg-accent' : 'bg-border-strong',
-                      )}
-                      style={{
-                        width: idx === activeCardIndex ? 20 : 8,
-                        transition: 'width 0.25s ease-out, background-color 0.25s ease-out',
-                      }}
-                    />
-                  </button>
-                ))}
-              </div>
-            </motion.div>
           </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            animate={showcaseInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
+          >
+            <ShowcaseGallery visible={showcaseVisible} />
+          </motion.div>
         </section>
 
         {/* SECTION 2.5 — Scene Variety (bg-surface) */}
