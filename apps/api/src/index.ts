@@ -20,7 +20,7 @@ import { registerDownloadRoutes } from './routes/download/index'
 import { startPreviewWorker } from './workers/preview.worker'
 import { startStaleTransactionsWorker } from './workers/stale-transactions.worker'
 import formbody from '@fastify/formbody'
-import csrf from '@fastify/csrf-protection'
+import { nanoid } from 'nanoid'
 
 const env = validateEnv()
 initSentry(env.SENTRY_DSN)
@@ -86,31 +86,25 @@ async function bootstrap() {
   await app.register(cookie, { secret: env.SESSION_COOKIE_SECRET })
   await app.register(formbody)
 
-  await app.register(csrf, {
-    sessionPlugin: '@fastify/cookie',
-    cookieOpts: {
-      signed: true,
-      path: '/',
-      // SameSite=None; Secure is required because the browser calls the Railway
-      // API URL directly (NEXT_PUBLIC_API_URL points to Railway, bypassing the
-      // Next.js proxy). Cross-origin requests require SameSite=None to send
-      // cookies. Secure=true is mandatory when SameSite=None.
-      sameSite: 'none',
-      secure: true,
-      httpOnly: true,
-    },
-  })
-
-  // Enforce CSRF on all state-mutating requests except:
-  //   /api/webhooks/*  — server-to-server HMAC-signed callbacks from payment providers
-  //   /api/register/otp/* — session bootstrap (no session cookie exists yet at this point)
+  // CSRF — Redis-backed token validation. Consistent with the session system:
+  // token stored server-side in Redis, delivered in response body, validated
+  // via x-csrf-token request header. No _csrf cookie dependency, so it works
+  // on mobile Safari where ITP blocks all cross-site cookies regardless of
+  // SameSite=None. When a custom domain is added this approach remains correct.
   const CSRF_EXCLUDED = ['/api/webhooks/', '/api/register/otp/']
-  app.addHook('preHandler', (request, reply, done) => {
+  app.addHook('preHandler', async (request, reply) => {
     const method = request.method.toUpperCase()
-    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) { done(); return }
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return
     const [url = ''] = (request.url ?? '').split('?')
-    if (CSRF_EXCLUDED.some(prefix => url.startsWith(prefix))) { done(); return }
-    app.csrfProtection(request, reply, done)
+    if (CSRF_EXCLUDED.some(prefix => url.startsWith(prefix))) return
+    const token = request.headers['x-csrf-token'] as string | undefined
+    if (!token) {
+      return reply.status(403).send({ success: false, error: 'csrf_missing', requestId: '' })
+    }
+    const valid = await redis.exists(`csrf:${token}`)
+    if (!valid) {
+      return reply.status(403).send({ success: false, error: 'csrf_invalid', requestId: '' })
+    }
   })
 
   await registerAuthMiddleware(app)
@@ -149,11 +143,12 @@ async function bootstrap() {
     })
   })
 
-  // GET /api/csrf-token — issues a CSRF token tied to the caller's _csrf cookie.
-  // The SPA calls this on mount and caches the token in memory; it is included
-  // as an x-csrf-token header on all subsequent state-mutating requests.
+  // GET /api/csrf-token — generates a token, stores it in Redis for 2 hours,
+  // and returns it in the response body. The SPA caches it in memory and sends
+  // it as x-csrf-token on every state-mutating request.
   app.get('/api/csrf-token', async (_request, reply) => {
-    const token = await reply.generateCsrf()
+    const token = nanoid(32)
+    await redis.set(`csrf:${token}`, '1', 'EX', 7200)
     return reply.send({ success: true, data: { token } })
   })
 
