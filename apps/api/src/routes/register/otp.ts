@@ -21,6 +21,15 @@ const verifySchema = z.object({
 const otpIpKeyGenerator = (request: FastifyRequest): string =>
   request.ip ?? 'unknown'
 
+// Verify attempts are throttled per session, not per IP. Session-scoped limits
+// are immune to proxy IP confusion (Railway, shared mobile hotspots, NAT) and
+// accurately isolate one user's attempts from another's. Falls back to IP if
+// the cookie is absent (that request will 401 from requireSession anyway).
+const otpVerifyKeyGenerator = (request: FastifyRequest): string => {
+  const sid = request.cookies?.[env.SESSION_COOKIE_NAME]
+  return sid ? `otp:verify:sid:${sid}` : `otp:verify:ip:${request.ip ?? 'unknown'}`
+}
+
 export async function registerOtpRoutes(app: FastifyInstance) {
   // POST /api/register/otp/send
   app.post(
@@ -83,7 +92,7 @@ export async function registerOtpRoutes(app: FastifyInstance) {
         rateLimit: {
           max: 10,
           timeWindow: '15 minutes',
-          keyGenerator: otpIpKeyGenerator,
+          keyGenerator: otpVerifyKeyGenerator,
         },
       },
     },
