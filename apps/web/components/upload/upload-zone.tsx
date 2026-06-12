@@ -243,6 +243,10 @@ export function UploadZone() {
 
       sessionStorage.setItem('leve_upload_key', uploadKey)
       sessionStorage.setItem('leve_upload_preview', dataUrl)
+      // Bind the local preview to its upload so /results can tell whether the
+      // preview actually belongs to the job being viewed (it doesn't when a
+      // history item is opened) and resolve the source server-side instead.
+      sessionStorage.setItem('leve_upload_preview_key', uploadKey)
       sessionStorage.setItem('leve_upload_session_id', Date.now().toString())
       sessionStorage.setItem('leve_upload_name', fileState.file.name)
       // leve_category is already written by handleCategorySelect

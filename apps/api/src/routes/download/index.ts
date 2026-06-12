@@ -9,6 +9,7 @@ import { SessionService } from '../../services/session.service'
 import { UserService } from '../../services/user.service'
 import { Sentry } from '../../lib/sentry'
 import { sessionOwnsJob, sessionHasGrant } from '../../lib/ownership'
+import { existsInS3 } from '../../lib/s3'
 import { ensureUpscaledHd } from '../../providers/upscale.service'
 
 // Resolve the actual S3 key to serve for a job's HD download. If the user
@@ -679,6 +680,68 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       return reply.send({
         success: true,
         data: { previewUrls: signedUrls },
+        requestId,
+      })
+    },
+  )
+
+  // GET /api/download/source-url
+  // Returns a signed URL for the job's ORIGINAL uploaded photo, resolved from
+  // that job's own record — used as the before-image when opening a past
+  // generation from history. Raw uploads are deleted after 48h (S3 lifecycle),
+  // so a missing object is a normal outcome, reported as sourceAvailable: false
+  // rather than an error; the FE hides the before/after slider in that case.
+  app.get(
+    '/api/download/source-url',
+    { preHandler: [app.requireSessionOrAnon] },
+    async (request, reply) => {
+      const requestId = nanoid(10)
+      const session = request.session
+      const { jobId } = request.query as { jobId?: string }
+
+      if (!jobId) {
+        return reply.status(400).send({ success: false, error: 'missing_job_id', requestId })
+      }
+      if (!jobIdSchema.safeParse(jobId).success) {
+        return reply.status(400).send({ success: false, error: 'invalid_input', requestId })
+      }
+
+      const { owns, job } = await sessionOwnsJob(jobId, session)
+      if (!owns || !job) {
+        return reply.status(404).send({ success: false, error: 'not_found', requestId })
+      }
+
+      let exists: boolean
+      try {
+        exists = await existsInS3(job.uploadS3Key)
+      } catch (err) {
+        // S3 outage / transient error — degrade to "unavailable" so the FE
+        // falls back to the generated-image-only view instead of breaking.
+        app.log.error({ requestId, jobId, err }, 'source existence check failed')
+        exists = false
+      }
+
+      if (!exists) {
+        return reply.send({
+          success: true,
+          data: { sourceAvailable: false },
+          requestId,
+        })
+      }
+
+      let signedUrl: string
+      try {
+        // Same 48h expiry as previews — the underlying object lives at most
+        // 48h anyway.
+        signedUrl = buildCloudfrontSignedUrl(job.uploadS3Key, 60 * 60 * 48)
+      } catch (err) {
+        app.log.error({ requestId, err }, 'cloudfront signing failed')
+        return reply.status(500).send({ success: false, error: 'signing_failed', requestId })
+      }
+
+      return reply.send({
+        success: true,
+        data: { sourceAvailable: true, sourceUrl: signedUrl, uploadS3Key: job.uploadS3Key },
         requestId,
       })
     },

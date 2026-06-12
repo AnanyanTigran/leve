@@ -61,7 +61,13 @@ export default function ResultsPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollFailuresRef = useRef(0)
 
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  // Before-image for the slider, resolved per job: the local upload preview
+  // when it belongs to this job, otherwise a signed URL for the job's own
+  // uploadS3Key fetched from the server (history path). sourceAvailable is
+  // tri-state: null = still resolving, false = original upload is gone
+  // (deleted by the 48h lifecycle rule) — render the generated image alone.
+  const [beforeImageUrl, setBeforeImageUrl] = useState<string | null>(null)
+  const [sourceAvailable, setSourceAvailable] = useState<boolean | null>(null)
   const [aspectRatioMismatch, setAspectRatioMismatch] = useState(false)
   // Soft daily cap (15 free generations/day) — business rule says nudge to
   // buy, never hard-block. The flag was being written by the templates page
@@ -96,7 +102,7 @@ export default function ResultsPage() {
   const overlayDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (!uploadPreview) { setAspectRatioMismatch(false); return }
+    if (!beforeImageUrl) { setAspectRatioMismatch(false); return }
     const storedRatio = sessionStorage.getItem('leve_aspect_ratio') ?? '1:1'
     const parts = storedRatio.split(':').map(Number)
     const W = parts[0] ?? 1
@@ -107,29 +113,18 @@ export default function ResultsPage() {
       const uploadRatio = img.naturalWidth / img.naturalHeight
       setAspectRatioMismatch(Math.abs(uploadRatio - targetRatio) / targetRatio > 0.05)
     }
-    img.src = uploadPreview
-  }, [uploadPreview])
+    img.src = beforeImageUrl
+  }, [beforeImageUrl])
 
   useEffect(() => {
     const id = sessionStorage.getItem('leve_job_id')
     if (!id) { router.replace('/'); return }
-
-    const storedPreview = sessionStorage.getItem('leve_upload_preview')
 
     if (sessionStorage.getItem('leve_soft_cap_reached') === '1') {
       sessionStorage.removeItem('leve_soft_cap_reached')
       setShowSoftCapNudge(true)
     }
 
-    // Trust the preview when the upload key is present. Timestamp equality
-    // (uploadSessionId === jobUploadSessionId) caused false negatives: the
-    // ?? '' fallback in useGenerate produced '' when the ID was transiently
-    // null, and null === '' is false. Staleness is covered by the 2h TTL on
-    // the templates page; upload-zone clears the job ID on every new upload.
-    const hasValidUpload =
-      Boolean(sessionStorage.getItem('leve_upload_key')) &&
-      Boolean(storedPreview)
-    setUploadPreview(hasValidUpload ? storedPreview : null)
     setJobId(id)
     setGuarded(true)
 
@@ -153,6 +148,60 @@ export default function ResultsPage() {
       return () => ctl.abort()
     }
   }, [router])
+
+  // Resolve the before-image from THIS job's source, never from shared
+  // last-generation state. The local preview in sessionStorage is trusted only
+  // when leve_upload_preview_key matches the job's upload key (fresh-generation
+  // and edit paths — edits reuse the same upload). Otherwise (history path,
+  // cross-session restore) ask the server for a signed URL to the job's own
+  // uploadS3Key. The upload may be gone — deleted after 48h per storage
+  // policy — in which case sourceAvailable resolves false and the slider is
+  // replaced by the generated image alone.
+  // On re-resolution (jobId changes after an edit) previous values are kept
+  // until the new ones arrive so the slider doesn't unmount mid-edit.
+  useEffect(() => {
+    if (!jobId) return
+
+    const storedPreview = sessionStorage.getItem('leve_upload_preview')
+    const previewKey = sessionStorage.getItem('leve_upload_preview_key')
+    const uploadKey = sessionStorage.getItem('leve_upload_key')
+
+    if (storedPreview && uploadKey && previewKey === uploadKey) {
+      setBeforeImageUrl(storedPreview)
+      setSourceAvailable(true)
+      return
+    }
+
+    const ctl = new AbortController()
+    apiFetch(`/api/download/source-url?jobId=${jobId}`, { signal: ctl.signal })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success && d.data?.sourceAvailable && d.data?.sourceUrl) {
+          setBeforeImageUrl(d.data.sourceUrl)
+          setSourceAvailable(true)
+          // Rebind the shared upload slots to THIS job's source so downstream
+          // pages that read them ("Generate another scene" → /templates,
+          // processing screen) show the right image instead of the previous
+          // upload's preview. The signed URL is valid 48h — the upload's max
+          // remaining lifetime.
+          if (d.data.uploadS3Key) {
+            sessionStorage.setItem('leve_upload_key', d.data.uploadS3Key)
+            sessionStorage.setItem('leve_upload_preview', d.data.sourceUrl)
+            sessionStorage.setItem('leve_upload_preview_key', d.data.uploadS3Key)
+          }
+        } else {
+          setBeforeImageUrl(null)
+          setSourceAvailable(false)
+        }
+      })
+      .catch((err: unknown) => {
+        if ((err as { name?: string })?.name !== 'AbortError') {
+          setBeforeImageUrl(null)
+          setSourceAvailable(false)
+        }
+      })
+    return () => ctl.abort()
+  }, [jobId])
 
   // Detect return from payment redirect and open paywall in processing state
   useEffect(() => {
@@ -519,9 +568,6 @@ export default function ResultsPage() {
     (typeof window !== 'undefined' && sessionStorage.getItem('leve_aspect_ratio')) || '1:1'
   ) as AspectRatio
   const [arW, arH] = sliderAspectRatio.split(':').map(Number) as [number, number]
-  // True only when the original upload preview is in sessionStorage (fresh generation path).
-  // False when arriving from history — the base64 preview was never stored for old jobs.
-  const sourceAvailable = uploadPreview !== null
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-bg-base">
@@ -591,12 +637,13 @@ export default function ResultsPage() {
             )}
             {sourceAvailable ? (
               <BeforeAfterSlider
-                beforeSrc={previousImageUrl ?? uploadPreview}
-                afterSrc={generatedImageUrl ?? uploadPreview}
+                beforeSrc={previousImageUrl ?? beforeImageUrl}
+                afterSrc={generatedImageUrl ?? beforeImageUrl}
                 aspectRatio={sliderAspectRatio}
               />
             ) : (
-              // Source image unavailable (history job) — show generated image only
+              // Source unavailable (upload deleted after 48h) or still
+              // resolving — show the generated image only
               <div
                 className="relative w-full mx-auto overflow-hidden rounded-[12px] border border-border-default"
                 style={{
@@ -669,7 +716,7 @@ export default function ResultsPage() {
               </div>
             )}
           </div>
-          {aspectRatioMismatch && uploadPreview && (
+          {aspectRatioMismatch && beforeImageUrl && (
             <p className="text-[11px] text-text-muted text-center">
               {t('aspect_ratio_mismatch_note')}
             </p>
@@ -741,7 +788,9 @@ export default function ResultsPage() {
           {/* End-of-page next actions — keeps the current upload when jumping
               back to scene selection; only the "new photo" branch clears it. */}
           <div className="flex flex-col gap-2 pt-2 md:items-center">
-            {sourceAvailable && (
+            {/* "Generate another scene" reuses this job's source upload — only
+                offered while that upload still exists. */}
+            {sourceAvailable === true && (
               <div className="w-full md:max-w-[320px]">
                 <button
                   type="button"

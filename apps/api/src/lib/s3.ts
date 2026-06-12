@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { validateEnv } from '../config/env'
 
 const env = validateEnv()
@@ -33,6 +33,24 @@ export async function deleteFromS3(key: string): Promise<void> {
       Key: key,
     }),
   )
+}
+
+// Raw uploads are removed by a 48h S3 lifecycle rule, so a stored uploadS3Key
+// may point at a deleted object — check before signing a URL for it.
+export async function existsInS3(key: string): Promise<boolean> {
+  try {
+    await s3.send(
+      new HeadObjectCommand({
+        Bucket: env.AWS_S3_BUCKET,
+        Key: key,
+      }),
+    )
+    return true
+  } catch (err) {
+    const e = err as { name?: string; $metadata?: { httpStatusCode?: number } }
+    if (e.name === 'NotFound' || e.$metadata?.httpStatusCode === 404) return false
+    throw err
+  }
 }
 
 export function buildS3Key(

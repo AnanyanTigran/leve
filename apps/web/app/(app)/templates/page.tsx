@@ -71,6 +71,7 @@ export default function SceneSelectionPage() {
     if (uploadedAt && Date.now() - uploadedAt > 2 * 60 * 60 * 1000) {
       sessionStorage.removeItem('leve_upload_key')
       sessionStorage.removeItem('leve_upload_preview')
+      sessionStorage.removeItem('leve_upload_preview_key')
       sessionStorage.removeItem('leve_category')
       sessionStorage.removeItem('leve_upload_session_id')
       router.replace('/upload')
