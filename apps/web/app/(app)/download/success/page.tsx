@@ -60,7 +60,10 @@ export default function DownloadSuccessPage() {
   const router = useRouter()
   const t = useTranslations('download')
   const [selectedPlatform, setSelectedPlatform] = useState<ExportPlatform>('original_hd')
-  const [isDownloading, setIsDownloading] = useState(false)
+  // 'idle' = not downloading; 'preparing' = first moments of the HD upscale;
+  // 'almost' = upscale taking a beat or the server reported hd_not_ready.
+  const [downloadPhase, setDownloadPhase] = useState<'idle' | 'preparing' | 'almost'>('idle')
+  const isDownloading = downloadPhase !== 'idle'
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewTimedOut, setPreviewTimedOut] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
@@ -147,31 +150,53 @@ export default function DownloadSuccessPage() {
     const jobId = sessionStorage.getItem('leve_job_id')
     if (!jobId) return
 
-    setIsDownloading(true)
+    setDownloadPhase('preparing')
     setDownloadError(null)
+
+    // If the ESRGAN upscale is slow (cold cache), reassure the user after a
+    // few seconds. A Redis-cached hit returns well before this fires.
+    const almostTimer = setTimeout(() => {
+      setDownloadPhase((p) => (p === 'preparing' ? 'almost' : p))
+    }, 6000)
+
+    let endpointPath: string
+    if (selectedPlatform === 'original_hd') {
+      endpointPath = `/api/download/file?jobId=${encodeURIComponent(jobId)}`
+    } else {
+      const params = new URLSearchParams({
+        jobId,
+        platform: selectedPlatform,
+      })
+      if (crop) {
+        params.set('cropX', crop.x.toFixed(4))
+        params.set('cropY', crop.y.toFixed(4))
+        params.set('cropW', crop.width.toFixed(4))
+        params.set('cropH', crop.height.toFixed(4))
+      }
+      endpointPath = `/api/download/export-file?${params.toString()}`
+    }
 
     let blobUrl: string | null = null
     try {
-      let endpointPath: string
-      if (selectedPlatform === 'original_hd') {
-        endpointPath = `/api/download/file?jobId=${encodeURIComponent(jobId)}`
-      } else {
-        const params = new URLSearchParams({
-          jobId,
-          platform: selectedPlatform,
-        })
-        if (crop) {
-          params.set('cropX', crop.x.toFixed(4))
-          params.set('cropY', crop.y.toFixed(4))
-          params.set('cropW', crop.width.toFixed(4))
-          params.set('cropH', crop.height.toFixed(4))
-        }
-        endpointPath = `/api/download/export-file?${params.toString()}`
+      // The server upscales synchronously and streams the file back. If the HD
+      // source isn't ready yet it returns 202 hd_not_ready with retryAfterSeconds —
+      // keep showing the preparing state and poll politely, with a hard cap so we
+      // never spin forever.
+      const MAX_ATTEMPTS = 12
+      let res: Response | null = null
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+        res = await apiFetch(endpointPath)
+        if (res.status !== 202) break
+
+        setDownloadPhase('almost')
+        const body = (await res.json().catch(() => null)) as
+          | { data?: { retryAfterSeconds?: number } }
+          | null
+        const retryAfter = body?.data?.retryAfterSeconds ?? 5
+        await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000))
       }
 
-      const res = await apiFetch(endpointPath)
-
-      if (!res.ok) {
+      if (!res || !res.ok) {
         setDownloadError(t('download_failed'))
         return
       }
@@ -189,8 +214,9 @@ export default function DownloadSuccessPage() {
     } catch {
       setDownloadError(t('download_failed'))
     } finally {
+      clearTimeout(almostTimer)
       if (blobUrl) URL.revokeObjectURL(blobUrl)
-      setIsDownloading(false)
+      setDownloadPhase('idle')
     }
   }
 
@@ -317,17 +343,40 @@ export default function DownloadSuccessPage() {
             disabled={isDownloading}
             className={cn(
               'btn-primary btn-full h-14 text-[16px] gap-2',
-              isDownloading && 'opacity-50 cursor-not-allowed',
+              isDownloading && 'opacity-70 cursor-not-allowed',
             )}
           >
-            <Download className="w-[18px] h-[18px]" />
-            {isDownloading
-              ? t('downloading')
-              : primaryButtonLabel}
+            {isDownloading ? (
+              <span className="w-[18px] h-[18px] rounded-full border-2 border-white border-t-transparent animate-spin motion-reduce:animate-none" />
+            ) : (
+              <Download className="w-[18px] h-[18px]" />
+            )}
+            {isDownloading ? t('preparing_hd') : primaryButtonLabel}
           </button>
         </div>
-        {downloadError && (
-          <p className="text-[13px] text-error text-center mt-2">{downloadError}</p>
+
+        {/* Indeterminate "Preparing HD" state — shown while the upscale runs. */}
+        {isDownloading && (
+          <div className="md:max-w-[320px] md:mx-auto mt-3" role="status" aria-live="polite">
+            <p className="text-[13px] text-text-secondary text-center mb-2">
+              {downloadPhase === 'almost' ? t('preparing_almost') : t('preparing_hd_message')}
+            </p>
+            <div className="h-1 w-full overflow-hidden rounded-full bg-bg-elevated">
+              <div className="hd-prep-bar h-full w-1/3 rounded-full bg-accent" />
+            </div>
+          </div>
+        )}
+
+        {downloadError && !isDownloading && (
+          <div className="md:max-w-[320px] md:mx-auto mt-2 text-center">
+            <p className="text-[13px] text-error">{downloadError}</p>
+            <button
+              onClick={handleDownload}
+              className="text-[13px] text-accent font-semibold mt-1"
+            >
+              {t('retry')}
+            </button>
+          </div>
         )}
 
         {/* Share (mobile/tablet) or Copy link (desktop) — only when image is ready */}

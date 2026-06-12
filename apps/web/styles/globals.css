@@ -110,6 +110,12 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+/* Indeterminate sweep for the "Preparing HD" progress bar */
+@keyframes hd-prep-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -293,5 +299,19 @@
   /* Skeleton shimmer for loading states */
   .skeleton {
     @apply bg-bg-elevated animate-pulse rounded-md;
+  }
+
+  /* Indeterminate progress bar — shown while the HD upscale runs on download */
+  .hd-prep-bar {
+    animation: hd-prep-slide 1.2s ease-in-out infinite;
+  }
+}
+
+/* Reduced motion: hold the bar full-width and static instead of sweeping */
+@media (prefers-reduced-motion: reduce) {
+  .hd-prep-bar {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
   }
 }

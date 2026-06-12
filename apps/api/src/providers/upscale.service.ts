@@ -23,6 +23,27 @@ const env = validateEnv()
 const HD_UPSCALED_TTL_SECONDS = 60 * 60 * 24 * 90
 const hdUpscaledRedisKey = (jobId: string) => `hd:upscaled:${jobId}`
 
+// Hard ceiling on the ESRGAN round-trip. fal.subscribe does not enforce its own
+// `timeout` option, and the download route runs this synchronously inside the
+// request with the server's requestTimeout disabled — without this guard a hung
+// upstream would hold the user's "Preparing HD" spinner open indefinitely. On
+// timeout upscaleHd throws, which ensureUpscaledHd catches and serves the
+// original full-quality (native-resolution) key instead.
+const ESRGAN_TIMEOUT_MS = 30_000
+
+/**
+ * Thrown by ensureUpscaledHd when the ESRGAN upscale times out. Download routes
+ * translate this into the existing 202 `hd_not_ready` retry response so the FE
+ * keeps polling for the real 2× result rather than silently receiving the
+ * native-resolution fallback. (A genuine ESRGAN *failure* still falls back.)
+ */
+export class HdNotReadyError extends Error {
+  constructor() {
+    super('hd_not_ready')
+    this.name = 'HdNotReadyError'
+  }
+}
+
 /**
  * Upscale an image URL using Real-ESRGAN 2× (fidelity upscaler — NOT a
  * creative/diffusion upscaler). Fidelity upscalers are mandatory for product
@@ -30,17 +51,40 @@ const hdUpscaledRedisKey = (jobId: string) => `hd:upscaled:${jobId}`
  * labels and text.
  */
 export async function upscaleHd(imageUrl: string): Promise<Buffer> {
-  const result = await fal.subscribe('fal-ai/esrgan', {
-    input: {
-      image_url: imageUrl,
-      scale: 2,
-      model: 'RealESRGAN_x4plus',
-      face_enhance: false,  // GFPGAN face restore would mutate product label typography
-    },
-  }) as { image: { url: string } }
+  // AbortSignal.timeout gives us a wall-clock deadline. fal.subscribe in this
+  // client version accepts no abortSignal, so we race the subscription against
+  // the signal's abort event. We also pass `timeout` so fal makes a best-effort
+  // server-side cancellation, even though it isn't enforced client-side.
+  const signal = AbortSignal.timeout(ESRGAN_TIMEOUT_MS)
+  let abortListener: (() => void) | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    abortListener = () =>
+      reject(signal.reason ?? new Error('esrgan_timeout'))
+    signal.addEventListener('abort', abortListener, { once: true })
+  })
 
-  if (!result.image?.url) throw new Error('esrgan_no_output')
-  return downloadUrl(result.image.url)
+  try {
+    const result = (await Promise.race([
+      fal.subscribe('fal-ai/esrgan', {
+        input: {
+          image_url: imageUrl,
+          scale: 2,
+          model: 'RealESRGAN_x4plus',
+          face_enhance: false,  // GFPGAN face restore would mutate product label typography
+        },
+        timeout: ESRGAN_TIMEOUT_MS,
+      }),
+      timeoutPromise,
+    ])) as { image: { url: string } }
+
+    if (!result.image?.url) throw new Error('esrgan_no_output')
+    return await downloadUrl(result.image.url)
+  } finally {
+    // Detach so a late abort can't reject after we've already settled (which
+    // would surface as an unhandled rejection); the pending timeoutPromise is
+    // then simply garbage-collected.
+    if (abortListener) signal.removeEventListener('abort', abortListener)
+  }
 }
 
 /**
@@ -97,9 +141,16 @@ export async function ensureUpscaledHd(
     logger.info({ jobId, upscaledKey }, '[upscale] HD 2× upscale complete')
     return upscaledKey
   } catch (err) {
-    // ESRGAN failure must not block the download. export.service.ts re-encodes
-    // the PNG to JPEG q92, so the user still gets a full-quality JPEG — just at
-    // native Kontext resolution rather than 2×.
+    // A timeout means the upscale is likely still viable on a retry, so signal
+    // hd_not_ready and let the FE poll rather than locking in the lower-res
+    // fallback. AbortSignal.timeout aborts with a DOMException named TimeoutError.
+    if (err instanceof Error && err.name === 'TimeoutError') {
+      logger.warn({ jobId }, '[upscale] ESRGAN timed out — signalling hd_not_ready for retry')
+      throw new HdNotReadyError()
+    }
+    // Any other ESRGAN failure must not block the download. export.service.ts
+    // re-encodes the PNG to JPEG q92, so the user still gets a full-quality JPEG
+    // — just at native Kontext resolution rather than 2×.
     logger.error({ jobId, err }, '[upscale] ESRGAN failed — serving original hdS3Key')
     return hdS3Key
   }

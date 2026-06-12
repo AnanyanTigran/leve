@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
@@ -10,7 +10,7 @@ import { UserService } from '../../services/user.service'
 import { Sentry } from '../../lib/sentry'
 import { sessionOwnsJob, sessionHasGrant } from '../../lib/ownership'
 import { existsInS3 } from '../../lib/s3'
-import { ensureUpscaledHd } from '../../providers/upscale.service'
+import { ensureUpscaledHd, HdNotReadyError } from '../../providers/upscale.service'
 
 // Resolve the actual S3 key to serve for a job's HD download. If the user
 // configured a text overlay on /results, composite it onto the HD output
@@ -27,6 +27,32 @@ async function resolveHdKeyWithOverlay(
     text: job.overlayText,
     position: (job.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
   })
+}
+
+// Runs the ESRGAN upscale and, when it times out (HdNotReadyError), sends the
+// shared 202 hd_not_ready retry response and returns null so the route bails.
+// The FE keeps polling for the real 2× result instead of the lower-res fallback.
+async function upscaleOr202(
+  reply: FastifyReply,
+  requestId: string,
+  hdS3Key: string,
+  jobId: string,
+  sessionId: string,
+): Promise<string | null> {
+  try {
+    return await ensureUpscaledHd(hdS3Key, jobId, sessionId)
+  } catch (err) {
+    if (err instanceof HdNotReadyError) {
+      reply.status(202).send({
+        success: false,
+        error: 'hd_not_ready',
+        data: { retryAfterSeconds: 5 },
+        requestId,
+      })
+      return null
+    }
+    throw err
+  }
 }
 
 const MAX_DOWNLOAD_COUNT_ALERT = 10
@@ -65,12 +91,13 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
   // carrier-NAT IP. These routes are session-authenticated; re-key them with
   // sessionOrIpKey() from lib/rate-limit.ts.
   //
-  // TODO(MEDIUM infra-audit 8.3): ensureUpscaledHd runs a Real-ESRGAN call
-  // synchronously inside the request with no timeout, and the server has
-  // requestTimeout disabled — a hung upstream holds the connection (and the
-  // user's spinner) indefinitely. Wrap it in AbortSignal.timeout(~30s) and
-  // return the existing hd_not_ready retry response, or move upscaling into
-  // the preview worker at generation time.
+  // NOTE(infra-audit 8.3): ensureUpscaledHd runs a Real-ESRGAN call
+  // synchronously inside the request. The ESRGAN round-trip is now bounded by
+  // AbortSignal.timeout (ESRGAN_TIMEOUT_MS in upscale.service.ts) — on timeout
+  // it throws HdNotReadyError, which upscaleOr202 turns into the 202
+  // hd_not_ready retry response so the FE keeps polling for the real 2× result
+  // and the user's "Preparing HD" spinner never hangs. A larger follow-up is to
+  // move upscaling into the preview worker at generation time.
 
   // GET /api/download/url
   // Requires DownloadGrant — proof that payment was completed.
@@ -104,7 +131,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       }
 
       // Upscale to 2× via Real-ESRGAN on first download; cached in Redis thereafter.
-      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+      const upscaledKey = await upscaleOr202(reply, requestId, grant.job.hdS3Key, jobId, session.sessionId)
+      if (!upscaledKey) return
 
       let hdKey: string
       try {
@@ -186,7 +214,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       }
 
       // Upscale to 2× before platform resize so the export starts from a higher-res source.
-      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+      const upscaledKey = await upscaleOr202(reply, requestId, grant.job.hdS3Key, jobId, session.sessionId)
+      if (!upscaledKey) return
 
       let exportKey: string
       try {
@@ -268,7 +297,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       }
 
       // Upscale to 2× via Real-ESRGAN on first download; cached in Redis thereafter.
-      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+      const upscaledKey = await upscaleOr202(reply, requestId, grant.job.hdS3Key, jobId, session.sessionId)
+      if (!upscaledKey) return
 
       let hdKey: string
       try {
@@ -362,7 +392,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       }
 
       // Upscale to 2× before platform resize so the export starts from a higher-res source.
-      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+      const upscaledKey = await upscaleOr202(reply, requestId, grant.job.hdS3Key, jobId, session.sessionId)
+      if (!upscaledKey) return
 
       let exportKey: string
       try {
@@ -583,7 +614,8 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
       }
 
       // Upscale to 2× via Real-ESRGAN on first download; cached in Redis thereafter.
-      const upscaledKey = await ensureUpscaledHd(grant.job.hdS3Key, jobId, session.sessionId)
+      const upscaledKey = await upscaleOr202(reply, requestId, grant.job.hdS3Key, jobId, session.sessionId)
+      if (!upscaledKey) return
 
       let hdKey: string
       try {
