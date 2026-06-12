@@ -130,6 +130,7 @@ export default function HistoryPage() {
                   <img
                     src={previewUrls[job.id]}
                     alt=""
+                    loading="lazy"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
                 ) : (
@@ -158,7 +159,9 @@ export default function HistoryPage() {
               onClick={() => router.push('/upload')}
               className="btn-primary btn-full"
             >
-              {t('generate_first')}
+              {/* "Generate your first image" read wrong for users whose grid
+                  already has jobs — label follows the actual state. */}
+              {jobs.length === 0 ? t('generate_first') : t('generate_new')}
             </button>
           </div>
         </div>

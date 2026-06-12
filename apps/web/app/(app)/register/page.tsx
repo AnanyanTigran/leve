@@ -18,6 +18,7 @@ type Step = 'contact' | 'otp' | 'brand_name'
 export default function RegisterPage() {
   const router = useRouter()
   const t = useTranslations('register')
+  const tCommon = useTranslations('common')
   const [step, setStep] = useState<Step>('contact')
   const [contact, setContact] = useState('')
   const [method, setMethod] = useState<'phone' | 'email'>('phone')
@@ -26,6 +27,7 @@ export default function RegisterPage() {
   // prevents a verified user from sending a redundant OTP by racing the redirect.
   const [authChecked, setAuthChecked] = useState(false)
   const [isSendingOtp, setIsSendingOtp] = useState(false)
+  const [sendError, setSendError] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -74,16 +76,25 @@ export default function RegisterPage() {
     // debounces double-tap on the Continue button.
     if (!authChecked || isSendingOtp) return
     setIsSendingOtp(true)
+    setSendError(false)
     setContact(contactValue)
     setMethod(authMethod)
     try {
-      await apiFetch('/api/register/otp/send', {
+      const res = await apiFetch('/api/register/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: contactValue, identifierType: authMethod }),
       })
+      if (!res.ok) {
+        // Advancing on a failed send used to park the user on the OTP step
+        // waiting for a code that never left the server, with a 45s resend
+        // lock on top. Stay here and tell them instead.
+        setSendError(true)
+        return
+      }
     } catch {
-      // non-fatal — proceed to OTP step anyway, user can resend
+      setSendError(true)
+      return
     } finally {
       setIsSendingOtp(false)
     }
@@ -145,7 +156,7 @@ export default function RegisterPage() {
         <button
           onClick={() => setStep('contact')}
           className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-[10px] hover:bg-bg-surface transition-colors"
-          aria-label="Back"
+          aria-label={tCommon('back')}
         >
           <ChevronLeft className="w-5 h-5 text-text-secondary" />
         </button>
@@ -154,7 +165,7 @@ export default function RegisterPage() {
         <button
           onClick={() => setStep('otp')}
           className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-[10px] hover:bg-bg-surface transition-colors"
-          aria-label="Back"
+          aria-label={tCommon('back')}
         >
           <ChevronLeft className="w-5 h-5 text-text-secondary" />
         </button>
@@ -163,7 +174,7 @@ export default function RegisterPage() {
         <button
           onClick={() => router.back()}
           className="absolute top-4 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-[10px] hover:bg-bg-surface transition-colors"
-          aria-label="Back"
+          aria-label={tCommon('back')}
         >
           <ChevronLeft className="w-5 h-5 text-text-secondary" />
         </button>
@@ -192,6 +203,12 @@ export default function RegisterPage() {
               disabled={!authChecked}
               isSubmitting={isSendingOtp}
             />
+
+            {sendError && (
+              <p className="text-[13px] text-error text-center mt-4">
+                {t('otp_send_failed')}
+              </p>
+            )}
 
             <p className="text-[11px] text-text-muted text-center mt-6 leading-relaxed px-4">
               {t('terms_full')}

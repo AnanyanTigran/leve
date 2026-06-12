@@ -25,6 +25,7 @@ const POLL_MAX_ATTEMPTS = 40 // 2 minutes at 3s intervals
 export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSheetProps) {
   const router = useRouter()
   const t = useTranslations('paywall')
+  const tCommon = useTranslations('common')
   const locale = useLocale()
   const [paywallState, setPaywallState] = useState<PaywallState>(
     initialState ?? 'pricing'
@@ -163,6 +164,8 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
         const redirectUrl =
           provider === 'idram' ? data.data.idramUrl : data.data.telcellUrl
 
+        // TODO: [UX] guard redirectUrl — if the API response is missing the
+        // provider URL this navigates to "undefined" instead of showing failed.
         // Brief delay so user sees the processing state before leaving
         setTimeout(() => {
           window.location.href = redirectUrl
@@ -202,6 +205,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
             <button
               onClick={handleClose}
               className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-bg-elevated ml-3 shrink-0"
+              aria-label={tCommon('cancel')}
             >
               <X className="w-4 h-4 text-text-secondary" />
             </button>

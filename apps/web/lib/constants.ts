@@ -298,6 +298,8 @@ export const SCENES: Scene[] = [
     id: 'floating_levitation',
     group: 'creative',
     name: 'Floating',
+    // TODO: [UX] "Lebecouoir" is corrupted text, not Armenian — Armenian users
+    // see gibberish for this scene; needs a real translation (e.g. Սավառնող).
     nameHY: 'Lebecouoir',
     nameRU: 'Левитация',
     thumbnailGradient: 'linear-gradient(135deg, #e0e8f8, #c0d0f0)',

@@ -149,6 +149,8 @@ export function RefinementPanel({
     .map((o) => o.id)
     .join(' / ')
 
+  // TODO: [UX] chip buttons are ~33px tall (px-3 py-1.5) — below the 44px Apple
+  // HIG minimum and the project's own 48px rule; increase the tappable height.
   const renderChipRow = (chips: RefinementChip[], groupLabel: string) => (
     <div key={groupLabel}>
       <p className="text-[12px] text-text-muted mb-2 font-medium uppercase tracking-wide">

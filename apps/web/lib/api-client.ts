@@ -53,6 +53,8 @@ const CSRF_ERRORS = new Set(['csrf_missing', 'csrf_invalid'])
 // TODO(LOW infra-audit 4.9): handle 429 centrally — the server now returns
 // retryAfterSeconds in the body and exposes the Retry-After header via CORS,
 // but only use-generate.ts surfaces it; everything else shows a generic error.
+// TODO: [UX] surface retryAfterSeconds in the rate-limit copy ("try again in
+// N minutes") instead of the static "wait an hour" / "wait a few minutes".
 
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const method = (options.method ?? 'GET').toUpperCase()

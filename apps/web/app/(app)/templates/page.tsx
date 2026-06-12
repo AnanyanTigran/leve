@@ -23,6 +23,7 @@ export default function SceneSelectionPage() {
   const router = useRouter()
   const t = useTranslations('scenes')
   const tLanding = useTranslations('landing')
+  const tCommon = useTranslations('common')
 
   // Read values set by upload page
   const [uploadKey, setUploadKey] = useState<string | null>(null)
@@ -334,9 +335,12 @@ export default function SceneSelectionPage() {
 
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden bg-bg-base">
+      {/* backHref must point at /upload — the default ("/") dropped the user
+          back on the landing page, losing their place in the funnel. */}
       <AppHeader
         variant="app"
         showBack
+        backHref="/upload"
         title={t('title')}
       />
 
@@ -383,8 +387,8 @@ export default function SceneSelectionPage() {
           <button
             type="button"
             onClick={() => setUploadQuality(null)}
-            className="text-[12px] text-text-secondary hover:text-text-primary shrink-0"
-            aria-label="Dismiss"
+            className="text-[12px] text-text-secondary hover:text-text-primary shrink-0 min-w-[44px] min-h-[44px] -m-3 flex items-center justify-center"
+            aria-label={tCommon('dismiss')}
           >
             ✕
           </button>
@@ -411,10 +415,13 @@ export default function SceneSelectionPage() {
               <p className="text-[13px] text-text-muted">{t('your_photo')}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {/* Category badge — tappable to change */}
+                {/* TODO: [UX] visual pill is ~22px tall; the py-3 -my-3 trick can't
+                    extend the hit area past the 14px gap to the row above —
+                    consider a 44px-tall tappable row for category + change-photo. */}
                 <button
                   type="button"
                   onClick={() => setShowCategoryPicker(true)}
-                  className="flex items-center gap-1 text-[12px] font-medium text-accent bg-accent-subtle px-2 py-0.5 rounded-full"
+                  className="flex items-center gap-1 text-[12px] font-medium text-accent bg-accent-subtle px-2 py-0.5 rounded-full min-h-[28px]"
                 >
                   {category ? getCategoryLabel() : t('category_badge_empty')}
                   <ChevronDown size={12} className="text-accent" />
@@ -422,7 +429,7 @@ export default function SceneSelectionPage() {
                 <button
                   type="button"
                   onClick={() => router.push('/upload')}
-                  className="text-[12px] text-text-muted hover:text-text-secondary transition-colors"
+                  className="text-[12px] text-text-muted hover:text-text-secondary transition-colors py-3 -my-3 px-2 -mx-1"
                 >
                   {t('change_photo')}
                 </button>
@@ -469,16 +476,16 @@ export default function SceneSelectionPage() {
       </main>
 
       {/* Fixed bottom — Generate button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-bg-base border-t border-border-default px-4 py-4 safe-area-pb">
+      <div className="fixed bottom-0 left-0 right-0 bg-bg-base border-t border-border-default px-4 py-4 safe-bottom">
         <div className="page-content">
           {/* Insufficient credits warning */}
           {error === 'insufficient_credits' && (
-            <p className="text-[13px] text-[#EF4444] text-center mb-3">
+            <p className="text-[13px] text-error text-center mb-3">
               {t('insufficient_credits')}
             </p>
           )}
           {error === 'rate_limit_exceeded' && (
-            <p className="text-[13px] text-[#EF4444] text-center mb-3">
+            <p className="text-[13px] text-error text-center mb-3">
               {t('rate_limit_exceeded')}
             </p>
           )}

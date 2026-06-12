@@ -20,8 +20,11 @@ function Providers({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Cyrillic subsets are required — Russian is a first-class locale and without
+// them all RU copy renders in the system fallback font. Armenian script is not
+// available in Inter; it falls through to system-ui (see UX_AUDIT.md).
 const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
+  subsets: ['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext'],
   variable: '--font-inter',
   display: 'swap',
 })
@@ -47,11 +50,11 @@ export const metadata: Metadata = {
   },
 }
 
+// Pinch-zoom must stay enabled (WCAG 1.4.4) — inputs use 16px text so iOS
+// Safari does not auto-zoom on focus, which was the usual reason to disable it.
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },

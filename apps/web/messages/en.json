@@ -7,7 +7,8 @@
     "cancel": "Cancel",
     "done": "Done",
     "loading": "Loading...",
-    "retrying": "Retrying..."
+    "retrying": "Retrying...",
+    "dismiss": "Dismiss"
   },
   "user_menu": {
     "open_menu": "Open account menu",
@@ -134,6 +135,8 @@
     "otp_resend_countdown": "Resend in {seconds}s",
     "otp_incomplete": "Please enter all 6 digits.",
     "otp_invalid": "Invalid code. Please try again.",
+    "otp_rate_limited": "Too many attempts — please wait a few minutes and try again",
+    "otp_send_failed": "Couldn't send the code — check your connection and try again",
     "signin_hint": "Already have an account?",
     "signin_link": "Sign in",
     "terms": "By continuing, you agree to our Terms",
@@ -174,6 +177,7 @@
     "error_upload_failed": "Upload failed — please try again",
     "error_rate_limit": "Too many uploads — please wait an hour and try again",
     "category_prompt": "What are you photographing?",
+    "category_required_hint": "Select a category below to continue",
     "change": "Change"
   },
   "templates": {
@@ -242,12 +246,14 @@
     "preview_load_retry": "Try again",
     "reconnecting": "Reconnecting…",
     "download_hd": "Download HD",
-    "download_hd_credit": "1 credit",
+    "download_hd_credit": "uses 1 image",
     "download_hd_spending": "Unlocking…",
     "generate_another": "Generate another scene",
     "upload_new_photo": "Upload a new photo",
     "aspect_ratio_mismatch_note": "Original image cropped for comparison",
-    "expand_image": "View fullscreen"
+    "expand_image": "View fullscreen",
+    "soft_cap_nudge": "You're creating a lot today — HD downloads start at 200 ֏ per image",
+    "soft_cap_cta": "See packs"
   },
   "paywall": {
     "title": "Unlock HD Download",
@@ -344,6 +350,7 @@
   },
   "history": {
     "generate_first": "Generate your first image",
+    "generate_new": "Generate a new image",
     "active_session": "You have a generation in progress",
     "active_session_sub": "Continue where you left off",
     "active_session_btn": "Continue",
@@ -392,7 +399,7 @@
     "cat_custom": "Custom",
     "category_picker_title": "Select category",
     "category_badge_empty": "Category",
-    "insufficient_credits": "No credits remaining — buy a pack to continue",
+    "insufficient_credits": "You're out of images — buy a pack to continue",
     "rate_limit_exceeded": "Too many generations — please wait a few minutes and try again",
     "error_timeout": "Generation timed out — please try again",
     "error_failed": "Generation failed — please try again",

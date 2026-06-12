@@ -11,7 +11,9 @@ function isSupported(v: string | undefined): v is SupportedLocale {
 export default getRequestConfig(async () => {
   const cookieStore = await cookies()
   const raw = cookieStore.get('leve_locale')?.value
-  const locale: SupportedLocale = isSupported(raw) ? raw : 'en'
+  // Default must stay in sync with getCurrentLocale() fallbacks in
+  // language-switcher.tsx / user-menu.tsx — primary market is Armenian.
+  const locale: SupportedLocale = isSupported(raw) ? raw : 'hy'
 
   const messageMap = {
     hy: () => import('../messages/hy.json'),

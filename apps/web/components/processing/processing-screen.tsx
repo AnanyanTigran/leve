@@ -20,6 +20,8 @@ const PHASE_PROGRESS: Record<WorkerPhase, number> = {
 }
 
 const POLL_FAILURE_OFFLINE_THRESHOLD = 3
+// TODO: [UX] 50ms means the "done" checkmark overlay is gone before the eye
+// registers it — either give it ~400-600ms or drop the animation entirely.
 const DONE_ANIMATION_MS = 50
 
 function isWorkerPhase(v: string | undefined): v is WorkerPhase {
@@ -52,12 +54,17 @@ export function ProcessingScreen() {
 
     let attempts = 0
     let pollFailures = 0
+    let finished = false
     const MAX_ATTEMPTS = 60 // 2 minutes at 2s interval
 
     const poll = async () => {
+      // The visibilitychange listener can fire poll() after a terminal state
+      // already navigated away — guard against double redirects.
+      if (finished) return
       try {
         const res = await apiFetch(`/api/generate/status/${jobId}`)
         if (res.status === 404) {
+          finished = true
           clearInterval(interval)
           sessionStorage.removeItem('leve_job_id')
           sessionStorage.removeItem('leve_job_dispatched_at')
@@ -65,6 +72,7 @@ export function ProcessingScreen() {
           return
         }
         if (res.status === 401 || res.status === 403) {
+          finished = true
           clearInterval(interval)
           router.replace('/register')
           return
@@ -87,6 +95,7 @@ export function ProcessingScreen() {
         }
 
         if (status === 'done') {
+          finished = true
           clearInterval(interval)
           setPhase('done')
           setProgressFraction(1)
@@ -98,6 +107,7 @@ export function ProcessingScreen() {
         }
 
         if (status === 'failed' || status === 'credit_refunded') {
+          finished = true
           clearInterval(interval)
           sessionStorage.setItem('leve_generation_error', data?.data?.errorCode ?? 'generation_failed')
           router.push('/templates')
@@ -106,12 +116,15 @@ export function ProcessingScreen() {
 
         attempts++
         if (attempts >= MAX_ATTEMPTS) {
+          finished = true
           clearInterval(interval)
           sessionStorage.setItem('leve_generation_error', 'timeout')
           router.push('/templates')
         }
       } catch {
         // network error — keep polling, but surface "Reconnecting…" if it persists
+        // TODO: [UX] pollFailures is unbounded — if the network never recovers the
+        // user sits on "Reconnecting…" forever; cap it and offer a retry action.
         pollFailures += 1
         if (pollFailures >= POLL_FAILURE_OFFLINE_THRESHOLD) {
           setIsReconnecting((prev) => (prev ? prev : true))
@@ -122,8 +135,17 @@ export function ProcessingScreen() {
     const interval = setInterval(poll, 2000)
     poll() // immediate first check
 
+    // Mobile Safari throttles/pauses timers in background tabs. Poll once
+    // immediately when the user returns so the 15-20s wait doesn't appear
+    // frozen until the next throttled tick fires.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void poll()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [router])
 

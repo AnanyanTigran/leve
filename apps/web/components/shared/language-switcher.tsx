@@ -19,6 +19,9 @@ function getCurrentLocale(): LocaleId {
   return (val === 'hy' || val === 'ru' || val === 'en') ? val : 'hy'
 }
 
+// TODO: [UX] locale pills are ~26px tall — below the 44px touch minimum; also
+// this switcher only renders on the landing header, so anonymous users inside
+// the funnel (upload/templates/results) have no way to change language.
 export function LanguageSwitcher() {
   const router = useRouter()
   const [current, setCurrent] = useState<LocaleId>('hy')

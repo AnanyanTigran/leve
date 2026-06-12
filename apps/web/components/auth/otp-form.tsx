@@ -27,6 +27,9 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
   const t = useTranslations('register')
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [error, setError] = useState(false)
+  // 429 from the verify route's rate limiter needs its own message — showing
+  // "Invalid code" sends the user into a retry loop that keeps them blocked.
+  const [rateLimited, setRateLimited] = useState(false)
   const [incomplete, setIncomplete] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [countdown, setCountdown] = useState(RESEND_SECONDS)
@@ -55,6 +58,7 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
     next[index] = char
     setDigits(next)
     setError(false)
+    setRateLimited(false)
     setIncomplete(false)
 
     if (char && index < OTP_LENGTH - 1) {
@@ -77,6 +81,7 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
     }
     setIncomplete(false)
     setError(false)
+    setRateLimited(false)
     setIsVerifying(true)
     try {
       const res = await apiFetch('/api/register/otp/verify', {
@@ -84,6 +89,10 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: contact, identifierType, code }),
       })
+      if (res.status === 429) {
+        setRateLimited(true)
+        return
+      }
       const data = await res.json().catch(() => null)
       if (!res.ok || !data?.success) {
         setError(true)
@@ -108,6 +117,7 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
     setCountdown(RESEND_SECONDS)
     setDigits(Array(OTP_LENGTH).fill(''))
     setError(false)
+    setRateLimited(false)
     inputRefs.current[0]?.focus()
     onResend()
   }
@@ -125,6 +135,9 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
             ref={(el) => { inputRefs.current[i] = el }}
             type="text"
             inputMode="numeric"
+            // one-time-code on the first field lets iOS offer the SMS code
+            // above the keyboard; handleChange distributes the full paste.
+            autoComplete={i === 0 ? 'one-time-code' : 'off'}
             maxLength={OTP_LENGTH}
             value={digit}
             onChange={(e) => handleChange(i, e.target.value)}
@@ -157,7 +170,10 @@ export function OtpForm({ contact, identifierType, onVerify, onResend }: OtpForm
       {incomplete && (
         <p className="text-[13px] text-error text-center">{t('otp_incomplete')}</p>
       )}
-      {error && !incomplete && (
+      {rateLimited && !incomplete && (
+        <p className="text-[13px] text-error text-center">{t('otp_rate_limited')}</p>
+      )}
+      {error && !incomplete && !rateLimited && (
         <p className="text-[13px] text-error text-center">{t('otp_invalid')}</p>
       )}
 

@@ -66,7 +66,9 @@ export function PromptTextarea({
         rows={2}
         style={{ minHeight: '62px', maxHeight: `${MAX_HEIGHT_PX}px` }}
         className={cn(
-          'w-full bg-bg-elevated border rounded-[10px] px-3 py-2.5 text-[14px] text-text-primary placeholder:text-text-muted leading-[1.5] resize-none overflow-y-auto transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0',
+          // 16px text is required — anything smaller makes iOS Safari auto-zoom
+          // the page when the textarea gains focus.
+          'w-full bg-bg-elevated border rounded-[10px] px-3 py-2.5 text-[16px] text-text-primary placeholder:text-text-muted leading-[1.5] resize-none overflow-y-auto transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-0',
           hasError
             ? 'border-error'
             : 'border-border-default hover:border-border-strong',

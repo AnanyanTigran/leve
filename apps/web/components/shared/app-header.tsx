@@ -2,6 +2,7 @@
 
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { LanguageSwitcher } from './language-switcher'
 import { UserMenu } from './user-menu'
 
@@ -22,6 +23,7 @@ export function AppHeader({
   rightSlot,
   showLangSwitcher = false,
 }: AppHeaderProps) {
+  const tCommon = useTranslations('common')
   return (
     <header className="flex items-center justify-between h-[52px] px-4 bg-bg-base border-b border-border-default sticky top-0 z-50">
       {/* Left side */}
@@ -34,7 +36,7 @@ export function AppHeader({
           <Link
             href={backHref}
             className="flex items-center justify-center w-12 h-12 -ml-2 rounded-md transition-colors hover:bg-bg-elevated active:scale-95"
-            aria-label="Go back"
+            aria-label={tCommon('back')}
           >
             <ChevronLeft className="w-6 h-6 text-text-primary" />
           </Link>

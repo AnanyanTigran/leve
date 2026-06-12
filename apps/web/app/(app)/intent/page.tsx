@@ -1,9 +1,7 @@
+import { redirect } from 'next/navigation'
+
+// Legacy route from the V1 intent-selection concept. The placeholder screen
+// (literal "intent" text) was reachable by URL — redirect home instead.
 export default function IntentPage() {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-bg-base">
-      <span className="text-text-secondary font-ui text-sm tracking-wide uppercase">
-        intent
-      </span>
-    </div>
-  )
+  redirect('/')
 }

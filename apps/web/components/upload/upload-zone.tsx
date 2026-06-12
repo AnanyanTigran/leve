@@ -416,7 +416,7 @@ export function UploadZone() {
                     'shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-all min-h-[48px]',
                     selectedCategory === item.id
                       ? 'bg-accent text-white border-accent'
-                      : 'bg-bg-elevated text-text-secondary border-border-default hover:border-border-hover',
+                      : 'bg-bg-elevated text-text-secondary border-border-default hover:border-border-strong',
                   )}
                 >
                   <Icon size={14} />
@@ -438,6 +438,14 @@ export function UploadZone() {
 
       <div className="sticky bottom-0 bg-bg-base border-t border-border-default py-3 safe-bottom">
         <div className="page-funnel">
+          {/* The button being silently disabled was the only signal that a
+              category is still required — on small screens the category chips
+              can be scrolled out of view, leaving the user stuck. */}
+          {fileState && !error && !selectedCategory && (
+            <p className="text-[12px] text-text-muted text-center mb-2">
+              {t('category_required_hint')}
+            </p>
+          )}
           <button
             type="button"
             onClick={handleContinue}

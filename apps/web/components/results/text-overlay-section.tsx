@@ -89,7 +89,7 @@ export function TextOverlaySection({ state, onChange, className }: Props) {
               onChange={(e) => handleTextChange(e.target.value)}
               placeholder={OVERLAY_PLACEHOLDERS[state.template]}
               maxLength={80}
-              className="w-full h-11 px-3 bg-bg-elevated border border-border-default rounded-md text-[14px] text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"
+              className="w-full h-11 px-3 bg-bg-elevated border border-border-default rounded-md text-[16px] text-text-primary placeholder:text-text-muted outline-none focus:border-accent transition-colors"
             />
             <div className="flex gap-2">
               {POSITION_OPTIONS.map((opt) => (

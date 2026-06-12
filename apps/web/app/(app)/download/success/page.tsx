@@ -217,6 +217,8 @@ export default function DownloadSuccessPage() {
   }
 
   async function handleCopyLink() {
+    // TODO: [UX] this copies the /download/success page URL, which is gated
+    // behind the recipient's own session — copy a shareable image URL instead.
     try {
       await navigator.clipboard.writeText(window.location.href)
       setCopyState('success')

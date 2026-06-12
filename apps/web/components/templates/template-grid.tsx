@@ -38,6 +38,10 @@ function buildTabOrder(): TabId[] {
   return [...TAB_IDS] // always keep original order: all, beauty, retail, marketplace
 }
 
+// TODO: [UX] dead code — superseded by SceneGrid (scene-first UX, 2026-05 ADR);
+// it writes legacy sessionStorage keys (leve_template_id/leve_chips) no other
+// page reads and routes to /processing without dispatching a job. Delete it
+// together with results/variant-grid.tsx once confirmed unused.
 export function TemplateGrid() {
   const router = useRouter()
   const t = useTranslations('templates')

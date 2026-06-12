@@ -130,6 +130,8 @@ export function BeforeAfterSlider({
       }}
     >
       {/* Before layer */}
+      {/* TODO: [UX] before/after images carry empty alt text — the generated
+          result is the page's primary content; describe it for screen readers. */}
       <div className="absolute inset-0 bg-bg-elevated">
         {beforeSrc && (
           // eslint-disable-next-line @next/next/no-img-element

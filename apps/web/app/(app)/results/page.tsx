@@ -37,6 +37,7 @@ export default function ResultsPage() {
   const router = useRouter()
   const t = useTranslations('results')
   const tPaywall = useTranslations('paywall')
+  const tCommon = useTranslations('common')
   const { generate } = useGenerate()
   const { session, mutate: refreshSession } = useSession()
   const verified = session?.isVerified === true
@@ -62,6 +63,10 @@ export default function ResultsPage() {
 
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
   const [aspectRatioMismatch, setAspectRatioMismatch] = useState(false)
+  // Soft daily cap (15 free generations/day) — business rule says nudge to
+  // buy, never hard-block. The flag was being written by the templates page
+  // but never read; this banner is that nudge.
+  const [showSoftCapNudge, setShowSoftCapNudge] = useState(false)
 
   // Edit flow state
   const [editPrompt, setEditPrompt] = useState('')
@@ -110,6 +115,11 @@ export default function ResultsPage() {
     if (!id) { router.replace('/'); return }
 
     const storedPreview = sessionStorage.getItem('leve_upload_preview')
+
+    if (sessionStorage.getItem('leve_soft_cap_reached') === '1') {
+      sessionStorage.removeItem('leve_soft_cap_reached')
+      setShowSoftCapNudge(true)
+    }
 
     // Trust the preview when the upload key is present. Timestamp equality
     // (uploadSessionId === jobUploadSessionId) caused false negatives: the
@@ -297,7 +307,14 @@ export default function ResultsPage() {
 
     poll()
     pollRef.current = setInterval(poll, 2000)
+    // Mobile Safari throttles background timers — poll immediately when the
+    // tab becomes visible again so an edit doesn't look stuck on return.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && pollRef.current) void poll()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
+      document.removeEventListener('visibilitychange', onVisible)
       if (pollRef.current) {
         clearInterval(pollRef.current)
         pollRef.current = null
@@ -538,6 +555,28 @@ export default function ResultsPage() {
               </button>
             </div>
           )}
+          {showSoftCapNudge && (
+            <div className="px-4 py-3 bg-accent-subtle border border-accent-border rounded-[10px] flex items-center justify-between gap-3">
+              <p className="text-[13px] text-text-primary">{t('soft_cap_nudge')}</p>
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPaywallOpen(true)}
+                  className="text-[13px] text-accent font-semibold"
+                >
+                  {t('soft_cap_cta')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSoftCapNudge(false)}
+                  className="text-[12px] text-text-secondary min-w-[44px] min-h-[44px] -m-3 flex items-center justify-center"
+                  aria-label={tCommon('dismiss')}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
           <div className="relative group">
             {/* Expand button — hover-only on desktop, always visible on mobile */}
             {generatedImageUrl && editPhase === 'idle' && (
@@ -551,6 +590,8 @@ export default function ResultsPage() {
               </button>
             )}
             {sourceAvailable ? (
+              // TODO: [UX] slider only responds to drags on the 48px handle —
+              // tapping elsewhere on the image should also move the divider.
               <BeforeAfterSlider
                 beforeSrc={previousImageUrl ?? uploadPreview}
                 afterSrc={generatedImageUrl ?? uploadPreview}
