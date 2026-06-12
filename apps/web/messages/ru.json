@@ -8,7 +8,8 @@
     "done": "Готово",
     "loading": "Загрузка",
     "retrying": "Повторяем",
-    "dismiss": "Закрыть"
+    "dismiss": "Закрыть",
+    "view_fullscreen": "На весь экран"
   },
   "user_menu": {
     "open_menu": "Меню аккаунта",

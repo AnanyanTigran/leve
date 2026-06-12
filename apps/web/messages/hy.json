@@ -8,7 +8,8 @@
     "done": "Պատրաստ է",
     "loading": "Բեռնվում է",
     "retrying": "Կրկնում",
-    "dismiss": "Փակել"
+    "dismiss": "Փակել",
+    "view_fullscreen": "Դիտել լրիվ էկրանով"
   },
   "user_menu": {
     "open_menu": "Բացել հաշվի մենյուն",

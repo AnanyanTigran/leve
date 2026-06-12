@@ -11,6 +11,7 @@ import { PLATFORM_SPECS } from '@leve/types'
 import type { AspectRatio, ExportPlatform } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
 import { CropSelector, type CropRegion } from '@/components/results/crop-selector'
+import { FullscreenImage } from '@/components/shared/fullscreen-image'
 
 const PLATFORM_ICONS: Record<ExportPlatform, LucideIcon> = {
   instagram_feed: Square,
@@ -261,8 +262,13 @@ export default function DownloadSuccessPage() {
         {/* Generated image — sized to the generated image's natural aspect ratio.
             maxWidth pairs with maxHeight so the container doesn't go wider than
             the height budget allows, matching the approach used in the slider. */}
-        <div
-          className="mx-auto rounded-[16px] overflow-hidden border border-border-default relative bg-bg-elevated"
+        {/* Whole-image trigger (no drag gestures here); expand icon sits
+            top-left so it clears the HD badge in the top-right. */}
+        <FullscreenImage
+          src={previewUrl}
+          expandTrigger="area"
+          iconPosition="top-left"
+          className="mx-auto rounded-[16px] overflow-hidden border border-border-default bg-bg-elevated"
           style={{
             width: '100%',
             aspectRatio: String(sourceAspectRatio),
@@ -292,10 +298,10 @@ export default function DownloadSuccessPage() {
           ) : (
             <div className="absolute inset-0 animate-pulse bg-bg-elevated" />
           )}
-          <span className="absolute top-3 right-3 bg-accent text-white text-[11px] font-semibold px-2 py-1 rounded-md">
+          <span className="absolute top-3 right-3 z-30 bg-accent text-white text-[11px] font-semibold px-2 py-1 rounded-md">
             HD
           </span>
-        </div>
+        </FullscreenImage>
 
         <div className="mt-6">
           <h1 className="text-[24px] font-display font-semibold text-text-primary">{t('ready')}</h1>

@@ -3,15 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Phone, Download, Maximize2 } from 'lucide-react'
-import Lightbox from 'yet-another-react-lightbox'
-import Zoom from 'yet-another-react-lightbox/plugins/zoom'
-import 'yet-another-react-lightbox/styles.css'
+import { Phone } from 'lucide-react'
 import { PromptTextarea } from '@/components/ui/prompt-textarea'
 import { AppHeader } from '@/components/shared/app-header'
 import { useSession } from '@/hooks/use-session'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { BeforeAfterSlider } from '@/components/results/before-after-slider'
+import { FullscreenImage } from '@/components/shared/fullscreen-image'
 import { TextOverlaySection, type OverlayState } from '@/components/results/text-overlay-section'
 import { PaywallSheet } from '@/components/results/paywall-sheet'
 import { useGenerate } from '@/hooks/use-generate'
@@ -57,7 +55,6 @@ export default function ResultsPage() {
   // CTA can show a loading state and ignore double clicks.
   const [isSpendingCredit, setIsSpendingCredit] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
-  const [lightboxOpen, setLightboxOpen] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollFailuresRef = useRef(0)
 
@@ -467,18 +464,6 @@ export default function ResultsPage() {
     }
   }
 
-  function handleDownloadHd() {
-    setLightboxOpen(false)
-    if (hasGrant) {
-      setIsNavigating(true)
-      router.push('/download/success')
-    } else if (hasCredits) {
-      void handleSpendCredit()
-    } else {
-      setPaywallOpen(true)
-    }
-  }
-
   async function handleRetryPreviewUrl() {
     if (!jobId) return
     setPreviewUrlError(false)
@@ -623,18 +608,12 @@ export default function ResultsPage() {
               </div>
             </div>
           )}
-          <div className="relative group">
-            {/* Expand button — hover-only on desktop, always visible on mobile */}
-            {generatedImageUrl && editPhase === 'idle' && (
-              <button
-                type="button"
-                onClick={() => setLightboxOpen(true)}
-                className="absolute top-3 right-3 z-30 p-2.5 rounded-full bg-black/50 border border-white/15 text-white transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                aria-label={t('expand_image')}
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            )}
+          {/* Corner-button trigger so the before/after slider keeps its drag
+              gestures; the affordance hides while an edit is generating. */}
+          <FullscreenImage
+            src={generatedImageUrl}
+            showAffordance={!!generatedImageUrl && editPhase === 'idle'}
+          >
             {sourceAvailable ? (
               <BeforeAfterSlider
                 beforeSrc={previousImageUrl ?? beforeImageUrl}
@@ -715,7 +694,7 @@ export default function ResultsPage() {
                 </span>
               </div>
             )}
-          </div>
+          </FullscreenImage>
           {aspectRatioMismatch && beforeImageUrl && (
             <p className="text-[11px] text-text-muted text-center">
               {t('aspect_ratio_mismatch_note')}
@@ -868,36 +847,6 @@ export default function ResultsPage() {
         onClose={() => { setPaywallOpen(false); setPaywallInitialState('pricing') }}
         initialState={paywallInitialState}
       />
-      {generatedImageUrl && (
-        <Lightbox
-          open={lightboxOpen}
-          close={() => setLightboxOpen(false)}
-          slides={[{ src: generatedImageUrl }]}
-          plugins={[Zoom]}
-          carousel={{ finite: true }}
-          styles={{ container: { backgroundColor: '#0A0A0A' } }}
-          zoom={{
-            maxZoomPixelRatio: 4,
-            zoomInMultiplier: 1.5,
-            doubleTapDelay: 300,
-            scrollToZoom: true,
-          }}
-          toolbar={{
-            buttons: [
-              <button
-                key="hd-download"
-                type="button"
-                onClick={handleDownloadHd}
-                className="yarl__button"
-                aria-label={t('download_hd')}
-              >
-                <Download className="w-5 h-5" />
-              </button>,
-              'close',
-            ],
-          }}
-        />
-      )}
     </div>
   )
 }

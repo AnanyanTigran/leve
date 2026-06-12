@@ -8,7 +8,8 @@
     "done": "Done",
     "loading": "Loading",
     "retrying": "Retrying",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "view_fullscreen": "View fullscreen"
   },
   "user_menu": {
     "open_menu": "Open account menu",
