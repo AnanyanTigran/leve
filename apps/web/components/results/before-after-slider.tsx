@@ -5,6 +5,11 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import type { AspectRatio } from '@leve/types'
 
+const POSITION_MIN = 5
+const POSITION_MAX = 95
+const POSITION_INITIAL = 30
+const DEMO_EASING = '0.7s ease-in-out'
+
 interface BeforeAfterSliderProps {
   beforeSrc?: string | null
   afterSrc?: string | null
@@ -14,6 +19,15 @@ interface BeforeAfterSliderProps {
   onUserInteract?: () => void
 }
 
+/**
+ * Performance architecture: the divider position lives in a CSS custom
+ * property (--slider-pos), not React state. An invisible native range input
+ * stretched over the container provides 1:1 pointer/keyboard tracking; its
+ * input events write the CSS variable directly — no layout reads, no
+ * re-renders per frame. The after-image reveal (clip-path) and the
+ * divider/handle (transform) both resolve from that variable on the
+ * compositor thread.
+ */
 export function BeforeAfterSlider({
   beforeSrc,
   afterSrc,
@@ -23,9 +37,9 @@ export function BeforeAfterSlider({
   onUserInteract,
 }: BeforeAfterSliderProps) {
   const t = useTranslations('results')
-  const [sliderPosition, setSliderPosition] = useState(30)
-  const [isDragging, setIsDragging] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Crossfade state: currentAfterSrc is visible, incomingAfterSrc loads silently
   const [currentAfterSrc, setCurrentAfterSrc] = useState<string | null>(afterSrc ?? null)
@@ -49,85 +63,48 @@ export function BeforeAfterSlider({
     return () => { if (crossfadeTimerRef.current) clearTimeout(crossfadeTimerRef.current) }
   }, [])
 
-  useEffect(() => {
-    if (externalPosition == null) return
-    setSliderPosition(externalPosition)
-  }, [externalPosition])
-
-  const [W, H] = aspectRatio.split(':').map(Number)
-  const demoTransition = !isDragging && externalPosition != null ? '0.7s ease-in-out' : undefined
-
-  const updatePosition = useCallback((clientX: number) => {
-    if (!containerRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const pct = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100))
-    setSliderPosition(pct)
+  const setPosition = useCallback((value: number) => {
+    containerRef.current?.style.setProperty('--slider-pos', `${value}%`)
   }, [])
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-      setIsDragging(true)
-      onUserInteract?.()
-      updatePosition(e.clientX)
+  // Ambient demo mode (landing page) drives the position from outside;
+  // sync the input's value so keyboard interaction resumes from there.
+  useEffect(() => {
+    if (externalPosition == null) return
+    const clamped = Math.max(POSITION_MIN, Math.min(POSITION_MAX, externalPosition))
+    setPosition(clamped)
+    if (inputRef.current) inputRef.current.value = String(clamped)
+  }, [externalPosition, setPosition])
+
+  const [W, H] = aspectRatio.split(':').map(Number)
+  const isDemoAnimating = !isDragging && externalPosition != null
+
+  const handleInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPosition(Number(e.currentTarget.value))
     },
-    [updatePosition, onUserInteract]
+    [setPosition]
   )
 
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!isDragging) return
-      e.preventDefault()
-      e.stopPropagation()
-      updatePosition(e.clientX)
-    },
-    [isDragging, updatePosition]
-  )
+  const handlePointerDown = useCallback(() => {
+    setIsDragging(true)
+    onUserInteract?.()
+  }, [onUserInteract])
 
-  const onPointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const target = e.target as HTMLElement
-      if (target.hasPointerCapture(e.pointerId)) {
-        target.releasePointerCapture(e.pointerId)
-      }
-      setIsDragging(false)
-    },
-    []
-  )
-
-  function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'ArrowLeft') {
-      e.preventDefault()
-      setSliderPosition((p) => Math.max(5, p - 5))
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault()
-      setSliderPosition((p) => Math.min(95, p + 5))
-    }
-  }
+  const handlePointerEnd = useCallback(() => {
+    setIsDragging(false)
+  }, [])
 
   return (
     <div
       ref={containerRef}
-      role="slider"
-      tabIndex={0}
-      aria-label={`${t('before')} / ${t('after')}`}
-      aria-valuenow={Math.round(sliderPosition)}
-      aria-valuemin={5}
-      aria-valuemax={95}
-      className={`relative w-full mx-auto overflow-hidden rounded-[12px] border border-border-default ${className ?? ''}`}
-      onKeyDown={onKeyDown}
+      className={`group relative w-full mx-auto overflow-hidden rounded-[12px] border border-border-default select-none ${className ?? ''}`}
       style={{
         aspectRatio: `${W} / ${H}`,
         maxHeight: '70vh',
         maxWidth: `calc(70vh * ${W} / ${H})`,
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
-      }}
+        '--slider-pos': `${POSITION_INITIAL}%`,
+      } as React.CSSProperties}
     >
       {/* Before layer */}
       {/* TODO: [UX] before/after images carry empty alt text — the generated
@@ -142,15 +119,18 @@ export function BeforeAfterSlider({
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
           />
         )}
-        <span className="absolute top-3 left-3 text-[11px] text-text-secondary bg-white px-2 py-1 rounded-[6px] z-10 select-none pointer-events-none">
+        <span className="absolute top-3 left-3 z-10 text-[11px] text-text-secondary bg-white/85 backdrop-blur-md px-2 py-1 rounded-[6px] select-none pointer-events-none transition-opacity duration-300 group-active:opacity-0">
           {t('before')}
         </span>
       </div>
 
-      {/* After layer — clipped from the left to reveal the before side */}
+      {/* After layer — clip-path resolves --slider-pos on the compositor */}
       <div
         className="absolute inset-0 bg-bg-elevated"
-        style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)`, transition: demoTransition ? `clip-path ${demoTransition}` : undefined }}
+        style={{
+          clipPath: 'inset(0 0 0 var(--slider-pos))',
+          transition: isDemoAnimating ? `clip-path ${DEMO_EASING}` : 'none',
+        }}
       >
         {currentAfterSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -185,40 +165,51 @@ export function BeforeAfterSlider({
             style={{ opacity: isCrossfading ? 1 : 0, transition: 'opacity 450ms ease-in-out' }}
           />
         )}
-        <span
-          className="absolute top-3 right-3 text-[11px] text-white px-2 py-1 rounded-[6px] z-10 select-none pointer-events-none bg-[var(--accent)]"
-        >
+        <span className="absolute top-3 right-3 z-10 text-[11px] text-white bg-[var(--accent)] px-2 py-1 rounded-[6px] select-none pointer-events-none transition-opacity duration-300 group-active:opacity-0">
           {t('after')}
         </span>
       </div>
 
-      {/* Divider line */}
+      {/* Divider + handle — a container-width layer translated by its own
+          width percentage, so translateX(var(--slider-pos)) tracks the input
+          exactly without triggering layout */}
       <div
-        className="absolute top-0 bottom-0 w-[2px] bg-white z-10 pointer-events-none"
-        style={{ left: `${sliderPosition}%`, filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.3))', transition: demoTransition ? `left ${demoTransition}` : undefined }}
-      />
-
-      {/* Drag handle — interactive */}
-      <div
-        role="presentation"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        className="absolute z-20 w-12 h-12 rounded-full flex items-center justify-center bg-white"
+        className="absolute inset-0 z-20 pointer-events-none"
         style={{
-          left: `${sliderPosition}%`,
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          touchAction: 'none',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.06)',
-          cursor: isDragging ? 'grabbing' : 'grab',
-          transition: demoTransition ? `left ${demoTransition}` : undefined,
+          transform: 'translateX(var(--slider-pos))',
+          transition: isDemoAnimating ? `transform ${DEMO_EASING}` : 'none',
+          willChange: 'transform',
         }}
       >
-        <ChevronLeft className="w-3.5 h-3.5 text-bg-base pointer-events-none" />
-        <ChevronRight className="w-3.5 h-3.5 text-bg-base pointer-events-none -ml-1" />
+        <div
+          className="absolute top-0 bottom-0 left-0 w-[2px] -translate-x-1/2 bg-white"
+          style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.3))' }}
+        />
+        <div
+          className="absolute left-0 top-1/2 w-12 h-12 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center bg-white transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-active:scale-110 group-focus-within:ring-2 group-focus-within:ring-white/60"
+          style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.06)' }}
+        >
+          <ChevronLeft className="w-3.5 h-3.5 text-bg-base" />
+          <ChevronRight className="w-3.5 h-3.5 text-bg-base -ml-1" />
+        </div>
       </div>
+
+      {/* Invisible native slider engine — full-area, hardware-tracked */}
+      <input
+        ref={inputRef}
+        type="range"
+        min={POSITION_MIN}
+        max={POSITION_MAX}
+        step={1}
+        defaultValue={POSITION_INITIAL}
+        aria-label={`${t('before')} / ${t('after')}`}
+        onChange={handleInput}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        className="absolute inset-0 z-30 w-full h-full opacity-0 cursor-grab active:cursor-grabbing appearance-none m-0"
+        style={{ touchAction: 'none' }}
+      />
     </div>
   )
 }

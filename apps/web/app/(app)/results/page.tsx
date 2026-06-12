@@ -590,8 +590,6 @@ export default function ResultsPage() {
               </button>
             )}
             {sourceAvailable ? (
-              // TODO: [UX] slider only responds to drags on the 48px handle —
-              // tapping elsewhere on the image should also move the divider.
               <BeforeAfterSlider
                 beforeSrc={previousImageUrl ?? uploadPreview}
                 afterSrc={generatedImageUrl ?? uploadPreview}
