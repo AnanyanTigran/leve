@@ -131,7 +131,7 @@ function CategoryCard({
       )}
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col h-full min-h-[160px] md:min-h-[180px] p-5 md:p-6">
+      <div className="relative z-10 flex flex-col h-full min-h-[160px] md:min-h-[180px] p-5 md:p-6" style={{ maxWidth: '60%', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
         <h3 className="font-display font-bold text-[20px] md:text-[18px] text-white leading-tight">
           {t(item.tKey)}
         </h3>
