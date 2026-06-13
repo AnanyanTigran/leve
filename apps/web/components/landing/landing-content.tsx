@@ -4,7 +4,8 @@ import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { Upload, Layers, Sparkles, SlidersHorizontal, Download, Camera, Smartphone, Share2, ShoppingBag, ShoppingCart, Send, Globe, ImageDown } from 'lucide-react'
+import { Camera, Smartphone, Share2, ShoppingBag, ShoppingCart, Send, Globe, ImageDown } from 'lucide-react'
+import { HowItWorks } from '@/components/landing/how-it-works'
 import { TestimonialCards } from '@/components/landing/testimonial-cards'
 import { ShowcaseGallery } from '@/components/landing/showcase-gallery'
 import { CategoryCards } from '@/components/landing/category-cards'
@@ -73,7 +74,6 @@ export function LandingContent() {
         }
 
   const showcaseRef = useRef<HTMLElement>(null)
-  const stepsRef = useRef<HTMLElement>(null)
   const marketplaceRef = useRef<HTMLElement>(null)
   const pricingRef = useRef<HTMLElement>(null)
   const ctaRef = useRef<HTMLElement>(null)
@@ -81,33 +81,11 @@ export function LandingContent() {
   const showcaseInView = useInView(showcaseRef, { once: true, amount: 0.2 })
   // Separate from entry animation — tracks live visibility to pause ambient gallery
   const showcaseVisible = useInView(showcaseRef, { once: false, amount: 0.3 })
-  const stepsInView = useInView(stepsRef, { once: true, amount: 0.2 })
   const marketplaceInView = useInView(marketplaceRef, { once: true, amount: 0.2 })
   const pricingInView = useInView(pricingRef, { once: true, amount: 0.2 })
   const ctaInView = useInView(ctaRef, { once: true, amount: 0.3 })
 
-  const step1Ref = useRef<HTMLDivElement>(null)
-  const step2Ref = useRef<HTMLDivElement>(null)
-  const step3Ref = useRef<HTMLDivElement>(null)
-  const step4Ref = useRef<HTMLDivElement>(null)
-  const step5Ref = useRef<HTMLDivElement>(null)
-  const step1InView = useInView(step1Ref, { once: true, amount: 0.5 })
-  const step2InView = useInView(step2Ref, { once: true, amount: 0.5 })
-  const step3InView = useInView(step3Ref, { once: true, amount: 0.5 })
-  const step4InView = useInView(step4Ref, { once: true, amount: 0.5 })
-  const step5InView = useInView(step5Ref, { once: true, amount: 0.5 })
-  const stepRefs = [step1Ref, step2Ref, step3Ref, step4Ref, step5Ref]
-  const stepInViews = [step1InView, step2InView, step3InView, step4InView, step5InView]
-
   const locale = useLocale()
-
-  const howItWorks = [
-    { num: 1, Icon: Upload,            title: t('how_step1_title'), desc: t('how_step1_desc') },
-    { num: 2, Icon: Layers,            title: t('how_step2_title'), desc: t('how_step2_desc') },
-    { num: 3, Icon: Sparkles,          title: t('how_step3_title'), desc: t('how_step3_desc') },
-    { num: 4, Icon: SlidersHorizontal, title: t('how_step4_title'), desc: t('how_step4_desc') },
-    { num: 5, Icon: Download,          title: t('how_step5_title'), desc: t('how_step5_desc') },
-  ]
 
   function handleCTAClick() {
     router.push('/upload')
@@ -237,72 +215,7 @@ export function LandingContent() {
         </section>
 
         {/* SECTION 3 — How it works (bg-base) */}
-        <section ref={stepsRef} className="bg-[var(--bg-base)] px-4 py-16">
-          <div className="max-w-[560px] mx-auto">
-            <motion.h2
-              initial={{ opacity: 0, y: 24 }}
-              animate={stepsInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="font-display font-semibold text-[28px] text-text-primary text-center mb-12"
-            >
-              {t('how_title')}
-            </motion.h2>
-
-            <div className="relative">
-              {howItWorks.map((step, idx) => {
-                const inView = stepInViews[idx]!
-                const isLast = idx === howItWorks.length - 1
-                const { Icon } = step
-                return (
-                  <motion.div
-                    key={step.num}
-                    ref={stepRefs[idx]!}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={inView ? { opacity: 1, x: 0 } : {}}
-                    transition={{ duration: 0.5, ease: 'easeOut', delay: idx * 0.08 }}
-                    className={cn(
-                      'relative flex gap-3 md:gap-4 items-start',
-                      isLast ? 'mb-0' : 'mb-8'
-                    )}
-                  >
-                    {/* Number circle */}
-                    <motion.div
-                      animate={inView ? { scale: [1, 1.25, 1] } : {}}
-                      transition={{ duration: 0.3, times: [0, 0.5, 1], delay: idx * 0.08 }}
-                      className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 rounded-full bg-accent-subtle border border-accent-border flex items-center justify-center relative z-10"
-                    >
-                      <span className="font-semibold text-sm text-accent">{step.num}</span>
-                    </motion.div>
-
-                    {/* Connector line — absolute relative to step row */}
-                    {!isLast && (
-                      <motion.div
-                        initial={{ scaleY: 0 }}
-                        animate={inView ? { scaleY: 1 } : {}}
-                        transition={{ duration: 0.4, ease: 'easeOut', delay: idx * 0.08 + 0.2 }}
-                        className="absolute left-[15px] md:left-[19px] top-[32px] md:top-[40px] bottom-[-32px] w-px bg-border-default"
-                        style={{ transformOrigin: 'top' }}
-                      />
-                    )}
-
-                    {/* Content */}
-                    <div className="flex-1 pt-1">
-                      <div className="hidden md:inline-flex bg-bg-elevated border border-border-default rounded-xl p-2 mb-3">
-                        <Icon className="w-5 h-5 text-accent" strokeWidth={1.75} />
-                      </div>
-                      <h3 className="font-ui font-semibold text-[16px] text-text-primary mb-1 leading-snug">
-                        {step.title}
-                      </h3>
-                      <p className="font-ui text-sm text-text-secondary leading-relaxed">
-                        {step.desc}
-                      </p>
-                    </div>
-                  </motion.div>
-                )
-              })}
-            </div>
-          </div>
-        </section>
+        <HowItWorks />
 
         {/* SECTION 4 — Export / Platforms (bg-surface) */}
         <section ref={marketplaceRef} className="bg-[var(--bg-surface)] py-16 px-4">
