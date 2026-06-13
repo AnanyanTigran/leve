@@ -204,6 +204,11 @@ export function BeforeAfterSlider({
       </div>
 
       {/* Invisible native slider engine — full-area, hardware-tracked */}
+      {/* touch-action: pan-y lets the browser claim vertical drags for page
+          scroll (so a finger on the image can scroll the results page) while
+          horizontal drags still reach the range input and move the divider.
+          When the browser takes a vertical gesture it fires pointercancel,
+          which handlePointerEnd already clears, so no drag state gets stuck. */}
       <input
         ref={inputRef}
         type="range"
@@ -217,7 +222,7 @@ export function BeforeAfterSlider({
         onPointerUp={handlePointerEnd}
         onPointerCancel={handlePointerEnd}
         className="absolute inset-0 z-30 w-full h-full opacity-0 cursor-grab active:cursor-grabbing appearance-none m-0"
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'pan-y' }}
       />
     </div>
   )
