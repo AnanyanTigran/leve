@@ -10,11 +10,6 @@ const POSITION_MAX = 95
 const POSITION_INITIAL = 30
 const DEMO_EASING = '0.7s ease-in-out'
 
-// As the divider nears POSITION_MIN the After image fills the frame and the
-// Before image (with its badge) all but disappears — hide the Before badge a
-// little before that extreme so it doesn't float over the After image.
-const BEFORE_BADGE_HIDE_BELOW = POSITION_MIN + 5
-
 interface BeforeAfterSliderProps {
   beforeSrc?: string | null
   afterSrc?: string | null
@@ -45,9 +40,6 @@ export function BeforeAfterSlider({
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  // Toggled (not the raw position) so the component re-renders only when the
-  // divider crosses the threshold, preserving the CSS-variable fast path.
-  const [beforeBadgeHidden, setBeforeBadgeHidden] = useState(false)
 
   // Crossfade state: currentAfterSrc is visible, incomingAfterSrc loads silently
   const [currentAfterSrc, setCurrentAfterSrc] = useState<string | null>(afterSrc ?? null)
@@ -75,36 +67,23 @@ export function BeforeAfterSlider({
     containerRef.current?.style.setProperty('--slider-pos', `${value}%`)
   }, [])
 
-  // Hide the Before badge once the divider nears POSITION_MIN (After fully
-  // revealed). Functional update returns the same value when unchanged so React
-  // bails out — no re-render while dragging within the same region.
-  const updateBeforeBadge = useCallback((value: number) => {
-    setBeforeBadgeHidden((prev) => {
-      const next = value <= BEFORE_BADGE_HIDE_BELOW
-      return next === prev ? prev : next
-    })
-  }, [])
-
   // Ambient demo mode (landing page) drives the position from outside;
   // sync the input's value so keyboard interaction resumes from there.
   useEffect(() => {
     if (externalPosition == null) return
     const clamped = Math.max(POSITION_MIN, Math.min(POSITION_MAX, externalPosition))
     setPosition(clamped)
-    updateBeforeBadge(clamped)
     if (inputRef.current) inputRef.current.value = String(clamped)
-  }, [externalPosition, setPosition, updateBeforeBadge])
+  }, [externalPosition, setPosition])
 
   const [W, H] = aspectRatio.split(':').map(Number)
   const isDemoAnimating = !isDragging && externalPosition != null
 
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = Number(e.currentTarget.value)
-      setPosition(value)
-      updateBeforeBadge(value)
+      setPosition(Number(e.currentTarget.value))
     },
-    [setPosition, updateBeforeBadge]
+    [setPosition]
   )
 
   const handlePointerDown = useCallback(() => {
@@ -140,7 +119,7 @@ export function BeforeAfterSlider({
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
           />
         )}
-        <span className={`absolute top-3 left-3 z-10 text-[11px] text-text-secondary bg-white/85 backdrop-blur-md px-2 py-1 rounded-[6px] select-none pointer-events-none transition-opacity duration-300 group-active:opacity-0 ${beforeBadgeHidden ? 'opacity-0' : ''}`}>
+        <span className="absolute top-3 left-3 z-10 text-[11px] text-text-secondary bg-white/85 backdrop-blur-md px-2 py-1 rounded-[6px] select-none pointer-events-none transition-opacity duration-300 group-active:opacity-0">
           {t('before')}
         </span>
       </div>
