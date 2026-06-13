@@ -117,7 +117,15 @@
     "pricing_creator_feature_1": "Լավագույն արժեքը մեկ նկարի համար",
     "pricing_creator_feature_2": "Բարձր որակ, առանց ջրանիշի",
     "pricing_creator_feature_3": "Հայերեն տեքստային շերտերը ներառված են",
-    "platform_original_hd": "Օրիգինալ HD"
+    "platform_original_hd": "Օրիգինալ HD",
+    "category_subtitle_beauty": "Փայլուն և Անթերի",
+    "category_subtitle_jewelry": "Էլեգանտ և Բացառիկ",
+    "category_subtitle_fashion": "Ոճային և Կոկիկ",
+    "category_subtitle_food": "Թարմ և Ախորժելի",
+    "category_subtitle_electronics": "Մաքուր և Ժամանակակից",
+    "category_subtitle_home_decor": "Հարմարավետ և Նուրբ",
+    "category_subtitle_toys": "Խաղային և Վառ",
+    "category_subtitle_custom": "Ցանկացած Ապրանք"
   },
   "register": {
     "title": "Ստեղծեք անվճար հաշիվ",

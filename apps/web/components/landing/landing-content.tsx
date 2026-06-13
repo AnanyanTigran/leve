@@ -1,18 +1,18 @@
 'use client'
 
 import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Upload, Layers, Sparkles, SlidersHorizontal, Download, Camera, Smartphone, Share2, ShoppingBag, ShoppingCart, Send, Globe, ImageDown } from 'lucide-react'
 import { TestimonialCards } from '@/components/landing/testimonial-cards'
 import { ShowcaseGallery } from '@/components/landing/showcase-gallery'
+import { CategoryCards } from '@/components/landing/category-cards'
 import { AppHeader } from '@/components/shared/app-header'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { useSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
-import type { ProductCategory } from '@leve/types'
-import { CATEGORY_ITEMS, SCENES, CREDIT_PACKAGES } from '@/lib/constants'
+import { SCENES, CREDIT_PACKAGES } from '@/lib/constants'
 
 const SCENE_VARIETY_IDS = [
   'marble_luxury', 'black_studio', 'cafe_table', 'outdoor_garden',
@@ -52,18 +52,32 @@ const PLATFORMS = [
   { id: 'original_hd',     label: 'Original HD',     labelKey: 'platform_original_hd', dims: 'Full res', Icon: ImageDown, highlight: false, pill: '' },
 ]
 
-const staggerChild = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
-}
+// Shared motion language — mirrors the showcase gallery
+const EASE_SETTLE: [number, number, number, number] = [0.22, 1, 0.36, 1]
+const SPRING_LIFT = { type: 'spring' as const, stiffness: 260, damping: 22 }
+
 
 export function LandingContent() {
   const router = useRouter()
   const t = useTranslations('landing')
   const { session, status } = useSession()
   const showSignIn = status === 'ready' && !session?.isVerified
+  const reducedMotion = useReducedMotion()
 
-  const categoriesRef = useRef<HTMLDivElement>(null)
+  // Hero entrance — same settle ease as the showcase crossfade
+  const heroEntrance = (delay: number) =>
+    reducedMotion
+      ? {
+          initial: { opacity: 0 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.3, delay: Math.min(delay, 0.2), y: { duration: 0 } },
+        }
+      : {
+          initial: { opacity: 0, y: 28 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.7, ease: EASE_SETTLE, delay },
+        }
+
   const showcaseRef = useRef<HTMLElement>(null)
   const scenesRef = useRef<HTMLElement>(null)
   const stepsRef = useRef<HTMLElement>(null)
@@ -71,7 +85,6 @@ export function LandingContent() {
   const pricingRef = useRef<HTMLElement>(null)
   const ctaRef = useRef<HTMLElement>(null)
 
-  const categoriesInView = useInView(categoriesRef, { once: true, amount: 0.1 })
   const showcaseInView = useInView(showcaseRef, { once: true, amount: 0.2 })
   // Separate from entry animation — tracks live visibility to pause ambient gallery
   const showcaseVisible = useInView(showcaseRef, { once: false, amount: 0.3 })
@@ -104,11 +117,6 @@ export function LandingContent() {
     { num: 5, Icon: Download,          title: t('how_step5_title'), desc: t('how_step5_desc') },
   ]
 
-  function handleCategorySelect(categoryId: ProductCategory) {
-    sessionStorage.setItem('leve_category', categoryId)
-    router.push('/upload')
-  }
-
   function handleCTAClick() {
     router.push('/upload')
   }
@@ -136,46 +144,51 @@ export function LandingContent() {
 
       <main className="flex-1">
         {/* SECTION 1 — Hero (bg-base) */}
-        <section className="bg-[var(--bg-base)] px-4 pt-12 pb-8 lg:pt-16">
-          <div className="mb-8 lg:mb-12 w-full max-w-[560px] lg:max-w-[680px] mx-auto">
-            <motion.p
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0 }}
-              className="text-sm font-ui font-medium text-accent uppercase tracking-[0.15em] mb-3 text-center lg:text-center"
-            >
-              {t('eyebrow')}
-            </motion.p>
+        <section className="relative overflow-hidden bg-[var(--bg-base)] px-4 pt-12 pb-8 lg:pt-16">
+          {/* Ambient accent glow — same treatment as the showcase, with a slow breathe */}
+          <div aria-hidden className="absolute inset-x-0 -top-24 flex justify-center pointer-events-none">
+            <motion.div
+              className="w-[640px] h-[420px] max-w-[150vw]"
+              style={{
+                background:
+                  'radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 72%)',
+              }}
+              animate={reducedMotion ? undefined : { opacity: [0.65, 1, 0.65], scale: [1, 1.08, 1] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </div>
+
+          <div className="relative mb-8 lg:mb-12 w-full max-w-[560px] lg:max-w-[680px] mx-auto">
+            {/* Eyebrow — accent-dot chip, same language as the showcase category chips */}
+            <motion.div {...heroEntrance(0)} className="flex justify-center mb-4">
+              <p className="inline-flex items-center gap-1.5 bg-[var(--accent-subtle)] border border-[var(--accent-border)] rounded-full px-3.5 py-1.5">
+                <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+                <span className="text-[12px] font-ui font-semibold text-accent uppercase tracking-[0.12em]">
+                  {t('eyebrow')}
+                </span>
+              </p>
+            </motion.div>
             <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+              {...heroEntrance(0.1)}
               className="font-display font-semibold text-[40px] leading-[1.05] text-text-primary lg:text-[48px] text-balance text-center lg:text-center"
             >
               {t('headline_1')}
             </motion.h1>
             <motion.p
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
-              className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:text-lg lg:mx-auto text-center lg:text-center"
+              {...heroEntrance(0.2)}
+              className="mt-4 text-base font-ui text-text-secondary leading-relaxed lg:mx-auto lg:text-lg text-center lg:text-center"
             >
               {t('subtext')}
             </motion.p>
 
             {/* Hero CTA */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.35 }}
-              className="flex justify-center mt-6"
-            >
+            <motion.div {...heroEntrance(0.32)} className="flex justify-center mt-6">
               <motion.button
                 type="button"
                 onClick={handleCTAClick}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                whileHover={reducedMotion ? undefined : { scale: 1.02, y: -2 }}
+                whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+                transition={SPRING_LIFT}
                 className="btn-primary inline-flex px-12 text-base"
                 style={{ minWidth: '220px' }}
               >
@@ -183,48 +196,16 @@ export function LandingContent() {
               </motion.button>
             </motion.div>
             <motion.p
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.4 }}
+              {...heroEntrance(0.42)}
               className="text-sm font-ui text-text-muted mt-2 text-center"
             >
               {t('hero_trust_line')}
             </motion.p>
 
-            {/* Category cards — stagger 0.06s per card, scroll-triggered */}
-            <motion.div
-              ref={categoriesRef}
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
-              initial="hidden"
-              animate={categoriesInView ? 'show' : 'hidden'}
-              className="grid grid-cols-2 gap-3 mt-8"
-            >
-              {CATEGORY_ITEMS.map((cat) => {
-                const Icon = cat.icon
-                return (
-                  <motion.button
-                    key={cat.id}
-                    variants={staggerChild}
-                    type="button"
-                    onClick={() => handleCategorySelect(cat.id)}
-                    className={cn(
-                      'flex flex-col items-center justify-center w-full min-h-[100px] py-4 px-3 rounded-[12px] border transition-all duration-100',
-                      'bg-bg-surface border-border-default',
-                      'active:scale-[0.98]',
-                      'hover:border-accent hover:bg-accent-subtle'
-                    )}
-                  >
-                    <Icon className="w-6 h-6 text-accent mb-2" strokeWidth={1.75} />
-                    <span className="font-ui font-semibold text-[13px] text-text-primary leading-tight text-center">
-                      {t(cat.tKey)}
-                    </span>
-                    <span className="font-ui text-[11px] text-text-muted leading-tight mt-0.5 text-center px-1">
-                      {t(`${cat.tKey}_sub`)}
-                    </span>
-                  </motion.button>
-                )
-              })}
-            </motion.div>
+            {/* Category cards */}
+            <div className="mt-8">
+              <CategoryCards />
+            </div>
           </div>
         </section>
 

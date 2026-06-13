@@ -117,7 +117,15 @@
     "pricing_creator_feature_1": "Best value per image",
     "pricing_creator_feature_2": "Full resolution, no watermark",
     "pricing_creator_feature_3": "Armenian text overlays included",
-    "platform_original_hd": "Original HD"
+    "platform_original_hd": "Original HD",
+    "category_subtitle_beauty": "Glowing & Flawless",
+    "category_subtitle_jewelry": "Elegant & Premium",
+    "category_subtitle_fashion": "Styled & Sharp",
+    "category_subtitle_food": "Fresh & Appetizing",
+    "category_subtitle_electronics": "Clean & Modern",
+    "category_subtitle_home_decor": "Cozy & Refined",
+    "category_subtitle_toys": "Playful & Bright",
+    "category_subtitle_custom": "Anything You Sell"
   },
   "register": {
     "title": "Create your free account",

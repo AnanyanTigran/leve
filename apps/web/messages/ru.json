@@ -117,7 +117,15 @@
     "pricing_creator_feature_1": "Самая выгодная цена за снимок",
     "pricing_creator_feature_2": "Максимальное разрешение, без водяных знаков",
     "pricing_creator_feature_3": "Стикеры и плашки на армянском включены",
-    "platform_original_hd": "Оригинал HD"
+    "platform_original_hd": "Оригинал HD",
+    "category_subtitle_beauty": "Сияние и Безупречность",
+    "category_subtitle_jewelry": "Элегантность и Премиум",
+    "category_subtitle_fashion": "Стиль и Точность",
+    "category_subtitle_food": "Свежесть и Аппетитность",
+    "category_subtitle_electronics": "Чистота и Современность",
+    "category_subtitle_home_decor": "Уют и Изысканность",
+    "category_subtitle_toys": "Яркость и Радость",
+    "category_subtitle_custom": "Любой Ваш Товар"
   },
   "register": {
     "title": "Создайте бесплатный аккаунт",

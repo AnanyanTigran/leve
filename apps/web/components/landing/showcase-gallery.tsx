@@ -117,10 +117,10 @@ export function ShowcaseGallery({ visible }: { visible: boolean }) {
           <motion.div
             key={`peek-${card.id}`}
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 14, rotate: -10 }}
-            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, rotate: -5 }}
+            animate={{ opacity: 1, y: 0, rotate: -5 }}
             transition={
               reducedMotion
-                ? { duration: 0.2 }
+                ? { duration: 0.2, y: { duration: 0 }, rotate: { duration: 0 } }
                 : { type: 'spring', stiffness: 260, damping: 22, delay: 0.4 }
             }
             className="absolute -bottom-5 left-3 w-[92px] rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] p-1 pb-0"
@@ -250,11 +250,11 @@ export function ShowcaseGallery({ visible }: { visible: boolean }) {
                   {isActive && (
                     <motion.span
                       initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 14, rotate: -8 }}
-                      animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, rotate: -4 }}
+                      animate={{ opacity: 1, y: 0, rotate: -4 }}
                       exit={{ opacity: 0, transition: { duration: 0.2 } }}
                       transition={
                         reducedMotion
-                          ? { duration: 0.2 }
+                          ? { duration: 0.2, y: { duration: 0 }, rotate: { duration: 0 } }
                           : { type: 'spring', stiffness: 260, damping: 22, delay: 0.35 }
                       }
                       className="block w-[88px] shrink-0 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-default)] p-1 pb-0"
