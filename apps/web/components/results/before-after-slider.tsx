@@ -106,10 +106,19 @@ export function BeforeAfterSlider({
         '--slider-pos': `${POSITION_INITIAL}%`,
       } as React.CSSProperties}
     >
-      {/* Before layer */}
+      {/* Before layer — clipped to the region left of the divider (the mirror
+          of the After clip) so the before-image AND its badge clip as one unit.
+          When the divider nears the left edge the before-image disappears and
+          its badge goes with it, instead of floating over the After image. */}
       {/* TODO: [UX] before/after images carry empty alt text — the generated
           result is the page's primary content; describe it for screen readers. */}
-      <div className="absolute inset-0 bg-bg-elevated">
+      <div
+        className="absolute inset-0 bg-bg-elevated"
+        style={{
+          clipPath: 'inset(0 calc(100% - var(--slider-pos)) 0 0)',
+          transition: isDemoAnimating ? `clip-path ${DEMO_EASING}` : 'none',
+        }}
+      >
         {beforeSrc && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
