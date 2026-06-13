@@ -8,18 +8,12 @@ import { Upload, Layers, Sparkles, SlidersHorizontal, Download, Camera, Smartpho
 import { TestimonialCards } from '@/components/landing/testimonial-cards'
 import { ShowcaseGallery } from '@/components/landing/showcase-gallery'
 import { CategoryCards } from '@/components/landing/category-cards'
+import { SceneCatalog } from '@/components/landing/scene-catalog'
 import { AppHeader } from '@/components/shared/app-header'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { useSession } from '@/hooks/use-session'
 import { cn } from '@/lib/utils'
-import { SCENES, CREDIT_PACKAGES } from '@/lib/constants'
-
-const SCENE_VARIETY_IDS = [
-  'marble_luxury', 'black_studio', 'cafe_table', 'outdoor_garden',
-  'velvet_dark', 'light_wood', 'apricot_warm', 'neon_glow',
-]
-
-const SCENE_VARIETY = SCENE_VARIETY_IDS.map((id) => SCENES.find((s) => s.id === id)!)
+import { CREDIT_PACKAGES } from '@/lib/constants'
 
 const PRICING_TIER_FEATURES: Record<string, string[]> = {
   free:    ['pricing_free_feature_1',    'pricing_free_feature_2',    'pricing_free_feature_3'],
@@ -79,7 +73,6 @@ export function LandingContent() {
         }
 
   const showcaseRef = useRef<HTMLElement>(null)
-  const scenesRef = useRef<HTMLElement>(null)
   const stepsRef = useRef<HTMLElement>(null)
   const marketplaceRef = useRef<HTMLElement>(null)
   const pricingRef = useRef<HTMLElement>(null)
@@ -88,7 +81,6 @@ export function LandingContent() {
   const showcaseInView = useInView(showcaseRef, { once: true, amount: 0.2 })
   // Separate from entry animation — tracks live visibility to pause ambient gallery
   const showcaseVisible = useInView(showcaseRef, { once: false, amount: 0.3 })
-  const scenesInView = useInView(scenesRef, { once: true, amount: 0.2 })
   const stepsInView = useInView(stepsRef, { once: true, amount: 0.2 })
   const marketplaceInView = useInView(marketplaceRef, { once: true, amount: 0.2 })
   const pricingInView = useInView(pricingRef, { once: true, amount: 0.2 })
@@ -239,67 +231,9 @@ export function LandingContent() {
           </motion.div>
         </section>
 
-        {/* SECTION 2.5 — Scene Variety (bg-surface) */}
-        <section ref={scenesRef} className="bg-[var(--bg-surface)] py-16 px-4">
-          <div className="max-w-[560px] mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={scenesInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-            >
-              <p className="text-xs font-semibold text-accent uppercase tracking-[0.15em] text-center mb-3">
-                {t('scenes_eyebrow')}
-              </p>
-              <h2 className="font-display text-[28px] font-semibold text-text-primary text-center mb-2">
-                {t('scenes_title')}
-              </h2>
-              <p className="text-sm font-ui text-text-secondary text-center mb-8">
-                {t('scenes_subtitle')}
-              </p>
-            </motion.div>
-          </div>
-
-          <div className="overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4">
-            <motion.div
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
-              initial="hidden"
-              animate={scenesInView ? 'show' : 'hidden'}
-              className="flex gap-3 px-4 pb-2 w-max"
-            >
-              {SCENE_VARIETY.map((scene) => (
-                <motion.div
-                  key={scene.id}
-                  variants={{
-                    hidden: { opacity: 0, scale: 0.92 },
-                    show: { opacity: 1, scale: 1, transition: { duration: 0.35 } },
-                  }}
-                  whileHover={{ scale: 1.06, y: -4, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-[120px] flex-shrink-0 snap-start"
-                >
-                  <div
-                    className="w-[120px] h-[150px] rounded-xl overflow-hidden mb-2"
-                    style={{ background: scene.thumbnailGradient }}
-                  />
-                  <p className="text-xs font-ui text-text-secondary text-center truncate w-full">
-                    {locale === 'hy' ? scene.nameHY : locale === 'ru' ? scene.nameRU : scene.name}
-                  </p>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-
-          <div className="max-w-[560px] mx-auto">
-            <motion.button
-              type="button"
-              onClick={() => router.push('/upload')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="text-sm font-ui text-accent text-center mt-6 block mx-auto"
-            >
-              {t('scenes_see_all')}
-            </motion.button>
-          </div>
+        {/* SECTION 2.5 — Scene Catalog (bg-surface) */}
+        <section className="bg-[var(--bg-surface)] py-16 px-4">
+          <SceneCatalog />
         </section>
 
         {/* SECTION 3 — How it works (bg-base) */}
