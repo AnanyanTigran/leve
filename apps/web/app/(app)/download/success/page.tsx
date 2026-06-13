@@ -8,12 +8,12 @@ import { cn } from '@/lib/utils'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
 import { useSession } from '@/hooks/use-session'
 import { apiFetch } from '@/lib/api-client'
-import { PLATFORM_SPECS } from '@leve/types'
+import { PLATFORM_SPECS, BADGE_PRESET_ORDER } from '@leve/types'
 import type { AspectRatio, ExportPlatform } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
 import { CropSelector, type CropRegion } from '@/components/results/crop-selector'
 import { FullscreenImage } from '@/components/shared/fullscreen-image'
-import { BadgeFinisher, type BadgeState } from '@/components/download/badge-finisher'
+import { BadgeFinisher, type BadgeSelection } from '@/components/download/badge-finisher'
 import { BadgeOverlay } from '@/components/download/badge-overlay'
 
 const PLATFORM_ICONS: Record<ExportPlatform, LucideIcon> = {
@@ -79,14 +79,25 @@ export default function DownloadSuccessPage() {
   const { checked, isVerified } = useVerifiedGuard()
   const { session } = useSession()
 
-  // Optional badge ("finishing touch") the seller stamps before downloading.
-  // The live preview is pure CSS; the chosen preset + text is persisted so the
-  // server bakes the identical badge into the downloaded HD / export file.
-  const [badge, setBadge] = useState<BadgeState>({ preset: null, text: '' })
+  // Optional badges ("finishing touch") the seller stamps before downloading.
+  // The live preview is pure CSS; the chosen badges are persisted so the server
+  // bakes the identical labels into the downloaded HD / export file. Several can
+  // be active at once (each preset owns a fixed corner, so they never overlap).
+  const [badges, setBadges] = useState<BadgeSelection>({})
   const badgeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastPersistedBadgeRef = useRef<string>('')
 
-  // Cancel any pending debounce and persist the current badge now, awaiting the
+  // Serialise the active badges into the request body, dropping any with empty
+  // text. Stable order (BADGE_PRESET_ORDER) keeps the change-detection string
+  // comparable between renders.
+  function serializeBadges(sel: BadgeSelection): string {
+    const list = BADGE_PRESET_ORDER
+      .filter((id) => (sel[id] ?? '').trim().length > 0)
+      .map((id) => ({ preset: id, text: (sel[id] ?? '').trim() }))
+    return JSON.stringify({ badges: list })
+  }
+
+  // Cancel any pending debounce and persist the current badges now, awaiting the
   // round-trip. Called right before a download so the baked file always matches
   // what the seller sees. No-op when nothing changed since the last persist.
   async function flushBadge() {
@@ -96,9 +107,7 @@ export default function DownloadSuccessPage() {
     }
     const jobId = sessionStorage.getItem('leve_job_id')
     if (!jobId) return
-    const trimmed = badge.text.trim()
-    const text = badge.preset && trimmed ? trimmed : null
-    const payload = JSON.stringify({ text, preset: badge.preset ?? 'price' })
+    const payload = serializeBadges(badges)
     if (payload === lastPersistedBadgeRef.current) return
     try {
       await apiFetch(`/api/jobs/${jobId}/overlay`, {
@@ -109,22 +118,20 @@ export default function DownloadSuccessPage() {
       lastPersistedBadgeRef.current = payload
     } catch {
       // Swallow — the live preview is already correct; a failed persist just
-      // means this download bakes the previously saved badge (or none).
+      // means this download bakes the previously saved badges (or none).
     }
   }
 
-  function handleBadgeChange(next: BadgeState) {
-    setBadge(next)
-    // The preloaded share blob bakes the old badge — drop it so a later share
+  function handleBadgeChange(next: BadgeSelection) {
+    setBadges(next)
+    // The preloaded share blob bakes the old badges — drop it so a later share
     // re-fetches the freshly composited image.
     blobRef.current = null
     if (badgeDebounceRef.current) clearTimeout(badgeDebounceRef.current)
+    const payload = serializeBadges(next)
     badgeDebounceRef.current = setTimeout(() => {
       const jobId = sessionStorage.getItem('leve_job_id')
       if (!jobId) return
-      const trimmed = next.text.trim()
-      const text = next.preset && trimmed ? trimmed : null
-      const payload = JSON.stringify({ text, preset: next.preset ?? 'price' })
       if (payload === lastPersistedBadgeRef.current) return
       apiFetch(`/api/jobs/${jobId}/overlay`, {
         method: 'POST',
@@ -397,9 +404,12 @@ export default function DownloadSuccessPage() {
           <span className="absolute top-3 right-3 z-30 bg-accent text-white text-[11px] font-semibold px-2 py-1 rounded-md">
             HD
           </span>
-          {/* Live badge preview — pure CSS, baked into the file on download. */}
-          {previewUrl && badge.preset && (
-            <BadgeOverlay preset={badge.preset} text={badge.text} />
+          {/* Live badge preview — pure CSS, baked into the file on download.
+              Each preset owns a fixed corner, so multiple stack without overlap. */}
+          {previewUrl && BADGE_PRESET_ORDER.map((id) =>
+            (badges[id] ?? '').trim() ? (
+              <BadgeOverlay key={id} preset={id} text={badges[id] ?? ''} />
+            ) : null,
           )}
         </FullscreenImage>
 
@@ -411,7 +421,7 @@ export default function DownloadSuccessPage() {
         {/* Optional finishing touch — stamp a pre-designed label before download */}
         <div className="mt-5">
           <BadgeFinisher
-            value={badge}
+            value={badges}
             onChange={handleBadgeChange}
             brandName={session?.brandName}
           />

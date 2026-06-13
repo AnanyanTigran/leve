@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
 import { buildCloudfrontSignedUrl, downloadFromS3 } from '../../lib/cloudfront'
 import { exportForPlatform } from '../../services/export.service'
-import { applyTextOverlayToS3Image, type BadgePresetId } from '../../lib/text-overlay'
+import { applyBadgesToS3Image, parseBadges } from '../../lib/text-overlay'
 import { SessionService } from '../../services/session.service'
 import { UserService } from '../../services/user.service'
 import { Sentry } from '../../lib/sentry'
@@ -13,19 +13,19 @@ import { existsInS3 } from '../../lib/s3'
 import { ensureUpscaledHd, HdNotReadyError } from '../../providers/upscale.service'
 
 // Resolve the actual S3 key to serve for a job's HD download. If the seller
-// chose a badge on /download/success, composite it onto the HD output here so
-// the downloaded image matches the live preview they saw.
+// chose one or more badges on /download/success, composite them onto the HD
+// output here so the downloaded image matches the live preview they saw.
 async function resolveHdKeyWithOverlay(
   hdKey: string,
-  job: { id: string; sessionId: string; overlayText: string | null; overlayPreset: string | null },
+  job: { id: string; sessionId: string; overlayBadges: unknown },
 ): Promise<string> {
-  if (!job.overlayText) return hdKey
-  return applyTextOverlayToS3Image({
+  const badges = parseBadges(job.overlayBadges)
+  if (badges.length === 0) return hdKey
+  return applyBadgesToS3Image({
     sourceS3Key: hdKey,
     sessionId: job.sessionId,
     jobId: job.id,
-    text: job.overlayText,
-    preset: (job.overlayPreset as BadgePresetId) ?? 'price',
+    badges,
   })
 }
 
@@ -230,19 +230,21 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(500).send({ success: false, error: 'export_failed', requestId })
       }
 
-      // Apply text overlay AFTER platform resize so the font scales correctly
-      // to the target dimensions. Falls back to the clean export on failure.
-      if (grant.job.overlayText) {
-        try {
-          exportKey = await applyTextOverlayToS3Image({
-            sourceS3Key: exportKey,
-            sessionId: session.sessionId,
-            jobId,
-            text: grant.job.overlayText,
-            preset: (grant.job.overlayPreset as BadgePresetId) ?? 'price',
-          })
-        } catch (err) {
-          app.log.error({ requestId, jobId, platform, err }, 'overlay composite on export failed — serving clean export')
+      // Apply badges AFTER platform resize so the fonts scale correctly to the
+      // target dimensions. Falls back to the clean export on failure.
+      {
+        const badges = parseBadges(grant.job.overlayBadges)
+        if (badges.length > 0) {
+          try {
+            exportKey = await applyBadgesToS3Image({
+              sourceS3Key: exportKey,
+              sessionId: session.sessionId,
+              jobId,
+              badges,
+            })
+          } catch (err) {
+            app.log.error({ requestId, jobId, platform, err }, 'overlay composite on export failed — serving clean export')
+          }
         }
       }
 
@@ -409,17 +411,19 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
         return reply.status(500).send({ success: false, error: 'export_failed', requestId })
       }
 
-      if (grant.job.overlayText) {
-        try {
-          exportKey = await applyTextOverlayToS3Image({
-            sourceS3Key: exportKey,
-            sessionId: session.sessionId,
-            jobId,
-            text: grant.job.overlayText,
-            preset: (grant.job.overlayPreset as BadgePresetId) ?? 'price',
-          })
-        } catch (err) {
-          app.log.error({ requestId, jobId, platform, err }, 'overlay composite on export failed — serving clean export')
+      {
+        const badges = parseBadges(grant.job.overlayBadges)
+        if (badges.length > 0) {
+          try {
+            exportKey = await applyBadgesToS3Image({
+              sourceS3Key: exportKey,
+              sessionId: session.sessionId,
+              jobId,
+              badges,
+            })
+          } catch (err) {
+            app.log.error({ requestId, jobId, platform, err }, 'overlay composite on export failed — serving clean export')
+          }
         }
       }
 

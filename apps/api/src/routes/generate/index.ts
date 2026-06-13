@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../lib/prisma'
 import { previewQueue, PRIORITIES } from '../../lib/queues'
 import { compilePrompt, sanitizeCustomText } from '../../services/prompt.service'
@@ -272,13 +273,21 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
     },
   )
 
-  // POST /api/jobs/:jobId/overlay — persist the seller's badge choice from the
-  // download page. Applied at HD download time, not on the preview. Anon and
-  // verified sessions both allowed (anon can preview badges too, but only
-  // verified sessions can actually trigger an HD download).
+  // POST /api/jobs/:jobId/overlay — persist the seller's badge choices from the
+  // download page. Applied at HD download time, not on the preview. Multiple
+  // badges are allowed (each preset owns a fixed anchor, so e.g. price + sale
+  // compose without overlapping). Anon and verified sessions both allowed (anon
+  // can preview badges too, but only verified sessions can trigger an HD download).
   const overlaySchema = z.object({
-    text: z.string().max(80).transform(sanitizeCustomText).nullable(),
-    preset: z.enum(['price', 'sale', 'new', 'brand']).default('price'),
+    badges: z
+      .array(
+        z.object({
+          preset: z.enum(['price', 'sale', 'new', 'brand']),
+          text: z.string().max(80).transform(sanitizeCustomText),
+        }),
+      )
+      .max(4)
+      .default([]),
   })
   app.post(
     '/api/jobs/:jobId/overlay',
@@ -298,14 +307,23 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
         return reply.status(404).send({ success: false, error: 'not_found', requestId })
       }
 
-      const text = parsed.data.text?.trim()
-      const hasText = Boolean(text && text.length > 0)
+      // De-duplicate by preset (each preset owns one anchor) and drop badges
+      // whose text sanitised to empty.
+      const seen = new Set<string>()
+      const badges: { preset: string; text: string }[] = []
+      for (const b of parsed.data.badges) {
+        const text = b.text.trim()
+        if (!text || seen.has(b.preset)) continue
+        seen.add(b.preset)
+        badges.push({ preset: b.preset, text })
+      }
+
       await prisma.generationJob.update({
         where: { id: jobId },
         data: {
-          overlayText: hasText ? text : null,
-          overlayPreset: hasText ? parsed.data.preset : null,
-          overlayPosition: null, // legacy column — placement now derives from the preset
+          overlayBadges: badges.length > 0 ? badges : Prisma.DbNull,
+          overlayText: null, // legacy column — superseded by overlayBadges
+          overlayPosition: null,
         },
       })
 

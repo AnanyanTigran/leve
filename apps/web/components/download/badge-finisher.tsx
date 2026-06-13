@@ -2,18 +2,17 @@
 
 import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { X } from 'lucide-react'
 import { BADGE_PRESET_ORDER, type BadgePresetId } from '@leve/types'
 import { cn } from '@/lib/utils'
 import { BadgeOverlay } from './badge-overlay'
 
-export interface BadgeState {
-  preset: BadgePresetId | null
-  text: string
-}
+/** Active badges keyed by preset — presence means selected; value is its text. */
+export type BadgeSelection = Partial<Record<BadgePresetId, string>>
 
 interface Props {
-  value: BadgeState
-  onChange: (next: BadgeState) => void
+  value: BadgeSelection
+  onChange: (next: BadgeSelection) => void
   /** Pre-fills the brand stamp so the seller doesn't retype their store name. */
   brandName?: string | null
   className?: string
@@ -21,13 +20,17 @@ interface Props {
 
 /**
  * The download "finishing touch": a small set of pre-designed labels the seller
- * can stamp onto their image before downloading. They pick a look (each card is
- * a live sample of the real badge) and type the words — nothing else. Fully
- * optional; downloading without a badge stays the primary action one row below.
+ * can stamp onto their image before downloading. They pick the looks (each card
+ * is a live sample of the real badge) and type the words — nothing else. Several
+ * can be added at once (e.g. price + sale); each preset owns a fixed corner so
+ * they never collide. Fully optional; downloading without a badge stays the
+ * primary action one row below.
  */
 export function BadgeFinisher({ value, onChange, brandName, className }: Props) {
   const t = useTranslations('download')
-  const inputRef = useRef<HTMLInputElement>(null)
+  // Which preset's input to focus next (the one just toggled on).
+  const focusRef = useRef<BadgePresetId | null>(null)
+  const inputRefs = useRef<Partial<Record<BadgePresetId, HTMLInputElement | null>>>({})
 
   const LABELS: Record<BadgePresetId, string> = {
     price: t('badge_label_price'),
@@ -45,23 +48,40 @@ export function BadgeFinisher({ value, onChange, brandName, className }: Props) 
     price: t('badge_sample_price'),
     sale: t('badge_sample_sale'),
     new: t('badge_sample_new'),
-    brand: (brandName?.trim() || t('badge_sample_brand')),
+    brand: brandName?.trim() || t('badge_sample_brand'),
   }
 
-  // Focus the value field the moment a preset is chosen — the only thing left
-  // for the seller to do is type.
+  // Focus the value field of a preset the moment it's turned on — the only thing
+  // left for the seller to do is type.
   useEffect(() => {
-    if (value.preset) inputRef.current?.focus()
-  }, [value.preset])
-
-  function selectPreset(id: BadgePresetId) {
-    if (value.preset === id) {
-      onChange({ preset: null, text: '' })
-      return
+    if (focusRef.current) {
+      inputRefs.current[focusRef.current]?.focus()
+      focusRef.current = null
     }
-    const seed = id === 'brand' && brandName?.trim() ? brandName.trim() : ''
-    onChange({ preset: id, text: seed })
+  })
+
+  function togglePreset(id: BadgePresetId) {
+    const next = { ...value }
+    if (id in next) {
+      delete next[id]
+    } else {
+      next[id] = id === 'brand' && brandName?.trim() ? brandName.trim() : ''
+      focusRef.current = id
+    }
+    onChange(next)
   }
+
+  function setText(id: BadgePresetId, text: string) {
+    onChange({ ...value, [id]: text })
+  }
+
+  function removePreset(id: BadgePresetId) {
+    const next = { ...value }
+    delete next[id]
+    onChange(next)
+  }
+
+  const activePresets = BADGE_PRESET_ORDER.filter((id) => id in value)
 
   return (
     <section className={cn('rounded-[16px] border border-border-default bg-bg-surface p-4', className)}>
@@ -75,12 +95,12 @@ export function BadgeFinisher({ value, onChange, brandName, className }: Props) 
 
       <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {BADGE_PRESET_ORDER.map((id) => {
-          const selected = value.preset === id
+          const selected = id in value
           return (
             <button
               key={id}
               type="button"
-              onClick={() => selectPreset(id)}
+              onClick={() => togglePreset(id)}
               aria-pressed={selected}
               className={cn(
                 'group flex flex-col gap-2 rounded-[12px] p-2 text-left transition-colors',
@@ -110,25 +130,33 @@ export function BadgeFinisher({ value, onChange, brandName, className }: Props) 
         })}
       </div>
 
-      {value.preset && (
-        <div className="mt-4 flex flex-col gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={value.text}
-            onChange={(e) => onChange({ preset: value.preset, text: e.target.value })}
-            placeholder={PLACEHOLDERS[value.preset]}
-            maxLength={40}
-            inputMode={value.preset === 'price' ? 'numeric' : 'text'}
-            className="h-12 w-full rounded-[10px] border border-border-default bg-bg-elevated px-3.5 text-[16px] text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent"
-          />
-          <button
-            type="button"
-            onClick={() => onChange({ preset: null, text: '' })}
-            className="self-start text-[13px] font-semibold text-text-muted hover:text-text-secondary"
-          >
-            {t('badge_remove')}
-          </button>
+      {activePresets.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3">
+          {activePresets.map((id) => (
+            <div key={id} className="flex flex-col gap-1.5">
+              <span className="text-[12px] font-semibold text-text-secondary">{LABELS[id]}</span>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={(el) => { inputRefs.current[id] = el }}
+                  type="text"
+                  value={value[id] ?? ''}
+                  onChange={(e) => setText(id, e.target.value)}
+                  placeholder={PLACEHOLDERS[id]}
+                  maxLength={40}
+                  inputMode={id === 'price' ? 'numeric' : 'text'}
+                  className="h-12 flex-1 rounded-[10px] border border-border-default bg-bg-elevated px-3.5 text-[16px] text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePreset(id)}
+                  aria-label={`${t('badge_remove')} — ${LABELS[id]}`}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-border-default text-text-muted transition-colors hover:border-border-hover hover:text-text-secondary"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </section>

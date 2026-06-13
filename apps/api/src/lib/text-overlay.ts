@@ -33,12 +33,16 @@ const SERVER_BADGE_PRESETS: Record<BadgePresetId, BadgePresetSpec> = {
   brand: { id: 'brand', anchor: 'bottom-center', fill: 'rgba(10,10,10,0.45)', textColor: '#FFFFFF', fontScale: 0.03, padXEm: 0.9, padYEm: 0.5, radiusEm: 'pill', uppercase: true, trackingEm: 0.14, fontWeight: 600, maxWidthFraction: 0.7 },
 }
 
-interface TextOverlayOptions {
+export interface BadgeValue {
+  preset: BadgePresetId
+  text: string
+}
+
+interface ApplyBadgesOptions {
   sourceS3Key: string
   sessionId: string
   jobId: string
-  text: string
-  preset: BadgePresetId
+  badges: BadgeValue[]
 }
 
 // Rough advance width per character relative to font size. Sellers' labels are
@@ -46,23 +50,33 @@ interface TextOverlayOptions {
 // badge box close to the live CSS preview without measuring glyphs server-side.
 const CHAR_ADVANCE = 0.56
 
+const VALID_PRESETS: ReadonlySet<string> = new Set<BadgePresetId>(['price', 'sale', 'new', 'brand'])
+
 /**
- * Bakes one pre-designed badge onto an S3 image and returns a new key. The look,
- * shape, casing and placement all come from the shared BADGE_PRESETS spec — the
- * same source the web preview reads — so the download matches what the seller saw.
- * The clean original is never mutated.
+ * Normalise a stored overlayBadges JSON value into a clean, de-duplicated list.
+ * Defensive against malformed data: drops unknown presets and empty text, keeps
+ * at most one badge per preset (each preset owns a fixed anchor), caps at 4.
  */
-export async function applyTextOverlayToS3Image(
-  opts: TextOverlayOptions,
-): Promise<string> {
-  const { sourceS3Key, sessionId, jobId, text, preset } = opts
-  const spec = SERVER_BADGE_PRESETS[preset] ?? SERVER_BADGE_PRESETS.price
+export function parseBadges(raw: unknown): BadgeValue[] {
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  const out: BadgeValue[] = []
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue
+    const preset = (item as Record<string, unknown>).preset
+    const text = (item as Record<string, unknown>).text
+    if (typeof preset !== 'string' || !VALID_PRESETS.has(preset)) continue
+    if (typeof text !== 'string' || !text.trim()) continue
+    if (seen.has(preset)) continue
+    seen.add(preset)
+    out.push({ preset: preset as BadgePresetId, text: text.trim() })
+    if (out.length >= 4) break
+  }
+  return out
+}
 
-  const imageBuffer = await downloadFromS3(sourceS3Key)
-  const meta = await sharp(imageBuffer).metadata()
-  const w = meta.width ?? 2048
-  const h = meta.height ?? 2048
-
+// One <rect>+<text> group for a single badge, positioned by its preset anchor.
+function badgeSvgGroup(spec: BadgePresetSpec, text: string, w: number, h: number): string {
   const label = (spec.uppercase ? text.toUpperCase() : text).slice(0, 80)
 
   const fontSize = Math.round(w * spec.fontScale)
@@ -105,27 +119,55 @@ export async function applyTextOverlayToS3Image(
   const textX = Math.round(boxX + boxWidth / 2)
   const textY = Math.round(boxY + boxHeight / 2)
 
+  return `
+    <rect
+      x="${boxX}"
+      y="${boxY}"
+      width="${Math.round(boxWidth)}"
+      height="${boxHeight}"
+      rx="${radius}"
+      fill="${spec.fill}"
+    />
+    <text
+      x="${textX}"
+      y="${textY}"
+      text-anchor="middle"
+      dominant-baseline="central"
+      font-family="'Plus Jakarta Sans', 'Inter', Arial, Helvetica, sans-serif"
+      font-size="${fontSize}"
+      font-weight="${spec.fontWeight}"
+      fill="${spec.textColor}"
+      letter-spacing="${tracking.toFixed(1)}"
+    >${escapeXml(label)}</text>`
+}
+
+/**
+ * Bakes one or more pre-designed badges onto an S3 image in a single composite
+ * and returns a new key. The look, shape, casing and placement all come from the
+ * shared BADGE_PRESETS spec — the same source the web preview reads — so the
+ * download matches what the seller saw. Each preset owns a fixed anchor, so
+ * multiple badges (e.g. price + sale) compose without overlapping. The clean
+ * original is never mutated; an empty list returns the source key untouched.
+ */
+export async function applyBadgesToS3Image(
+  opts: ApplyBadgesOptions,
+): Promise<string> {
+  const { sourceS3Key, sessionId, jobId, badges } = opts
+  const valid = parseBadges(badges)
+  if (valid.length === 0) return sourceS3Key
+
+  const imageBuffer = await downloadFromS3(sourceS3Key)
+  const meta = await sharp(imageBuffer).metadata()
+  const w = meta.width ?? 2048
+  const h = meta.height ?? 2048
+
+  const groups = valid
+    .map((b) => badgeSvgGroup(SERVER_BADGE_PRESETS[b.preset], b.text, w, h))
+    .join('\n')
+
   const svgOverlay = Buffer.from(`
     <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
-      <rect
-        x="${boxX}"
-        y="${boxY}"
-        width="${Math.round(boxWidth)}"
-        height="${boxHeight}"
-        rx="${radius}"
-        fill="${spec.fill}"
-      />
-      <text
-        x="${textX}"
-        y="${textY}"
-        text-anchor="middle"
-        dominant-baseline="central"
-        font-family="'Plus Jakarta Sans', 'Inter', Arial, Helvetica, sans-serif"
-        font-size="${fontSize}"
-        font-weight="${spec.fontWeight}"
-        fill="${spec.textColor}"
-        letter-spacing="${tracking.toFixed(1)}"
-      >${escapeXml(label)}</text>
+      ${groups}
     </svg>
   `)
 
