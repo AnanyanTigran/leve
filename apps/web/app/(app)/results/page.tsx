@@ -714,12 +714,11 @@ export default function ResultsPage() {
             </div>
           )}
 
-          {/* End-of-page next actions — keeps the current upload when jumping
-              back to scene selection; only the "new photo" branch clears it. */}
-          <div className="flex flex-col gap-2 pt-2 md:items-center">
-            {/* "Generate another scene" reuses this job's source upload — only
-                offered while that upload still exists. */}
-            {sourceAvailable === true && (
+          {/* End-of-page next action — "Generate another scene" reuses this
+              job's source upload, so it's only offered while that upload still
+              exists. Uploading a fresh photo lives in the bottom nav. */}
+          {sourceAvailable === true && (
+            <div className="flex flex-col gap-2 pt-2 md:items-center">
               <div className="w-full md:max-w-[320px]">
                 <button
                   type="button"
@@ -730,16 +729,8 @@ export default function ResultsPage() {
                   {t('generate_another')}
                 </button>
               </div>
-            )}
-            <button
-              type="button"
-              onClick={() => { setIsNavigating(true); router.push('/') }}
-              disabled={isNavigating}
-              className="text-[13px] text-text-muted hover:text-text-secondary font-semibold py-2"
-            >
-              {t('upload_new_photo')}
-            </button>
-          </div>
+            </div>
+          )}
 
         </div>
 
