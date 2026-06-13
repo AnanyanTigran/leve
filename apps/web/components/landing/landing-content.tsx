@@ -4,7 +4,7 @@ import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { Camera, Smartphone, Share2, ShoppingBag, ShoppingCart, Send, Globe, ImageDown } from 'lucide-react'
+import { Camera, Smartphone, Share2, ShoppingBag, ShoppingCart, Send, Globe, ImageDown, Languages } from 'lucide-react'
 import { HowItWorks } from '@/components/landing/how-it-works'
 import { TestimonialCards } from '@/components/landing/testimonial-cards'
 import { ShowcaseGallery } from '@/components/landing/showcase-gallery'
@@ -36,15 +36,16 @@ const PRICING_TIERS = [
   })),
 ]
 
+// All platforms intentionally identical — no platform is highlighted over another
 const PLATFORMS = [
-  { id: 'instagram_feed',  label: 'Instagram Feed',  dims: '1080×1080', Icon: Camera,       highlight: false, pill: ''     },
-  { id: 'instagram_story', label: 'Instagram Story', dims: '1080×1920', Icon: Smartphone,   highlight: false, pill: ''     },
-  { id: 'facebook_post',   label: 'Facebook',        dims: '1200×630',  Icon: Share2,       highlight: false, pill: ''     },
-  { id: 'wildberries',     label: 'Wildberries',     dims: '900×1200',  Icon: ShoppingBag,  highlight: true,  pill: 'WB'   },
-  { id: 'ozon',            label: 'Ozon',            dims: '1000×1000', Icon: ShoppingCart, highlight: true,  pill: 'Ozon' },
-  { id: 'telegram',        label: 'Telegram',        dims: '1080×1080', Icon: Send,         highlight: false, pill: ''     },
-  { id: 'list_am',         label: 'list.am',         dims: '1200×900',  Icon: Globe,        highlight: false, pill: ''     },
-  { id: 'original_hd',     label: 'Original HD',     labelKey: 'platform_original_hd', dims: 'Full res', Icon: ImageDown, highlight: false, pill: '' },
+  { id: 'instagram_feed',  labelKey: 'platform_instagram_feed',  Icon: Camera       },
+  { id: 'instagram_story', labelKey: 'platform_instagram_story', Icon: Smartphone   },
+  { id: 'facebook_post',   labelKey: 'platform_facebook',        Icon: Share2       },
+  { id: 'wildberries',     labelKey: 'platform_wildberries',     Icon: ShoppingBag  },
+  { id: 'ozon',            labelKey: 'platform_ozon',            Icon: ShoppingCart },
+  { id: 'telegram',        labelKey: 'platform_telegram',        Icon: Send         },
+  { id: 'list_am',         labelKey: 'platform_list_am',         Icon: Globe        },
+  { id: 'original_hd',     labelKey: 'platform_original_hd',     Icon: ImageDown    },
 ]
 
 // Shared motion language — mirrors the showcase gallery
@@ -228,58 +229,60 @@ export function LandingContent() {
               <p className="text-xs font-semibold text-accent uppercase tracking-[0.15em] text-center mb-3">
                 {t('export_eyebrow')}
               </p>
-              <h2 className="font-display text-[28px] font-semibold text-text-primary text-center mb-2">
+              <h2 className="font-display text-[28px] font-semibold text-text-primary text-center mb-3 text-balance leading-[1.15]">
                 {t('export_title')}
               </h2>
-              <p className="text-sm font-ui text-text-secondary text-center mb-10">
+              <p className="text-sm font-ui text-text-secondary text-center mb-10 max-w-[460px] mx-auto leading-relaxed">
                 {t('export_subtitle')}
               </p>
             </motion.div>
 
-            <motion.div
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
+            <motion.ul
+              role="list"
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
               initial="hidden"
               animate={marketplaceInView ? 'show' : 'hidden'}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3 list-none p-0 m-0"
             >
-              {PLATFORMS.map((platform) => {
-                const { Icon } = platform
-                return (
-                  <motion.div
-                    key={platform.id}
-                    variants={{
-                      hidden: { opacity: 0, scale: 0.88 },
-                      show: { opacity: 1, scale: 1, transition: { duration: 0.35, ease: 'easeOut' as const } },
-                    }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.97 }}
-                    className={cn(
-                      'bg-bg-elevated rounded-xl p-4 flex flex-col items-center gap-2 min-h-[88px] border',
-                      platform.highlight
-                        ? 'border-accent-border'
-                        : 'border-border-default hover:border-accent-border transition-colors duration-150'
-                    )}
+              {PLATFORMS.map(({ id, labelKey, Icon }) => (
+                <motion.li
+                  key={id}
+                  variants={{
+                    hidden: { opacity: 0, y: reducedMotion ? 0 : 14 },
+                    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE_SETTLE } },
+                  }}
+                  className="bg-bg-elevated border border-border-default rounded-xl px-3 py-5 flex flex-col items-center gap-2.5 select-none"
+                >
+                  <span
+                    aria-hidden
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--bg-base)]"
                   >
-                    {platform.pill && (
-                      <span className="bg-accent-subtle text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full leading-none">
-                        {platform.pill}
-                      </span>
-                    )}
-                    <Icon className="w-5 h-5 text-text-secondary" strokeWidth={1.75} />
-                    <span className="text-[13px] font-ui font-medium text-text-primary text-center leading-tight">
-                      {'labelKey' in platform && platform.labelKey ? t(platform.labelKey) : platform.label}
-                    </span>
-                    <span className="text-[11px] font-ui text-text-muted text-center">
-                      {platform.dims}
-                    </span>
-                  </motion.div>
-                )
-              })}
-            </motion.div>
+                    <Icon className="w-[18px] h-[18px] text-text-secondary" strokeWidth={1.75} />
+                  </span>
+                  <span className="text-[13px] font-ui font-medium text-text-primary text-center leading-tight">
+                    {t(labelKey)}
+                  </span>
+                </motion.li>
+              ))}
+            </motion.ul>
 
-            <p className="text-xs font-ui text-text-muted text-center mt-6">
-              {t('export_overlays_note')}
-            </p>
+            {/* Armenian text overlays — differentiator callout, not part of the platform grid */}
+            <motion.div
+              initial={{ opacity: 0, y: reducedMotion ? 0 : 16 }}
+              animate={marketplaceInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, ease: EASE_SETTLE, delay: 0.5 }}
+              className="mt-8 mx-auto max-w-[480px] flex items-start gap-3 rounded-xl border border-[var(--accent-border)] bg-[var(--accent-subtle)] px-5 py-4"
+            >
+              <Languages aria-hidden className="w-5 h-5 text-accent shrink-0 mt-0.5" strokeWidth={1.75} />
+              <div>
+                <p className="text-sm font-ui font-semibold text-text-primary mb-1">
+                  {t('export_overlays_title')}
+                </p>
+                <p className="text-[13px] font-ui text-text-secondary leading-relaxed">
+                  {t('export_overlays_note')}
+                </p>
+              </div>
+            </motion.div>
           </div>
         </section>
 
