@@ -24,8 +24,9 @@ interface FullscreenImageProps {
    * images.
    */
   expandTrigger?: 'button' | 'area'
-  /** Corner for the expand icon — flip to 'top-left' when a badge sits top-right. */
-  iconPosition?: 'top-left' | 'top-right'
+  /** Corner for the expand icon — flip away from the default 'top-right' when a
+   *  badge sits there (e.g. 'bottom-right' to clear an After badge). */
+  iconPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
   /** Hide the affordance without unmounting (e.g. while an edit is in flight). */
   showAffordance?: boolean
 }
@@ -50,7 +51,12 @@ export function FullscreenImage({
 
   const canOpen = Boolean(src)
   const affordanceVisible = canOpen && showAffordance
-  const cornerClass = iconPosition === 'top-left' ? 'top-3 left-3' : 'top-3 right-3'
+  const cornerClass = {
+    'top-left': 'top-3 left-3',
+    'top-right': 'top-3 right-3',
+    'bottom-left': 'bottom-3 left-3',
+    'bottom-right': 'bottom-3 right-3',
+  }[iconPosition]
 
   return (
     <div className={cn('relative group', className)} style={style}>

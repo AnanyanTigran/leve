@@ -581,6 +581,7 @@ export default function ResultsPage() {
               gestures; the affordance hides while an edit is generating. */}
           <FullscreenImage
             src={generatedImageUrl}
+            iconPosition="bottom-right"
             showAffordance={!!generatedImageUrl && editPhase === 'idle'}
           >
             {sourceAvailable ? (
