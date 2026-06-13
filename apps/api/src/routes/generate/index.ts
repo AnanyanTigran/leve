@@ -139,9 +139,9 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
       // instruction (e.g. "зробіть фон темнішим" / "ֆոնը մգացրու"). Both paths
       // flow through translateToEnglish here so Kontext always receives English —
       // sending Armenian or Russian edit instructions degrades model instruction
-      // following. Text-on-image (price tag / SALE / etc.) lives on the results
-      // page via POST /api/jobs/:jobId/overlay and is composited at HD download
-      // time. See audit doc R1.
+      // following. Text-on-image (price tag / SALE / etc.) is chosen on the
+      // download page as a badge via POST /api/jobs/:jobId/overlay and is
+      // composited at HD download time. See audit doc R1.
       const rawCustomText = customText ?? ''
       const translatedDescription = rawCustomText
         ? await translateToEnglish(rawCustomText)
@@ -272,13 +272,13 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
     },
   )
 
-  // POST /api/jobs/:jobId/overlay — persist the user's text overlay choice
-  // from the results page. Applied at HD download time, not on the preview.
-  // Anon and verified sessions both allowed (anon can preview overlays too,
-  // but only verified sessions can actually trigger an HD download).
+  // POST /api/jobs/:jobId/overlay — persist the seller's badge choice from the
+  // download page. Applied at HD download time, not on the preview. Anon and
+  // verified sessions both allowed (anon can preview badges too, but only
+  // verified sessions can actually trigger an HD download).
   const overlaySchema = z.object({
     text: z.string().max(80).transform(sanitizeCustomText).nullable(),
-    position: z.enum(['top', 'center', 'bottom']).default('bottom'),
+    preset: z.enum(['price', 'sale', 'new', 'brand']).default('price'),
   })
   app.post(
     '/api/jobs/:jobId/overlay',
@@ -299,11 +299,13 @@ export async function registerGenerateRoutes(app: FastifyInstance) {
       }
 
       const text = parsed.data.text?.trim()
+      const hasText = Boolean(text && text.length > 0)
       await prisma.generationJob.update({
         where: { id: jobId },
         data: {
-          overlayText: text && text.length > 0 ? text : null,
-          overlayPosition: text && text.length > 0 ? parsed.data.position : null,
+          overlayText: hasText ? text : null,
+          overlayPreset: hasText ? parsed.data.preset : null,
+          overlayPosition: null, // legacy column — placement now derives from the preset
         },
       })
 

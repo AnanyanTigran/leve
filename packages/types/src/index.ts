@@ -220,14 +220,110 @@ export interface UploadResult {
   requestId: string
 }
 
-// --- Text Overlay ---
+// --- Badge Presets (download finishing step) ───────────────────────────────
+//
+// The download "finishing touch" lets a seller stamp ONE pre-designed label
+// onto their image. Sellers never make a design decision — they pick a preset
+// and type the words. Each preset is a complete, opinionated look: its colour,
+// shape, typography, casing and placement are all fixed here. The same spec
+// drives the live CSS preview (web) and the baked SVG composite (api) so the
+// downloaded file matches what the seller saw.
 
-export interface TextOverlay {
-  text: string
-  locale: Locale
-  position: 'top' | 'bottom' | 'center'
-  size: 'sm' | 'md' | 'lg'
+export type BadgePresetId = 'price' | 'sale' | 'new' | 'brand'
+
+export type BadgeAnchor = 'top-left' | 'top-center' | 'bottom-center' | 'bottom-right'
+
+export interface BadgePresetSpec {
+  id: BadgePresetId
+  /** Where the badge sits on the image — fixed per preset. */
+  anchor: BadgeAnchor
+  /** Background fill (CSS/SVG colour string; may be rgba). */
+  fill: string
+  /** Text colour. */
+  textColor: string
+  /** Font size as a fraction of the image's rendered width. */
+  fontScale: number
+  /** Horizontal padding, in em of the font size. */
+  padXEm: number
+  /** Vertical padding, in em of the font size. */
+  padYEm: number
+  /** Corner radius in em of the font size, or 'pill' for fully rounded. */
+  radiusEm: number | 'pill'
+  uppercase: boolean
+  /** Letter spacing, in em. */
+  trackingEm: number
+  fontWeight: number
+  /** Max badge width as a fraction of the image width (text truncates beyond). */
+  maxWidthFraction: number
 }
+
+/** Margin between the badge and the image edge, as a fraction of image width. */
+export const BADGE_INSET_FRACTION = 0.05
+
+export const BADGE_PRESETS: Record<BadgePresetId, BadgePresetSpec> = {
+  // Money is the hero — solid apricot sticker, bottom-right, mixed case.
+  price: {
+    id: 'price',
+    anchor: 'bottom-right',
+    fill: '#D64C1A',
+    textColor: '#FFFFFF',
+    fontScale: 0.05,
+    padXEm: 0.72,
+    padYEm: 0.42,
+    radiusEm: 0.42,
+    uppercase: false,
+    trackingEm: 0,
+    fontWeight: 600,
+    maxWidthFraction: 0.6,
+  },
+  // A loud shout — sharper accent block, top-left, uppercase.
+  sale: {
+    id: 'sale',
+    anchor: 'top-left',
+    fill: '#D64C1A',
+    textColor: '#FFFFFF',
+    fontScale: 0.052,
+    padXEm: 0.6,
+    padYEm: 0.36,
+    radiusEm: 0.22,
+    uppercase: true,
+    trackingEm: 0.02,
+    fontWeight: 600,
+    maxWidthFraction: 0.55,
+  },
+  // Editorial — clean white pill with dark text, centred at the top, wide tracking.
+  new: {
+    id: 'new',
+    anchor: 'top-center',
+    fill: '#FFFFFF',
+    textColor: '#0A0A0A',
+    fontScale: 0.032,
+    padXEm: 0.95,
+    padYEm: 0.55,
+    radiusEm: 'pill',
+    uppercase: true,
+    trackingEm: 0.2,
+    fontWeight: 600,
+    maxWidthFraction: 0.8,
+  },
+  // A quiet signature — translucent dark pill, centred at the bottom.
+  brand: {
+    id: 'brand',
+    anchor: 'bottom-center',
+    fill: 'rgba(10,10,10,0.45)',
+    textColor: '#FFFFFF',
+    fontScale: 0.03,
+    padXEm: 0.9,
+    padYEm: 0.5,
+    radiusEm: 'pill',
+    uppercase: true,
+    trackingEm: 0.14,
+    fontWeight: 600,
+    maxWidthFraction: 0.7,
+  },
+}
+
+export const BADGE_PRESET_ORDER: BadgePresetId[] = ['price', 'sale', 'new', 'brand']
 
 // ─── Scene System ─────────────────────────────────────────────────────────────
 

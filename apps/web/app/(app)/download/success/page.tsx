@@ -6,12 +6,15 @@ import { useTranslations } from 'next-intl'
 import { Download, Square, Smartphone, Monitor, ShoppingBag, Package, Send, Globe, Share2, Copy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useVerifiedGuard } from '@/hooks/use-verified-guard'
+import { useSession } from '@/hooks/use-session'
 import { apiFetch } from '@/lib/api-client'
 import { PLATFORM_SPECS } from '@leve/types'
 import type { AspectRatio, ExportPlatform } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
 import { CropSelector, type CropRegion } from '@/components/results/crop-selector'
 import { FullscreenImage } from '@/components/shared/fullscreen-image'
+import { BadgeFinisher, type BadgeState } from '@/components/download/badge-finisher'
+import { BadgeOverlay } from '@/components/download/badge-overlay'
 
 const PLATFORM_ICONS: Record<ExportPlatform, LucideIcon> = {
   instagram_feed: Square,
@@ -74,6 +77,64 @@ export default function DownloadSuccessPage() {
   const [supportsClipboard, setSupportsClipboard] = useState(false)
   const blobRef = useRef<Blob | null>(null)
   const { checked, isVerified } = useVerifiedGuard()
+  const { session } = useSession()
+
+  // Optional badge ("finishing touch") the seller stamps before downloading.
+  // The live preview is pure CSS; the chosen preset + text is persisted so the
+  // server bakes the identical badge into the downloaded HD / export file.
+  const [badge, setBadge] = useState<BadgeState>({ preset: null, text: '' })
+  const badgeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastPersistedBadgeRef = useRef<string>('')
+
+  // Cancel any pending debounce and persist the current badge now, awaiting the
+  // round-trip. Called right before a download so the baked file always matches
+  // what the seller sees. No-op when nothing changed since the last persist.
+  async function flushBadge() {
+    if (badgeDebounceRef.current) {
+      clearTimeout(badgeDebounceRef.current)
+      badgeDebounceRef.current = null
+    }
+    const jobId = sessionStorage.getItem('leve_job_id')
+    if (!jobId) return
+    const trimmed = badge.text.trim()
+    const text = badge.preset && trimmed ? trimmed : null
+    const payload = JSON.stringify({ text, preset: badge.preset ?? 'price' })
+    if (payload === lastPersistedBadgeRef.current) return
+    try {
+      await apiFetch(`/api/jobs/${jobId}/overlay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      })
+      lastPersistedBadgeRef.current = payload
+    } catch {
+      // Swallow — the live preview is already correct; a failed persist just
+      // means this download bakes the previously saved badge (or none).
+    }
+  }
+
+  function handleBadgeChange(next: BadgeState) {
+    setBadge(next)
+    // The preloaded share blob bakes the old badge — drop it so a later share
+    // re-fetches the freshly composited image.
+    blobRef.current = null
+    if (badgeDebounceRef.current) clearTimeout(badgeDebounceRef.current)
+    badgeDebounceRef.current = setTimeout(() => {
+      const jobId = sessionStorage.getItem('leve_job_id')
+      if (!jobId) return
+      const trimmed = next.text.trim()
+      const text = next.preset && trimmed ? trimmed : null
+      const payload = JSON.stringify({ text, preset: next.preset ?? 'price' })
+      if (payload === lastPersistedBadgeRef.current) return
+      apiFetch(`/api/jobs/${jobId}/overlay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      })
+        .then(() => { lastPersistedBadgeRef.current = payload })
+        .catch(() => {})
+    }, 400)
+  }
 
   const sourceAspectRatio = (() => {
     if (typeof window === 'undefined') return 1
@@ -153,6 +214,10 @@ export default function DownloadSuccessPage() {
     setDownloadPhase('preparing')
     setDownloadError(null)
 
+    // Make sure the seller's latest badge choice is saved before the server
+    // composites the file, so the download matches the live preview exactly.
+    await flushBadge()
+
     // If the ESRGAN upscale is slow (cold cache), reassure the user after a
     // few seconds. A Redis-cached hit returns well before this fires.
     const almostTimer = setTimeout(() => {
@@ -226,6 +291,7 @@ export default function DownloadSuccessPage() {
     try {
       const jobId = sessionStorage.getItem('leve_job_id')
       if (!jobId) throw new Error('no job id')
+      await flushBadge()
       const blob: Blob = blobRef.current ?? await fetch(`/api/download/proxy?jobId=${encodeURIComponent(jobId)}`).then((r) => r.blob())
       blobRef.current = blob
       const file = new File([blob], 'leve-studio.jpg', { type: 'image/jpeg' })
@@ -302,6 +368,8 @@ export default function DownloadSuccessPage() {
             aspectRatio: String(sourceAspectRatio),
             maxHeight: '50vh',
             maxWidth: `calc(50vh * ${sourceAspectRatio})`,
+            // Reference box for the badge's container-query sizing (cqw).
+            containerType: 'inline-size',
           }}
         >
           {previewUrl ? (
@@ -329,11 +397,24 @@ export default function DownloadSuccessPage() {
           <span className="absolute top-3 right-3 z-30 bg-accent text-white text-[11px] font-semibold px-2 py-1 rounded-md">
             HD
           </span>
+          {/* Live badge preview — pure CSS, baked into the file on download. */}
+          {previewUrl && badge.preset && (
+            <BadgeOverlay preset={badge.preset} text={badge.text} />
+          )}
         </FullscreenImage>
 
         <div className="mt-6">
           <h1 className="text-[24px] font-display font-semibold text-text-primary">{t('ready')}</h1>
           <p className="text-[14px] text-text-muted mt-1">{t('subtitle')}</p>
+        </div>
+
+        {/* Optional finishing touch — stamp a pre-designed label before download */}
+        <div className="mt-5">
+          <BadgeFinisher
+            value={badge}
+            onChange={handleBadgeChange}
+            brandName={session?.brandName}
+          />
         </div>
 
         {/* Primary download button */}

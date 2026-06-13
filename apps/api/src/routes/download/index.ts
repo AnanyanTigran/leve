@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import { prisma } from '../../lib/prisma'
 import { buildCloudfrontSignedUrl, downloadFromS3 } from '../../lib/cloudfront'
 import { exportForPlatform } from '../../services/export.service'
-import { applyTextOverlayToS3Image } from '../../lib/text-overlay'
+import { applyTextOverlayToS3Image, type BadgePresetId } from '../../lib/text-overlay'
 import { SessionService } from '../../services/session.service'
 import { UserService } from '../../services/user.service'
 import { Sentry } from '../../lib/sentry'
@@ -12,12 +12,12 @@ import { sessionOwnsJob, sessionHasGrant } from '../../lib/ownership'
 import { existsInS3 } from '../../lib/s3'
 import { ensureUpscaledHd, HdNotReadyError } from '../../providers/upscale.service'
 
-// Resolve the actual S3 key to serve for a job's HD download. If the user
-// configured a text overlay on /results, composite it onto the HD output
-// here so the downloaded image matches the live preview they saw.
+// Resolve the actual S3 key to serve for a job's HD download. If the seller
+// chose a badge on /download/success, composite it onto the HD output here so
+// the downloaded image matches the live preview they saw.
 async function resolveHdKeyWithOverlay(
   hdKey: string,
-  job: { id: string; sessionId: string; overlayText: string | null; overlayPosition: string | null },
+  job: { id: string; sessionId: string; overlayText: string | null; overlayPreset: string | null },
 ): Promise<string> {
   if (!job.overlayText) return hdKey
   return applyTextOverlayToS3Image({
@@ -25,7 +25,7 @@ async function resolveHdKeyWithOverlay(
     sessionId: job.sessionId,
     jobId: job.id,
     text: job.overlayText,
-    position: (job.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
+    preset: (job.overlayPreset as BadgePresetId) ?? 'price',
   })
 }
 
@@ -239,7 +239,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
             sessionId: session.sessionId,
             jobId,
             text: grant.job.overlayText,
-            position: (grant.job.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
+            preset: (grant.job.overlayPreset as BadgePresetId) ?? 'price',
           })
         } catch (err) {
           app.log.error({ requestId, jobId, platform, err }, 'overlay composite on export failed — serving clean export')
@@ -416,7 +416,7 @@ export async function registerDownloadRoutes(app: FastifyInstance) {
             sessionId: session.sessionId,
             jobId,
             text: grant.job.overlayText,
-            position: (grant.job.overlayPosition as 'top' | 'center' | 'bottom') ?? 'bottom',
+            preset: (grant.job.overlayPreset as BadgePresetId) ?? 'price',
           })
         } catch (err) {
           app.log.error({ requestId, jobId, platform, err }, 'overlay composite on export failed — serving clean export')

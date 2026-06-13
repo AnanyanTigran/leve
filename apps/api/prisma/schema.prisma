@@ -66,8 +66,9 @@ model GenerationJob {
   status           String    @default("queued") // "queued"|"processing"|"done"|"failed"|"credit_refunded"
   uploadS3Key      String
   compiledPrompt   String?
-  overlayText      String?   // extracted text-on-image request, applied post-generation
-  overlayPosition  String?   // "top" | "center" | "bottom" — default "bottom"
+  overlayText      String?   // badge label text, applied post-generation at download
+  overlayPreset    String?   // "price" | "sale" | "new" | "brand" — badge look + placement
+  overlayPosition  String?   // legacy — superseded by overlayPreset (placement now derives from preset)
   previewS3Keys    String[]  @default([])
   hdS3Key          String?
   qualityGatePassed Boolean?
