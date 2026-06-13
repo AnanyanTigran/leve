@@ -127,7 +127,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
     pollRef.current = setInterval(poll, POLL_INTERVAL_MS)
 
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [initialState])
+  }, [initialState, refreshSession])
 
   const handlePayment = useCallback(
     async (provider: 'idram' | 'telcell') => {
