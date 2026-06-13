@@ -13,6 +13,8 @@ import type { AspectRatio, ExportPlatform } from '@leve/types'
 import type { LucideIcon } from 'lucide-react'
 import { CropSelector, type CropRegion } from '@/components/results/crop-selector'
 import { FullscreenImage } from '@/components/shared/fullscreen-image'
+import { AppHeader } from '@/components/shared/app-header'
+import { BottomNav } from '@/components/shared/bottom-nav'
 import { BadgeFinisher, type BadgeSelection } from '@/components/download/badge-finisher'
 import { BadgeOverlay } from '@/components/download/badge-overlay'
 
@@ -358,7 +360,12 @@ export default function DownloadSuccessPage() {
   }
 
   return (
-    <div className="bg-bg-base min-h-[100dvh]">
+    <div className="flex flex-col min-h-[100dvh] bg-bg-base">
+      <AppHeader
+        variant="app"
+        showBack={false}
+        title={t('title')}
+      />
       <main className="page-funnel py-8 pb-12">
         {/* Generated image — sized to the generated image's natural aspect ratio.
             maxWidth pairs with maxHeight so the container doesn't go wider than
@@ -574,6 +581,7 @@ export default function DownloadSuccessPage() {
           onConfirm={(region) => void triggerDownload(region)}
         />
       )}
+      <BottomNav />
     </div>
   )
 }
