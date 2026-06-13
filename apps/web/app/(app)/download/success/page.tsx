@@ -366,7 +366,7 @@ export default function DownloadSuccessPage() {
         showBack={false}
         title={t('title')}
       />
-      <main className="page-funnel py-8 pb-12">
+      <main className="page-funnel py-8 pb-[calc(5rem_+_var(--safe-area-inset-bottom))]">
         {/* Generated image — sized to the generated image's natural aspect ratio.
             maxWidth pairs with maxHeight so the container doesn't go wider than
             the height budget allows, matching the approach used in the slider. */}
@@ -549,6 +549,8 @@ export default function DownloadSuccessPage() {
 
         </div>
 
+        {/* Uploading a fresh photo lives in the bottom nav, so only the
+            "Generate another scene" action remains here. */}
         <div className="md:max-w-[320px] md:mx-auto mt-6">
           <button
             onClick={() => router.push('/templates')}
@@ -557,12 +559,6 @@ export default function DownloadSuccessPage() {
             {t('generate_another')}
           </button>
         </div>
-        <button
-          onClick={() => router.push('/')}
-          className="block mx-auto text-[13px] text-text-muted hover:text-text-secondary font-semibold py-3 mt-1"
-        >
-          {t('upload_new_photo')}
-        </button>
       </main>
 
       {cropOpen && previewUrl && selectedPlatform !== 'original_hd' && (
