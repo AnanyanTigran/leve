@@ -132,6 +132,19 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
   const handlePayment = useCallback(
     async (provider: 'idram' | 'telcell') => {
       if (isLoading) return
+
+      // A purchase must attach to a generation job (the API rejects an empty
+      // jobId). When the sheet is opened without one — e.g. from the landing
+      // pricing section — send the user to create a generation first instead of
+      // firing a payment that would fail. On the results page a job is always
+      // present in sessionStorage, so this branch never runs there.
+      const effectiveJobId = jobId ?? sessionStorage.getItem('leve_job_id') ?? ''
+      if (!effectiveJobId) {
+        onClose()
+        router.push('/upload')
+        return
+      }
+
       setIsLoading(true)
 
       try {
@@ -140,7 +153,7 @@ export function PaywallSheet({ isOpen, onClose, jobId, initialState }: PaywallSh
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             packId: selectedPlan,
-            jobId: jobId ?? sessionStorage.getItem('leve_job_id') ?? '',
+            jobId: effectiveJobId,
             provider,
           }),
         })

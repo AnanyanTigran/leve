@@ -24,22 +24,15 @@ interface SceneDef {
 // ─── Grounding Sentences ──────────────────────────────────────────────────────
 // "Shadow Contact Anchors" — the single most effective cue for preventing floating
 // objects. Each grounding type gets a precise sentence tuned to its visual logic.
-//
-// Multi-instance preservation (audit A): contact_shadow / reflection / shadowless
-// are phrased per-item ("the products … each item … all items kept in their
-// original arrangement") so a pair/set on an empty studio surface is not collapsed
-// to a single hero object. The count-completeness clause in buildPreservationSuffix
-// (audit B) pins the count to the source so this plural phrasing cannot make a
-// genuine single product sprout a phantom second item. floating and embedded keep
-// their singular phrasing — they do not exhibit the collapse.
+
 
 const GROUNDING_SENTENCES: Record<Grounding, string> = {
   contact_shadow:
-    'The products rest firmly together on the surface, each item with its own soft natural contact shadow directly beneath it where it meets the surface, all items kept in their original arrangement, and the ambient scene light wraps gently around every item so they sit believably in the environment.',
+    'The product rests firmly on the surface with a soft natural contact shadow directly beneath it, darkest at the exact line where the product meets the surface, and the ambient scene light wraps gently around the product edges so it sits believably in the environment.',
   reflection:
-    'The products stand firmly together on the reflective surface, each item with its own clean subtle mirror reflection directly beneath it and a thin soft contact occlusion where it touches the surface, all items kept in their original arrangement.',
+    'The product stands firmly on the reflective surface with a clean subtle mirror reflection directly beneath it and a thin soft contact occlusion at the exact line where the product touches the surface.',
   shadowless:
-    'The products rest naturally together on the white surface, each item with only a faint ambient occlusion line where it touches the surface, all items kept in their original arrangement, keeping the backdrop itself completely clean and shadowless.',
+    'The product rests naturally on the white surface with only a faint ambient occlusion line exactly where it touches the surface, keeping the backdrop itself completely clean and shadowless.',
   floating:
     'A soft diffused shadow pool on the ground surface far beneath the levitating product anchors the levitation effect and prevents the product from appearing cut out.',
   embedded:
@@ -80,17 +73,9 @@ function buildPreservationSuffix(opts: {
   const identityLock = opts.hasScaleChip
     ? 'Keep the product itself identical to the source image — preserve its exact shape, colours, materials, labels, printed text, logos, and proportions, even if its position in the frame changes.'
     : 'Keep the product itself identical to the source image — preserve its exact shape, colours, materials, labels, printed text, logos, and proportions.'
-  // Count/completeness lock (audit B) — ALWAYS emitted, including for single
-  // products. This is the guard that lets the pluralized grounding sentences
-  // (audit A) stay unconditional: it pins the output count to the source, so a
-  // genuine single product cannot gain a phantom second item, and a pair/set
-  // cannot be collapsed, merged, or cropped down to one.
-  const countLock =
-    ' Keep all items from the source fully visible and intact — the number of items must remain exactly the same as the source; do not remove, merge, crop, or duplicate any item.'
   return (
     identityLock +
     poseLock +
-    countLock +
     ' Do not add any new text, badges, stickers, or watermarks to the product or scene.' +
     ' Preserve the original exposure and colour of the product itself while the new scene lighting wraps around it.'
   )
